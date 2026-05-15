@@ -9,6 +9,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from api.log import log_command_error
+from api.paginator import EmbedPaginator, PaginatorHelper
 from api.parser import StringToTime
 from core.cache import cache
 
@@ -21,10 +22,20 @@ class Reminder(commands.Cog):
         )
         self._init_db()
         self.check_reminders.start()
+        self.remind_me_about_menu = app_commands.ContextMenu(
+            name="remind-me-about",
+            callback=self.remind_me_about,
+            type=discord.AppCommandType.message,
+        )
+        self.bot.tree.add_command(self.remind_me_about_menu)
 
 
     def cog_unload(self) -> None:
         self.check_reminders.cancel()
+        self.bot.tree.remove_command(
+            self.remind_me_about_menu.name,
+            type=self.remind_me_about_menu.type,
+        )
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
@@ -89,6 +100,25 @@ class Reminder(commands.Cog):
                 return candidate
             counter += 1
 
+    def _insert_reminder(
+        self,
+        user_id: int,
+        name: str,
+        remind_at: int,
+        created_at: int | None = None,
+    ) -> str:
+        if created_at is None:
+            created_at = int(tm.time())
+        name = self._dedupe_reminder_name(user_id, name)
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO reminders (user_id, name, remind_at, created_at) "
+                "VALUES (?, ?, ?, ?)",
+                (user_id, name, remind_at, created_at),
+            )
+        self._invalidate_user_cache(user_id)
+        return name
+
 
     async def _send_due_reminders(self, rows: Iterable[sqlite3.Row]) -> None:
         for row in rows:
@@ -152,6 +182,8 @@ class Reminder(commands.Cog):
 
 
     @commands.hybrid_group(name="reminder", description="Manage reminders")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def reminder(self, ctx: commands.Context) -> None:
         if ctx.invoked_subcommand is None:
             await self._send_embed(
@@ -206,15 +238,12 @@ class Reminder(commands.Cog):
 
             now = int(tm.time())
             remind_at = now + sec
-            created_at = now
-            name = self._dedupe_reminder_name(ctx.author.id, name)
-            with self._connect() as conn:
-                conn.execute(
-                    "INSERT INTO reminders (user_id, name, remind_at, created_at) "
-                    "VALUES (?, ?, ?, ?)",
-                    (ctx.author.id, name, remind_at, created_at),
-                )
-            self._invalidate_user_cache(ctx.author.id)
+            name = self._insert_reminder(
+                ctx.author.id,
+                name,
+                remind_at,
+                created_at=now,
+            )
 
             await self._send_embed(
                 ctx,
@@ -224,8 +253,6 @@ class Reminder(commands.Cog):
         except Exception as exc:
             await self._send_embed(ctx, "Error creating reminder", ephemeral=True)
             await log_command_error(ctx, exc)
-
-
 
 
     @reminder.command(name="list", description="List your reminders")
@@ -239,14 +266,33 @@ class Reminder(commands.Cog):
             await self._send_embed(ctx, "You have no reminders.", ephemeral=True)
             return
 
-        lines = []
-        for reminder in reminders:
-            lines.append(f"`{reminder['name']}` - <t:{reminder['remind_at']}:R>")
-        message = "\n".join(lines)
-        if len(message) > 4000:
-            message = message[:4000] + "..."
+        lines = [f"`{reminder['name']}` - <t:{reminder['remind_at']}:R>" for reminder in reminders]
+        embeds = PaginatorHelper.create_adaptive_embeds(
+            lines,
+            title="Your reminders",
+            items_per_page=10,
+            max_chars=1000,
+        )
 
-        await self._send_embed(ctx, message, title="Your reminders", ephemeral=True)
+        if ctx.interaction:
+            view = EmbedPaginator(embeds, author_id=ctx.author.id)
+            await ctx.interaction.response.send_message(
+                embed=embeds[0],
+                view=view,
+                ephemeral=True,
+            )
+            return
+
+        view = EmbedPaginator(embeds, author_id=ctx.author.id)
+        await ctx.send(embed=embeds[0], view=view)
+
+    async def remind_me_about(
+        self,
+        interaction: discord.Interaction,
+        message: discord.Message,
+    ) -> None:
+        modal = ReminderContextModal(self, message)
+        await interaction.response.send_modal(modal)
 
 
 
@@ -327,3 +373,86 @@ class Reminder(commands.Cog):
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Reminder(bot))
+
+
+class ReminderContextModal(discord.ui.Modal):
+    def __init__(self, reminder_cog: Reminder, message: discord.Message) -> None:
+        super().__init__(title="Create reminder")
+        self.reminder_cog = reminder_cog
+        self.message = message
+        self.time_input = discord.ui.TextInput(
+            label="When should I remind you?",
+            placeholder="e.g. 1h, 30m, 2d",
+            max_length=50,
+        )
+        self.name_input = discord.ui.TextInput(
+            label="Reminder name",
+            placeholder="e.g. giveaway of ps5",
+            max_length=120,
+        )
+        self.add_item(self.time_input)
+        self.add_item(self.name_input)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        time_value = self.time_input.value.strip()
+        name_value = self.name_input.value.strip()
+
+        if not time_value:
+            await interaction.response.send_message(
+                "Please specify a time for the reminder.",
+                ephemeral=True,
+            )
+            return
+
+        if not name_value:
+            await interaction.response.send_message(
+                "Please specify a name for the reminder.",
+                ephemeral=True,
+            )
+            return
+
+        try:
+            sec = StringToTime(time_value)
+        except Exception:
+            await interaction.response.send_message(
+                "Please specify a valid time for the reminder.",
+                ephemeral=True,
+            )
+            return
+
+        if sec < 30:
+            await interaction.response.send_message(
+                "Please specify a time of at least 30 seconds.",
+                ephemeral=True,
+            )
+            return
+
+        message_link = self.message.jump_url
+        suffix = f" • {message_link}"
+        max_len = 120
+        if len(suffix) >= max_len:
+            await interaction.response.send_message(
+                "Message link is too long to store in a reminder.",
+                ephemeral=True,
+            )
+            return
+
+        base_max = max_len - len(suffix)
+        if base_max < 1:
+            base_max = 1
+        trimmed_name = name_value[:base_max].rstrip()
+        full_name = f"{trimmed_name}{suffix}"
+
+        now = int(tm.time())
+        remind_at = now + sec
+        full_name = self.reminder_cog._insert_reminder(
+            interaction.user.id,
+            full_name,
+            remind_at,
+            created_at=now,
+        )
+
+        await interaction.response.send_message(
+            f"You will be reminded about '{full_name}' in <t:{remind_at}:R>.",
+            ephemeral=True,
+        )

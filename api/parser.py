@@ -1,10 +1,12 @@
 import re
+import time as tm
 
 
 def StringToTime(time_str: str) -> int:
     """
     Parse time string and return seconds.
     Supports formats: 1s, 1m, 1h, 1d, 1w, 1sec, 1min, 1hrs, etc.
+    Also supports Discord timestamps like <t:1778847300:t>
 
     Args:
         time_str: Time string like "1h", "30m", "1d2h"
@@ -37,8 +39,15 @@ def StringToTime(time_str: str) -> int:
         "weeks": 604800,
     }
 
+    cleaned = time_str.strip()
+
+    timestamp_match = re.match(r"^<t:(\d+)(?::[tTdDfFR])?>$", cleaned)
+    if timestamp_match:
+        timestamp = int(timestamp_match.group(1))
+        return timestamp - int(tm.time())
+
     pattern = r"^(\d+(?:\.\d+)?)\s*([a-zA-Z]+)$"
-    match = re.match(pattern, time_str.strip().lower())
+    match = re.match(pattern, cleaned.lower())
 
     if not match:
         raise ValueError("Invalid time format. Use format like '1h', '30m', '1d'")

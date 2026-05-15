@@ -79,7 +79,7 @@ class Amenity(commands.Bot):
         #     f"Logged in as {self.user} (ID: {self.user.id}) | install scope: {install_scope}"
         # )
         logger.info(f"[+] | LOGGED IN AS {self.user}")
-        logger.info(f"[+] | WATCHING {self.users}")
+        #logger.info(f"[+] | WATCHING {self.users}")
 
 
     async def on_command_error(
