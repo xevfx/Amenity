@@ -8,6 +8,7 @@ import qrcode
 from discord import app_commands
 from discord.ext import commands
 from PIL import Image, ImageColor, ImageDraw, ImageFilter
+from simpleeval import simple_eval
 
 from api.log import log_exception
 from core.amenity import Amenity
@@ -179,6 +180,56 @@ class UserUtility(commands.Cog):
     async def ping(self, ctx: commands.Context) -> None:
         latency = self.bot.latency * 1000
         await ctx.reply(f"Latency: {latency:.2f} ms", ephemeral=True, mention_author=False)
+
+    @commands.hybrid_command(name="avatar", description="Fetch a user's avatar.")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @app_commands.describe(user="The user to fetch the avatar for.")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def avatar(self, ctx: commands.Context, user: discord.User | None = None) -> None:
+        target = user or ctx.author
+        avatar = target.display_avatar
+        embed = discord.Embed(
+            title=f"Avatar: {target}",
+            color=discord.Color.blue(),
+        )
+        embed.set_image(url=avatar.url)
+        embed.set_footer(
+            text=f"Requested by {ctx.author}",
+            icon_url=ctx.author.display_avatar.url,
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.hybrid_command(name="banner", description="Fetch a user's banner.")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @app_commands.describe(user="The user to fetch the banner for.")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def banner(self, ctx: commands.Context, user: discord.User | None = None) -> None:
+        target = user or ctx.author
+        try:
+            fetched = await self.bot.fetch_user(target.id)
+        except discord.HTTPException:
+            fetched = None
+
+        banner = fetched.banner if fetched else None
+        if banner is None:
+            await ctx.reply(
+                f"{target} does not have a banner.",
+                mention_author=False,
+            )
+            return
+
+        embed = discord.Embed(
+            title=f"Banner: {target}",
+            color=discord.Color.blurple(),
+        )
+        embed.set_image(url=banner.url)
+        embed.set_footer(
+            text=f"Requested by {ctx.author}",
+            icon_url=ctx.author.display_avatar.url,
+        )
+        await ctx.reply(embed=embed, mention_author=False)
 
     @commands.hybrid_group(
         name="qrcode",
@@ -597,6 +648,32 @@ class UserUtility(commands.Cog):
         except Exception as e:
             await ctx.reply("An error occurred.", ephemeral=True, delete_after=5)
             log_exception(e)
+
+
+
+    @commands.hybrid_command(name="math", description="Perform a math calculation.")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @commands.max_concurrency(10, commands.BucketType.default, wait=True)
+    async def math(self, ctx: commands.Context, *, expression: str):
+        """Performs a mathematical calculation."""
+        # A very basic and somewhat unsafe way to do math.
+        # For a production bot, consider using a library like 'numexpr'
+        try:
+            # We will use a whitelist of allowed characters for security
+            allowed_chars = "0123456789+-*/(). "
+            if not all(char in allowed_chars for char in expression):
+                await ctx.send("Invalid characters in expression.")
+                return
+
+            result = simple_eval(expression)
+            embed = discord.Embed(title="Math Calculation", color=discord.Color.purple())
+            embed.add_field(name=f"Expression", value=f"```\n{expression}\n```", inline=False)
+            embed.add_field(name=f"Result", value=f"```\n{result}\n```", inline=False)
+            await ctx.send(embed=embed)
+        except Exception as e:
+            await ctx.send(f"An error occurred")
 
 
 async def setup(bot: Amenity) -> None:

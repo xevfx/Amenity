@@ -7,3 +7,5 @@ pytest-asyncio
 dpytest
 qrcode
 Pillow
+aiohttp
+simpleeval

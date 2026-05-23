@@ -22,6 +22,62 @@ _ETH_PRICE_CACHE_KEY = "eth:usd_price"
 _SOL_PRICE_CACHE_KEY = "sol:usd_price"
 _COIN_LIST_CACHE_KEY = "coingecko:coin_list"
 _PRICE_DETAILS_CACHE_PREFIX = "price:multi:"
+_FIAT_CODES = {
+    "usd",
+    "eur",
+    "gbp",
+    "inr",
+    "aud",
+    "cad",
+    "chf",
+    "cny",
+    "jpy",
+    "krw",
+    "hkd",
+    "sgd",
+    "nzd",
+    "sek",
+    "nok",
+    "dkk",
+    "pln",
+    "czk",
+    "huf",
+    "try",
+    "mxn",
+    "brl",
+    "zar",
+    "idr",
+    "php",
+    "thb",
+    "myr",
+    "vnd",
+    "aed",
+    "sar",
+    "egp",
+    "ngn",
+    "ars",
+    "clp",
+    "cop",
+    "pen",
+    "twd",
+    "uah",
+    "ils",
+    "ron",
+    "bgn",
+    "isk",
+    "hrk",
+    "pkr",
+    "bdt",
+    "lkr",
+    "kes",
+    "ghs",
+    "mad",
+    "dzd",
+    "tnd",
+    "qar",
+    "kwd",
+    "omr",
+}
 
 
 class Crypto(commands.Cog):
@@ -175,15 +231,37 @@ class Crypto(commands.Cog):
     def _valid_address(self, address: str) -> bool:
         return bool(_ADDRESS_RE.match(address))
 
+    def _is_fiat(self, code: str) -> bool:
+        return code.lower().strip() in _FIAT_CODES
+
     async def _fetch_json(self, url: str) -> dict | None:
         try:
             async with self.aiohttp.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
                 if resp.status != 200:
                     return None
                 return await resp.json()
+        except (TimeoutError, aiohttp.ClientError):
+            return None
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             log_exception(exc)
             return None
+
+    async def _fetch_json_status(self, url: str) -> tuple[dict | None, int | None]:
+        try:
+            async with self.aiohttp.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                status = resp.status
+                if status != 200:
+                    return None, status
+                return await resp.json(), status
+        except (TimeoutError, aiohttp.ClientError):
+            return None, None
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            log_exception(exc)
+            return None, None
 
     async def _get_coin_list(self) -> list[dict]:
         async def fetch() -> list[dict]:
@@ -864,6 +942,187 @@ class Crypto(commands.Cog):
         )
         embed.set_footer(text="Data from CoinGecko")
         await ctx.send(embed=embed)
+
+    @commands.hybrid_command(
+        name="convert",
+        description="Convert between currencies (crypto & fiat).",
+    )
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def crypto_convert(
+        self,
+        ctx: commands.Context,
+        amount: float,
+        fromm: str,
+        to: str,
+    ) -> None:
+        """
+        Convert between any currencies (crypto & fiat).
+        Examples:
+        - ,convert 100 usd inr (fiat to fiat)
+        - ,convert 1 btc usd (crypto to fiat)
+        - ,convert 500 usd btc (fiat to crypto)
+        - ,convert 1 btc eth (crypto to crypto)
+        """
+        fromm = fromm.lower().strip()
+        to = to.lower().strip()
+
+        if fromm == to:
+            await ctx.send(f"{amount:,.2f} {fromm.upper()} = {amount:,.2f} {to.upper()}")
+            return
+
+        from_is_fiat = self._is_fiat(fromm)
+        to_is_fiat = self._is_fiat(to)
+
+        try:
+            if from_is_fiat and to_is_fiat:
+                url = (
+                    "https://api.frankfurter.app/latest"
+                    f"?amount={amount}&from={fromm.upper()}&to={to.upper()}"
+                )
+                data, status = await self._fetch_json_status(url)
+                rates = data.get("rates", {}) if isinstance(data, dict) else {}
+                result = rates.get(to.upper())
+                if result is not None:
+                    embed = discord.Embed(
+                        title="Currency Conversion",
+                        description=(
+                            f"**{amount:,.2f} {fromm.upper()}** = "
+                            f"**{result:,.2f} {to.upper()}**"
+                        ),
+                        color=discord.Color.blue(),
+                    )
+                    embed.set_footer(text="Exchange rates from Frankfurter (ECB)")
+                    await ctx.send(embed=embed)
+                elif status == 404:
+                    await ctx.send(
+                        f"Invalid currency code: `{fromm.upper()}` or `{to.upper()}`"
+                    )
+                else:
+                    await ctx.send(
+                        f"Could not convert {fromm.upper()} to {to.upper()}."
+                    )
+                return
+
+            if not from_is_fiat and to_is_fiat:
+                coin_id = await self._get_coin_id(fromm)
+                if not coin_id:
+                    await ctx.send(f"Could not find crypto: `{fromm}`")
+                    return
+
+                url = (
+                    "https://api.coingecko.com/api/v3/simple/price"
+                    f"?ids={coin_id}&vs_currencies={to}"
+                )
+                data, status = await self._fetch_json_status(url)
+                if status == 429:
+                    await ctx.send("⚠️ Rate limited. Please try again later.")
+                    return
+                if data and coin_id in data and to in data[coin_id]:
+                    rate = data[coin_id][to]
+                    result = amount * rate
+                    embed = discord.Embed(
+                        title="Crypto to Fiat",
+                        description=(
+                            f"**{amount:,.8g} {fromm.upper()}** = "
+                            f"**{result:,.2f} {to.upper()}**"
+                        ),
+                        color=discord.Color.gold(),
+                    )
+                    embed.set_footer(text="Data from CoinGecko")
+                    await ctx.send(embed=embed)
+                else:
+                    await ctx.send(
+                        f"Could not get rate for {fromm.upper()} in {to.upper()}."
+                    )
+                return
+
+            if from_is_fiat and not to_is_fiat:
+                coin_id = await self._get_coin_id(to)
+                if not coin_id:
+                    await ctx.send(f"Could not find crypto: `{to}`")
+                    return
+
+                url = (
+                    "https://api.coingecko.com/api/v3/simple/price"
+                    f"?ids={coin_id}&vs_currencies={fromm}"
+                )
+                data, status = await self._fetch_json_status(url)
+                if status == 429:
+                    await ctx.send("⚠️ Rate limited. Please try again later.")
+                    return
+                if data and coin_id in data and fromm in data[coin_id]:
+                    rate = data[coin_id][fromm]
+                    if not rate:
+                        await ctx.send(
+                            f"Could not get rate for {to.upper()} in {fromm.upper()}."
+                        )
+                        return
+                    result = amount / rate
+                    result_str = f"{result:,.6f}" if result >= 1 else f"{result:.8f}"
+                    embed = discord.Embed(
+                        title="Fiat to Crypto",
+                        description=(
+                            f"**{amount:,.2f} {fromm.upper()}** = "
+                            f"**{result_str} {to.upper()}**"
+                        ),
+                        color=discord.Color.gold(),
+                    )
+                    embed.set_footer(text="Data from CoinGecko")
+                    await ctx.send(embed=embed)
+                else:
+                    await ctx.send(
+                        f"Could not get rate for {to.upper()} in {fromm.upper()}."
+                    )
+                return
+
+            if not from_is_fiat and not to_is_fiat:
+                from_coin_id = await self._get_coin_id(fromm)
+                to_coin_id = await self._get_coin_id(to)
+
+                if not from_coin_id:
+                    await ctx.send(f"Could not find crypto: `{fromm}`")
+                    return
+                if not to_coin_id:
+                    await ctx.send(f"Could not find crypto: `{to}`")
+                    return
+
+                url = (
+                    "https://api.coingecko.com/api/v3/simple/price"
+                    f"?ids={from_coin_id},{to_coin_id}&vs_currencies=usd"
+                )
+                data, status = await self._fetch_json_status(url)
+                if status == 429:
+                    await ctx.send("⚠️ Rate limited. Please try again later.")
+                    return
+                from_usd = data.get(from_coin_id, {}).get("usd") if data else None
+                to_usd = data.get(to_coin_id, {}).get("usd") if data else None
+
+                if from_usd and to_usd:
+                    result = (amount * from_usd) / to_usd
+                    result_str = f"{result:,.6f}" if result >= 1 else f"{result:.8f}"
+                    embed = discord.Embed(
+                        title="Crypto to Crypto",
+                        description=(
+                            f"**{amount:,.8g} {fromm.upper()}** = "
+                            f"**{result_str} {to.upper()}**"
+                        ),
+                        color=discord.Color.purple(),
+                    )
+                    embed.add_field(
+                        name="Rate",
+                        value=f"1 {fromm.upper()} = {from_usd / to_usd:.8g} {to.upper()}",
+                        inline=False,
+                    )
+                    embed.set_footer(text="Data from CoinGecko (via USD)")
+                    await ctx.send(embed=embed)
+                else:
+                    await ctx.send("Could not get USD prices for one or both coins.")
+                return
+        except Exception as exc:
+            log_exception(exc)
+            await ctx.send("An error occurred during conversion.")
 
 
 async def setup(bot: Amenity) -> None:

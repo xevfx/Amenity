@@ -6,6 +6,7 @@ import discord
 from discord.ext import commands
 
 from api.buttons import confirm_action
+from api.commands_export import export_commands
 from core.amenity import Amenity
 from core.cache import cache
 
@@ -128,6 +129,26 @@ class Owner(commands.Cog):
 
         await self.bot.close()
         os.execv(sys.executable, [sys.executable, *sys.argv])
+
+    @commands.command(name="export-commands", hidden=True)
+    @commands.is_owner()
+    async def export_commands_cmd(self, ctx: commands.Context, output: str | None = None) -> None:
+        """
+        Export commands metadata to a JSON file.
+        """
+        output_path = output or "docs/commands.json"
+        try:
+            export_commands(self.bot, output_path)
+        except Exception as exc:
+            await ctx.reply(
+                f"Failed to export commands: {exc}",
+                mention_author=False,
+            )
+            return
+        await ctx.reply(
+            f"Exported commands to `{output_path}`",
+            mention_author=False,
+        )
 
 
 async def setup(bot: Amenity) -> None:

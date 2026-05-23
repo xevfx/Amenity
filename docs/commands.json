@@ -1,0 +1,2411 @@
+{
+  "generated_at": "2026-05-23T02:20:22.978109+00:00",
+  "counts": {
+    "prefix": 55,
+    "hybrid": 28,
+    "app": 37,
+    "total": 120
+  },
+  "commands": {
+    "prefix": [
+      {
+        "name": "role",
+        "qualified_name": "role",
+        "description": "Role utility commands",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "info",
+        "qualified_name": "role info",
+        "description": "Get details of a specific role.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "role",
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "role",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "Role"
+          }
+        ]
+      },
+      {
+        "name": "ltc-notifier",
+        "qualified_name": "ltc-notifier",
+        "description": "Manage your LTC notifier",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "Crypto",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "addy",
+        "qualified_name": "ltc-notifier addy",
+        "description": "Show your saved Litecoin address",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "ltc-notifier",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": []
+      },
+      {
+        "name": "set",
+        "qualified_name": "ltc-notifier set",
+        "description": "Set your Litecoin address",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "ltc-notifier",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "addy",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "change",
+        "qualified_name": "ltc-notifier change",
+        "description": "Change your saved Litecoin address",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "ltc-notifier",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "addy",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "qualified_name": "ltc-notifier delete",
+        "description": "Delete your saved Litecoin address",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "ltc-notifier",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": []
+      },
+      {
+        "name": "qrcode",
+        "qualified_name": "qrcode",
+        "description": "Generate various types of QR codes.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "qr"
+        ],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": []
+      },
+      {
+        "name": "ltc",
+        "qualified_name": "qrcode ltc",
+        "description": "Create a QR for ltc addy",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "addy",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "upi",
+        "qualified_name": "qrcode upi",
+        "description": "Create a QR for UPI with optional amount",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "inr"
+        ],
+        "hidden": false,
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "upi_id",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          },
+          {
+            "name": "amount",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": null,
+            "annotation": "Optional"
+          },
+          {
+            "name": "note",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": null,
+            "annotation": "Optional"
+          }
+        ]
+      },
+      {
+        "name": "text",
+        "qualified_name": "qrcode text",
+        "description": "Create a QR with custom text",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "txt"
+        ],
+        "hidden": false,
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "txt",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "paypal",
+        "qualified_name": "qrcode paypal",
+        "description": "Create QR for PayPal",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "pp"
+        ],
+        "hidden": false,
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "ppid",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "esewa",
+        "qualified_name": "qrcode esewa",
+        "description": "Create a QR for eSewa",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "npr"
+        ],
+        "hidden": false,
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "number",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          },
+          {
+            "name": "fullname",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "url",
+        "qualified_name": "qrcode url",
+        "description": "Create a QR with custom URL",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "link"
+        ],
+        "hidden": false,
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "url",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "balance",
+        "qualified_name": "balance",
+        "description": "Get crypto address balances",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "Crypto",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "ltc",
+        "qualified_name": "balance ltc",
+        "description": "Get the balance of a ltc address.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "balance",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "address",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "eth",
+        "qualified_name": "balance eth",
+        "description": "Get the balance of an eth address.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "balance",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "address",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "sol",
+        "qualified_name": "balance sol",
+        "description": "Get the balance of a sol address.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "balance",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "address",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "export-commands",
+        "qualified_name": "export-commands",
+        "description": "Export commands metadata to a JSON file.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": true,
+        "parent": null,
+        "category": "Owner",
+        "cog": "Owner",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "output",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": null,
+            "annotation": "Optional"
+          }
+        ]
+      },
+      {
+        "name": "ping",
+        "qualified_name": "ping",
+        "description": "Check the bot's latency.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": []
+      },
+      {
+        "name": "tinyurl",
+        "qualified_name": "tinyurl",
+        "description": "Shorten a URL using TinyURL",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": {
+          "rate": 1,
+          "per": 15.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "url",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "help",
+        "qualified_name": "help",
+        "description": "Shows this message",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": null,
+        "cog": null,
+        "cooldown": null,
+        "params": [
+          {
+            "name": "command",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": null,
+            "annotation": "Optional"
+          }
+        ]
+      },
+      {
+        "name": "member",
+        "qualified_name": "member",
+        "description": "Member utility commands",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "info",
+        "qualified_name": "member info",
+        "description": "Get information about a specific member.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "member",
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "user",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": null,
+            "annotation": "Member"
+          }
+        ]
+      },
+      {
+        "name": "jishaku",
+        "qualified_name": "jishaku",
+        "description": "The Jishaku debug and diagnostic commands.\n\nThis command on its own gives a status brief.\nAll other functionality is within its subcommands.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "jsk"
+        ],
+        "hidden": true,
+        "parent": null,
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "curl",
+        "qualified_name": "jishaku curl",
+        "description": "Download and display a text file from the internet.\n\nThis command is similar to jsk cat, but accepts a URL.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "url",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "sync",
+        "qualified_name": "jishaku sync",
+        "description": "Sync global or guild application commands to Discord.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "targets",
+            "kind": "VAR_POSITIONAL",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "py",
+        "qualified_name": "jishaku py",
+        "description": "Direct evaluation of Python code.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "python"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "argument",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "codeblock_converter"
+          }
+        ]
+      },
+      {
+        "name": "permtrace",
+        "qualified_name": "jishaku permtrace",
+        "description": "Calculates the source of granted or rejected permissions.\n\nThis accepts a channel, and either a member or a list of roles.\nIt calculates permissions the same way Discord does, while keeping track of the source.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "channel",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "Union"
+          },
+          {
+            "name": "targets",
+            "kind": "VAR_POSITIONAL",
+            "required": true,
+            "default": null,
+            "annotation": "Union"
+          }
+        ]
+      },
+      {
+        "name": "retain",
+        "qualified_name": "jishaku retain",
+        "description": "Turn variable retention for REPL on or off.\n\nProvide no argument for current status.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "toggle",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": null,
+            "annotation": "bool"
+          }
+        ]
+      },
+      {
+        "name": "ast",
+        "qualified_name": "jishaku ast",
+        "description": "Disassemble Python code into AST.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "argument",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "codeblock_converter"
+          }
+        ]
+      },
+      {
+        "name": "py_inspect",
+        "qualified_name": "jishaku py_inspect",
+        "description": "Evaluation of Python code with inspect information.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "pyi",
+          "python_inspect",
+          "pythoninspect"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "argument",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "codeblock_converter"
+          }
+        ]
+      },
+      {
+        "name": "dis",
+        "qualified_name": "jishaku dis",
+        "description": "Disassemble Python code into bytecode.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "disassemble"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "argument",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "codeblock_converter"
+          }
+        ]
+      },
+      {
+        "name": "specialist",
+        "qualified_name": "jishaku specialist",
+        "description": "Direct evaluation of Python code.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "argument",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "codeblock_converter"
+          }
+        ]
+      },
+      {
+        "name": "voice",
+        "qualified_name": "jishaku voice",
+        "description": "Voice-related commands.\n\nIf invoked without subcommand, relays current voice state.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "vc"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "resume",
+        "qualified_name": "jishaku voice resume",
+        "description": "Resumes a running audio source, if there is one.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku voice",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "join",
+        "qualified_name": "jishaku voice join",
+        "description": "Joins a voice channel, or moves to it if already connected.\n\nPassing a voice channel uses that voice channel.\nPassing a member will use that member's current voice channel.\nPassing nothing will use the author's voice channel.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "connect"
+        ],
+        "hidden": false,
+        "parent": "jishaku voice",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "destination",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": null,
+            "annotation": "Union"
+          }
+        ]
+      },
+      {
+        "name": "volume",
+        "qualified_name": "jishaku voice volume",
+        "description": "Adjusts the volume of an audio source if it is supported.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku voice",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "percentage",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "float"
+          }
+        ]
+      },
+      {
+        "name": "disconnect",
+        "qualified_name": "jishaku voice disconnect",
+        "description": "Disconnects from the voice channel in this guild, if there is one.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "dc"
+        ],
+        "hidden": false,
+        "parent": "jishaku voice",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "stop",
+        "qualified_name": "jishaku voice stop",
+        "description": "Stops running an audio source, if there is one.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku voice",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "pause",
+        "qualified_name": "jishaku voice pause",
+        "description": "Pauses a running audio source, if there is one.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku voice",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "play",
+        "qualified_name": "jishaku voice play",
+        "description": "Plays audio direct from a URI.\n\nCan be either a local file or an audio resource on the internet.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "play_local"
+        ],
+        "hidden": false,
+        "parent": "jishaku voice",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "uri",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "pip",
+        "qualified_name": "jishaku pip",
+        "description": "Shortcut for 'jsk sh pip'. Invokes the system shell.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "argument",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "codeblock_converter"
+          }
+        ]
+      },
+      {
+        "name": "shell",
+        "qualified_name": "jishaku shell",
+        "description": "Executes statements in the system shell.\n\nThis uses the system shell as defined in $SHELL, or `/bin/bash` otherwise.\nExecution can be cancelled by closing the paginator.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "bash",
+          "sh",
+          "powershell",
+          "ps1",
+          "ps",
+          "cmd",
+          "terminal"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "argument",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "codeblock_converter"
+          }
+        ]
+      },
+      {
+        "name": "node",
+        "qualified_name": "jishaku node",
+        "description": "Shortcut for scaffolding and executing 'npm run'. Only exists if the executables are detected.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "argument",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "codeblock_converter"
+          }
+        ]
+      },
+      {
+        "name": "git",
+        "qualified_name": "jishaku git",
+        "description": "Shortcut for 'jsk sh git'. Invokes the system shell.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "argument",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "codeblock_converter"
+          }
+        ]
+      },
+      {
+        "name": "override",
+        "qualified_name": "jishaku override",
+        "description": "Run a command with a different user, channel, or thread, optionally bypassing checks and cooldowns.\n\nUsers will try to resolve to a Member, but will use a User if it can't find one.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "execute",
+          "exec",
+          "override!",
+          "execute!",
+          "exec!"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "overrides",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "Greedy[Union]"
+          },
+          {
+            "name": "command_string",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "sql",
+        "qualified_name": "jishaku sql",
+        "description": "Parent for SQL adapter related commands",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "fetch",
+        "qualified_name": "jishaku sql fetch",
+        "description": "Fetch multiple rows from the SQL database.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku sql",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "query",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "select",
+        "qualified_name": "jishaku sql select",
+        "description": "Shortcut for 'jsk sql fetch select'.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku sql",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "query",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "fetchrow",
+        "qualified_name": "jishaku sql fetchrow",
+        "description": "Fetch a single row from the SQL database.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "fetchone"
+        ],
+        "hidden": false,
+        "parent": "jishaku sql",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "query",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "execute",
+        "qualified_name": "jishaku sql execute",
+        "description": "Executes a statement against the SQL database.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku sql",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "query",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "schema",
+        "qualified_name": "jishaku sql schema",
+        "description": "Queries for the current schema and shows located table structures.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku sql",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "query",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": null,
+            "annotation": "Optional"
+          }
+        ]
+      },
+      {
+        "name": "show",
+        "qualified_name": "jishaku show",
+        "description": "Shows Jishaku in the help command.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "hide",
+        "qualified_name": "jishaku hide",
+        "description": "Hides Jishaku from the help command.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "rerun",
+        "qualified_name": "jishaku rerun",
+        "description": "Re-run a command from a replied message or message link, optionally with a different user, channel or thread and/or bypassing checks and cooldowns\n\nUsers will try to resolve to a Member, but will use a User if it can't find one.\n\nPiggybacks off of `jsk override` so it accepts all the same overrides and has the same fundamental behaviors.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "rr",
+          "rerun!",
+          "rr!",
+          "re",
+          "re!"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "overrides",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "Greedy[Union]"
+          },
+          {
+            "name": "message",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": null,
+            "annotation": "Optional"
+          }
+        ]
+      },
+      {
+        "name": "unload",
+        "qualified_name": "jishaku unload",
+        "description": "Unloads the given extension names.\n\nReports any extensions that failed to unload.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "extensions",
+            "kind": "VAR_POSITIONAL",
+            "required": true,
+            "default": null,
+            "annotation": "ExtensionConverter"
+          }
+        ]
+      },
+      {
+        "name": "debug",
+        "qualified_name": "jishaku debug",
+        "description": "Run a command timing execution and catching exceptions.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "dbg"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "command_string",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "tasks",
+        "qualified_name": "jishaku tasks",
+        "description": "Shows the currently running jishaku tasks.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "repeat",
+        "qualified_name": "jishaku repeat",
+        "description": "Runs a command multiple times in a row.\n\nThis acts like the command was invoked several times manually, so it obeys cooldowns.\nYou can use this in conjunction with `jsk sudo` to bypass this.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "times",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "int"
+          },
+          {
+            "name": "command_string",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "cancel",
+        "qualified_name": "jishaku cancel",
+        "description": "Cancels a task with the given index.\n\nIf the index passed is -1, will cancel the last task instead.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "index",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "Union"
+          }
+        ]
+      },
+      {
+        "name": "load",
+        "qualified_name": "jishaku load",
+        "description": "Loads or reloads the given extension names.\n\nReports any extensions that failed to load.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "reload"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "extensions",
+            "kind": "VAR_POSITIONAL",
+            "required": true,
+            "default": null,
+            "annotation": "ExtensionConverter"
+          }
+        ]
+      },
+      {
+        "name": "shutdown",
+        "qualified_name": "jishaku shutdown",
+        "description": "Logs this bot out.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "logout"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "invite",
+        "qualified_name": "jishaku invite",
+        "description": "Retrieve the invite URL for this bot.\n\nIf the names of permissions are provided, they are requested as part of the invite.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "perms",
+            "kind": "VAR_POSITIONAL",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "source",
+        "qualified_name": "jishaku source",
+        "description": "Displays the source code for a command.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "src"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "command_name",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "cat",
+        "qualified_name": "jishaku cat",
+        "description": "Read out a file, using syntax highlighting if detected.\n\nLines and linespans are supported by adding '#L12' or '#L12-14' etc to the end of the filename.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "argument",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "rtt",
+        "qualified_name": "jishaku rtt",
+        "description": "Calculates Round-Trip Time to the API.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "ping"
+        ],
+        "hidden": false,
+        "parent": "jishaku",
+        "category": "Jishaku",
+        "cog": "Jishaku",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "reminder",
+        "qualified_name": "reminder",
+        "description": "Manage reminders",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [
+          "re"
+        ],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "Reminders",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "create",
+        "qualified_name": "reminder create",
+        "description": "Create a new reminder",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "c"
+        ],
+        "hidden": false,
+        "parent": "reminder",
+        "category": "Utilities",
+        "cog": "Reminders",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "time",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          },
+          {
+            "name": "name",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "nuke",
+        "qualified_name": "reminder nuke",
+        "description": "Nuke all your reminders",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "reminder",
+        "category": "Utilities",
+        "cog": "Reminders",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": []
+      },
+      {
+        "name": "delete",
+        "qualified_name": "reminder delete",
+        "description": "Delete a reminder",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "del"
+        ],
+        "hidden": false,
+        "parent": "reminder",
+        "category": "Utilities",
+        "cog": "Reminders",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "name",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "list",
+        "qualified_name": "reminder list",
+        "description": "List your reminders",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "ls"
+        ],
+        "hidden": false,
+        "parent": "reminder",
+        "category": "Utilities",
+        "cog": "Reminders",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": []
+      },
+      {
+        "name": "twitter",
+        "qualified_name": "twitter",
+        "description": "Embed an X.com post.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "tweet"
+        ],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "link",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "channel",
+        "qualified_name": "channel",
+        "description": "Channel utility commands",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "info",
+        "qualified_name": "channel info",
+        "description": "Get information about a specific channel.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "channel",
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "channel",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": null,
+            "annotation": "Union"
+          }
+        ]
+      },
+      {
+        "name": "server",
+        "qualified_name": "server",
+        "description": "Server utility commands",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "info",
+        "qualified_name": "server info",
+        "description": "Get information about the server.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": "server",
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": []
+      },
+      {
+        "name": "stats",
+        "qualified_name": "stats",
+        "description": "Show bot resource usage.",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": true,
+        "parent": null,
+        "category": "Owner",
+        "cog": "Owner",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "thumbnail",
+        "qualified_name": "thumbnail",
+        "description": "Fetch the youtube video thumnail.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "link",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "instagram",
+        "qualified_name": "instagram",
+        "description": "Embed an Instagram reel or post.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "ig"
+        ],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "link",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "restart",
+        "qualified_name": "restart",
+        "description": "Restart the bot (owner only).",
+        "usage": null,
+        "type": "prefix",
+        "aliases": [],
+        "hidden": true,
+        "parent": null,
+        "category": "Owner",
+        "cog": "Owner",
+        "cooldown": null,
+        "params": []
+      },
+      {
+        "name": "price",
+        "qualified_name": "price",
+        "description": "Get the price of a cryptocurrency.\nExamples: ,price btc | ,price bitcoin | ,price eth",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "Crypto",
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "type": null
+        },
+        "params": [
+          {
+            "name": "coin",
+            "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      },
+      {
+        "name": "tiktok",
+        "qualified_name": "tiktok",
+        "description": "Embed a TikTok video.",
+        "usage": null,
+        "type": "hybrid",
+        "aliases": [
+          "tt"
+        ],
+        "hidden": false,
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "cooldown": null,
+        "params": [
+          {
+            "name": "link",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null,
+            "annotation": "str"
+          }
+        ]
+      }
+    ],
+    "app": [
+      {
+        "name": "help",
+        "qualified_name": "help",
+        "description": "Show the help menu",
+        "type": "command",
+        "parent": null,
+        "category": "HelpCog",
+        "cog": "HelpCog",
+        "params": [
+          {
+            "name": "query",
+            "description": "Command or category",
+            "required": false,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "ltc-notifier",
+        "qualified_name": "ltc-notifier",
+        "description": "Manage your LTC notifier",
+        "type": "group",
+        "parent": null,
+        "category": null,
+        "cog": null,
+        "params": []
+      },
+      {
+        "name": "set",
+        "qualified_name": "ltc-notifier set",
+        "description": "Set your Litecoin address",
+        "type": "command",
+        "parent": "ltc-notifier",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "params": [
+          {
+            "name": "addy",
+            "description": "The Litecoin address to watch",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "change",
+        "qualified_name": "ltc-notifier change",
+        "description": "Change your saved Litecoin address",
+        "type": "command",
+        "parent": "ltc-notifier",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "params": [
+          {
+            "name": "addy",
+            "description": "The new Litecoin address to watch",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "addy",
+        "qualified_name": "ltc-notifier addy",
+        "description": "Show your saved Litecoin address",
+        "type": "command",
+        "parent": "ltc-notifier",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "params": []
+      },
+      {
+        "name": "delete",
+        "qualified_name": "ltc-notifier delete",
+        "description": "Delete your saved Litecoin address",
+        "type": "command",
+        "parent": "ltc-notifier",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "params": []
+      },
+      {
+        "name": "balance",
+        "qualified_name": "balance",
+        "description": "Get crypto address balances",
+        "type": "group",
+        "parent": null,
+        "category": null,
+        "cog": null,
+        "params": []
+      },
+      {
+        "name": "ltc",
+        "qualified_name": "balance ltc",
+        "description": "Get the balance of a ltc address.",
+        "type": "command",
+        "parent": "balance",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "params": [
+          {
+            "name": "address",
+            "description": "The Litecoin address to check",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "eth",
+        "qualified_name": "balance eth",
+        "description": "Get the balance of an eth address.",
+        "type": "command",
+        "parent": "balance",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "params": [
+          {
+            "name": "address",
+            "description": "The Ethereum address to check",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "sol",
+        "qualified_name": "balance sol",
+        "description": "Get the balance of a sol address.",
+        "type": "command",
+        "parent": "balance",
+        "category": "Utilities",
+        "cog": "Crypto",
+        "params": [
+          {
+            "name": "address",
+            "description": "The Solana address to check",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "price",
+        "qualified_name": "price",
+        "description": "Get the price of a cryptocurrency.",
+        "type": "command",
+        "parent": null,
+        "category": "Utilities",
+        "cog": "Crypto",
+        "params": [
+          {
+            "name": "coin",
+            "description": "\u2026",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "reminder",
+        "qualified_name": "reminder",
+        "description": "Manage reminders",
+        "type": "group",
+        "parent": null,
+        "category": null,
+        "cog": null,
+        "params": []
+      },
+      {
+        "name": "create",
+        "qualified_name": "reminder create",
+        "description": "Create a new reminder",
+        "type": "command",
+        "parent": "reminder",
+        "category": "Utilities",
+        "cog": "Reminders",
+        "params": [
+          {
+            "name": "time",
+            "description": "When to be reminded (e.g. 1h30m, 1h 30m, <t:1778847300:t>)",
+            "required": true,
+            "type": "string",
+            "choices": []
+          },
+          {
+            "name": "name",
+            "description": "The reminder message",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "list",
+        "qualified_name": "reminder list",
+        "description": "List your reminders",
+        "type": "command",
+        "parent": "reminder",
+        "category": "Utilities",
+        "cog": "Reminders",
+        "params": []
+      },
+      {
+        "name": "delete",
+        "qualified_name": "reminder delete",
+        "description": "Delete a reminder",
+        "type": "command",
+        "parent": "reminder",
+        "category": "Utilities",
+        "cog": "Reminders",
+        "params": [
+          {
+            "name": "name",
+            "description": "The name of the reminder to delete",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "nuke",
+        "qualified_name": "reminder nuke",
+        "description": "Nuke all your reminders",
+        "type": "command",
+        "parent": "reminder",
+        "category": "Utilities",
+        "cog": "Reminders",
+        "params": []
+      },
+      {
+        "name": "server",
+        "qualified_name": "server",
+        "description": "Server utility commands",
+        "type": "group",
+        "parent": null,
+        "category": null,
+        "cog": null,
+        "params": []
+      },
+      {
+        "name": "info",
+        "qualified_name": "server info",
+        "description": "Get information about the server.",
+        "type": "command",
+        "parent": "server",
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "params": []
+      },
+      {
+        "name": "role",
+        "qualified_name": "role",
+        "description": "Role utility commands",
+        "type": "group",
+        "parent": null,
+        "category": null,
+        "cog": null,
+        "params": []
+      },
+      {
+        "name": "info",
+        "qualified_name": "role info",
+        "description": "Get details of a specific role.",
+        "type": "command",
+        "parent": "role",
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "params": [
+          {
+            "name": "role",
+            "description": "The role to fetch information for.",
+            "required": true,
+            "type": "role",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "member",
+        "qualified_name": "member",
+        "description": "Member utility commands",
+        "type": "group",
+        "parent": null,
+        "category": null,
+        "cog": null,
+        "params": []
+      },
+      {
+        "name": "info",
+        "qualified_name": "member info",
+        "description": "Get information about a specific member.",
+        "type": "command",
+        "parent": "member",
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "params": [
+          {
+            "name": "user",
+            "description": "The member to fetch information for.",
+            "required": false,
+            "type": "user",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "channel",
+        "qualified_name": "channel",
+        "description": "Channel utility commands",
+        "type": "group",
+        "parent": null,
+        "category": null,
+        "cog": null,
+        "params": []
+      },
+      {
+        "name": "info",
+        "qualified_name": "channel info",
+        "description": "Get information about a specific channel.",
+        "type": "command",
+        "parent": "channel",
+        "category": "Utilities",
+        "cog": "Server Utility",
+        "params": [
+          {
+            "name": "channel",
+            "description": "The channel to fetch information for.",
+            "required": false,
+            "type": "channel",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "ping",
+        "qualified_name": "ping",
+        "description": "Check the bot's latency.",
+        "type": "command",
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": []
+      },
+      {
+        "name": "qrcode",
+        "qualified_name": "qrcode",
+        "description": "Generate various types of QR codes.",
+        "type": "group",
+        "parent": null,
+        "category": null,
+        "cog": null,
+        "params": []
+      },
+      {
+        "name": "text",
+        "qualified_name": "qrcode text",
+        "description": "Create a QR with custom text",
+        "type": "command",
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "txt",
+            "description": "The text to encode in the QR code (max 200 characters).",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "ltc",
+        "qualified_name": "qrcode ltc",
+        "description": "Create a QR for ltc addy",
+        "type": "command",
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "addy",
+            "description": "The Litecoin address to encode in the QR code.",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "upi",
+        "qualified_name": "qrcode upi",
+        "description": "Create a QR for UPI with optional amount",
+        "type": "command",
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "upi_id",
+            "description": "The UPI ID to encode in the QR code.",
+            "required": true,
+            "type": "string",
+            "choices": []
+          },
+          {
+            "name": "amount",
+            "description": "The amount to include in the UPI QR code (optional).",
+            "required": false,
+            "type": "number",
+            "choices": []
+          },
+          {
+            "name": "note",
+            "description": "A note to include in the UPI QR code (optional, max 100 characters).",
+            "required": false,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "paypal",
+        "qualified_name": "qrcode paypal",
+        "description": "Create QR for PayPal",
+        "type": "command",
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "ppid",
+            "description": "\u2026",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "url",
+        "qualified_name": "qrcode url",
+        "description": "Create a QR with custom URL",
+        "type": "command",
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "url",
+            "description": "\u2026",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "esewa",
+        "qualified_name": "qrcode esewa",
+        "description": "Create a QR for eSewa",
+        "type": "command",
+        "parent": "qrcode",
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "number",
+            "description": "\u2026",
+            "required": true,
+            "type": "string",
+            "choices": []
+          },
+          {
+            "name": "fullname",
+            "description": "\u2026",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "thumbnail",
+        "qualified_name": "thumbnail",
+        "description": "Fetch the youtube video thumnail.",
+        "type": "command",
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "link",
+            "description": "The YouTube video URL to fetch the thumbnail from.",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "instagram",
+        "qualified_name": "instagram",
+        "description": "Watch an Instagram reel without leaving Discord.",
+        "type": "command",
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "link",
+            "description": "The Instagram reel URL to embed.",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "twitter",
+        "qualified_name": "twitter",
+        "description": "Watch an X.com post without leaving Discord.",
+        "type": "command",
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "link",
+            "description": "The tweet URL to embed.",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "tiktok",
+        "qualified_name": "tiktok",
+        "description": "Watch a TikTok video without leaving Discord.",
+        "type": "command",
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "link",
+            "description": "The TikTok video URL to embed.",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "name": "tinyurl",
+        "qualified_name": "tinyurl",
+        "description": "Shorten a URL using TinyURL",
+        "type": "command",
+        "parent": null,
+        "category": "Utilities",
+        "cog": "User Utility",
+        "params": [
+          {
+            "name": "url",
+            "description": "\u2026",
+            "required": true,
+            "type": "string",
+            "choices": []
+          }
+        ]
+      }
+    ]
+  }
+}
