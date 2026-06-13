@@ -127,14 +127,23 @@ class Crypto(commands.Cog):
             return None, None
 
     async def _get_coin_list(self) -> list[dict]:
-        async def fetch() -> list[dict]:
-            url = "https://api.coingecko.com/api/v3/coins/list"
-            data = await self._fetch_json(url)
-            if isinstance(data, list):
-                return data
-            return []
+        # Avoid caching an empty list result from CoinGecko. If the cached
+        # value is an empty list it likely indicates a previous fetch failure
+        # and we should attempt to call the API again instead of treating the
+        # empty list as authoritative (which causes lookups to always fail).
+        cache_key = _COIN_LIST_CACHE_KEY
+        cached = cache.get(cache_key)
+        if isinstance(cached, list) and cached:
+            return cached
 
-        return await cache.get_or_set_async(_COIN_LIST_CACHE_KEY, fetch, ttl=21_600)
+        url = "https://api.coingecko.com/api/v3/coins/list"
+        data = await self._fetch_json(url)
+        if isinstance(data, list) and data:
+            cache.set(cache_key, data, ttl=21_600)
+            return data
+        # On failure, return an empty list but do not cache it so next call
+        # will try the API again.
+        return []
 
     async def _get_coin_id(self, coin: str) -> str | None:
         query = coin.lower().strip()

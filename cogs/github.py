@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from datetime import datetime
 from typing import TYPE_CHECKING
 from urllib.parse import quote_plus
@@ -220,6 +221,94 @@ class Github(commands.Cog):
         except Exception as exc:
             await ctx.send("An error occurred while searching for repositories")
             log_exception(exc)
+
+
+    @commands.hybrid_command(
+        name="prinfo",
+        description="Fetch detailed metrics about a GitHub Pull Request using its URL link."
+    )
+    @app_commands.describe(pr_url="The full web link to the GitHub Pull Request")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @commands.cooldown(1, 30, commands.BucketType.user)
+    async def pr_info_cmd(self, ctx: commands.Context, pr_url: str):
+
+
+        # 1. Regex URL Parsing match check
+        match = re.match(r"https?://github\.com/([^/]+)/([^/]+)/pull/(\d+)", pr_url.strip())
+        if not match:
+            err_embed = discord.Embed(
+                title="❌ Invalid PR Link",
+                description="Please provide a valid GitHub PR link format.\nExample: `https://github.com/discordjs/discord.js/pull/1234`",
+                color=discord.Color.red()
+            )
+            if ctx.interaction:
+                await ctx.interaction.followup.send(embed=err_embed)
+            else:
+                await ctx.send(embed=err_embed)
+            return
+
+        owner, repo, pr_number = match.groups()
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}"
+        headers = {"User-Agent": "Discord-Bot-PR-Fetcher"}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url, headers=headers) as resp:
+                if resp.status == 404:
+                    embed = discord.Embed(title="❌ PR Not Found", description=f"Could not find PR #{pr_number} under `{owner}/{repo}`.", color=discord.Color.red())
+                elif resp.status != 200:
+                    embed = discord.Embed(title="❌ API Failure", description=f"GitHub API returned code `{resp.status}`.", color=discord.Color.red())
+                else:
+                    data = await resp.json()
+
+                    # 2. Extract explicit details
+                    title = data.get("title", "No Title Provided")
+                    author = data["user"]["login"]
+                    avatar = data["user"]["avatar_url"]
+
+                    # Status evaluation rules (Merged vs Closed vs Open)
+                    state = data.get("state", "open").upper()
+                    if data.get("merged") == True:
+                        state = "MERGED"
+                        color = discord.Color.purple()
+                    else:
+                        color = discord.Color.green() if state == "OPEN" else discord.Color.red()
+
+                    # Line statistics changes metrics
+                    additions = data.get("additions", 0)
+                    deletions = data.get("deletions", 0)
+                    changed_files = data.get("changed_files", 0)
+                    commits = data.get("commits", 0)
+
+                    # Branches tracking structural pointers
+                    head_branch = data["head"]["ref"]
+                    base_branch = data["base"]["ref"]
+
+                    # Timestamp conversion parsing loop
+                    created_raw = data["created_at"]
+                    dt = datetime.strptime(created_raw, "%Y-%m-%dT%H:%M:%SZ")
+                    discord_ts = f"<t:{int(dt.timestamp())}:F>"
+
+                    # 3. Design output layout metrics block representation
+                    description = (
+                        f"📁 **Repository:** [{owner}/{repo}](https://github.com/{owner}/{repo})\n"
+                        f"🔀 **Pull Request:** [#{pr_number}]({pr_url}) — **{title}**\n"
+                        f"🏁 **Status:** `{state}`\n"
+                        f"--- \n"
+                        f"👤 **Opened By:** @{author}\n"
+                        f"📅 **Created At:** {discord_ts}\n"
+                        f"🌿 **Branch Path:** `{head_branch}` ➡️ `{base_branch}`\n\n"
+                        f"📊 **Pull Request Stats:**\n"
+                        f"🟩 Line Additions: `+{additions}`\n"
+                        f"🟥 Line Deletions: `-{deletions}`\n"
+                        f"📝 Changed Files: `{changed_files}`\n"
+                        f"📦 Internal Commits: `{commits}`"
+                    )
+
+                    embed = discord.Embed(title="🔀 GitHub Pull Request Details", description=description, color=color)
+                    embed.set_thumbnail(url=avatar)
+
+        await ctx.send(embed=embed)
 
 
 async def setup(bot: Amenity) -> None:
