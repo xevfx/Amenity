@@ -285,6 +285,7 @@ class Games(commands.Cog):
             return
         await ctx.send(embed=embed)
 
+
     @commands.hybrid_command(name="coinflip", description="Flip a coin.")
     @app_commands.describe(side="Optional: call heads or tails")
     @app_commands.allowed_installs(guilds=True, users=True)
@@ -294,8 +295,13 @@ class Games(commands.Cog):
         try:
             side = side.lower() if side else None
             result = random.choice(["heads", "tails"])
+            
             if side in ("heads", "tails", "h", "t"):
-                win = side == result
+                # Determine if the user's guess matches the result
+                win = (side.startswith("h") and result == "heads") or (
+                    side.startswith("t") and result == "tails"
+                )
+                
                 await self._send_embed(
                     ctx,
                     f"The coin landed **{result.upper()}**. {'You win!' if win else 'You lose.'}",
@@ -309,6 +315,7 @@ class Games(commands.Cog):
         except Exception as exc:
             log_exception(exc)
             await ctx.send("An error occurred while flipping the coin.")
+
 
     @commands.hybrid_command(name="blackjack", description="Play Blackjack with another user.")
     @app_commands.describe(opponent="User to challenge")
