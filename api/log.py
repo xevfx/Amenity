@@ -23,9 +23,7 @@ async def _send_exception_webhook(exception: Exception, hook: str | None = None)
             return
 
         error = getattr(exception, "original", exception)
-        traceback_text = "".join(
-            traceback.format_exception(type(error), error, error.__traceback__)
-        )
+        traceback_text = "".join(traceback.format_exception(type(error), error, error.__traceback__))
         traceback_text = _truncate_text(traceback_text, 3800)
 
         embed = discord.Embed(
@@ -157,9 +155,7 @@ async def log_command_error(ctx: commands.Context, exception: Exception) -> None
     """
     try:
         error = getattr(exception, "original", exception)
-        traceback_text = "".join(
-            traceback.format_exception(type(error), error, error.__traceback__)
-        )
+        traceback_text = "".join(traceback.format_exception(type(error), error, error.__traceback__))
         traceback_text = _truncate_text(traceback_text, 3800)
 
         embed = discord.Embed(
@@ -212,9 +208,7 @@ def _get_app_command_name(command: app_commands.Command | None) -> str:
     return name or str(command)
 
 
-async def log_app_command_usage(
-    interaction: discord.Interaction, command: app_commands.Command | None
-) -> None:
+async def log_app_command_usage(interaction: discord.Interaction, command: app_commands.Command | None) -> None:
     """
     Log app command usage for on_app_command_completion event.
 
@@ -248,11 +242,7 @@ async def log_app_command_usage(
         )
         embed.add_field(
             name="Server",
-            value=(
-                f"{interaction.guild.name} [`{interaction.guild.id}`]"
-                if interaction.guild
-                else "DM"
-            ),
+            value=(f"{interaction.guild.name} [`{interaction.guild.id}`]" if interaction.guild else "DM"),
             inline=False,
         )
         embed.add_field(
@@ -283,9 +273,7 @@ async def log_app_command_error(interaction: discord.Interaction, exception: Exc
     """
     try:
         error = getattr(exception, "original", exception)
-        traceback_text = "".join(
-            traceback.format_exception(type(error), error, error.__traceback__)
-        )
+        traceback_text = "".join(traceback.format_exception(type(error), error, error.__traceback__))
         traceback_text = _truncate_text(traceback_text, 3800)
 
         user = interaction.user
@@ -315,11 +303,7 @@ async def log_app_command_error(interaction: discord.Interaction, exception: Exc
         )
         embed.add_field(
             name="Server",
-            value=(
-                f"{interaction.guild.name} [`{interaction.guild.id}`]"
-                if interaction.guild
-                else "DM"
-            ),
+            value=(f"{interaction.guild.name} [`{interaction.guild.id}`]" if interaction.guild else "DM"),
             inline=False,
         )
         embed.add_field(

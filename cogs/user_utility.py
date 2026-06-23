@@ -545,15 +545,11 @@ class UserUtility(commands.Cog):
                 raise ValueError("Invalid YouTube URL.")
             vid_id = match.group(1)
             thumb_url = f"https://img.youtube.com/vi/{vid_id}/maxresdefault.jpg"
-            embed = discord.Embed(
-                description=f"## [YouTube Thumbnail]({link})", color=discord.Color.red()
-            )
+            embed = discord.Embed(description=f"## [YouTube Thumbnail]({link})", color=discord.Color.red())
             embed.set_image(url=thumb_url)
             await ctx.reply(embed=embed, mention_author=False)
         except Exception:
-            embed = discord.Embed(
-                description=" ❕ Error Fetching Thumbnail", color=discord.Color.red()
-            )
+            embed = discord.Embed(description=" ❕ Error Fetching Thumbnail", color=discord.Color.red())
             await ctx.reply(embed=embed, mention_author=False, delete_after=5, ephemeral=True)
 
     @commands.hybrid_command(
@@ -571,9 +567,7 @@ class UserUtility(commands.Cog):
         pattern = r"(?:https?://)?(?:www\.)?instagram\.com/(?:reel|p)/([a-zA-Z0-9_-]+)/?"
         match = re.search(pattern, link)
         if not match:
-            await ctx.reply(
-                "Invalid Instagram URL.", mention_author=False, delete_after=5, ephemeral=True
-            )
+            await ctx.reply("Invalid Instagram URL.", mention_author=False, delete_after=5, ephemeral=True)
             return
 
         newlink = link.replace("instagram.com", "kkinstagram.com")
@@ -594,17 +588,13 @@ class UserUtility(commands.Cog):
         pattern = r"(?:https?://)?(?:www\.)?x\.com/([a-zA-Z0-9_-]+)/status/(\d+)/?"
         match = re.search(pattern, link)
         if not match:
-            await ctx.reply(
-                "Invalid X.com URL.", mention_author=False, delete_after=5, ephemeral=True
-            )
+            await ctx.reply("Invalid X.com URL.", mention_author=False, delete_after=5, ephemeral=True)
             return
 
         newlink = link.replace("x.com", "fixupx.com")
         await ctx.reply(f"[Post]({newlink})", mention_author=False)
 
-    @commands.hybrid_command(
-        name="tiktok", description="Watch a TikTok video without leaving Discord.", aliases=["tt"]
-    )
+    @commands.hybrid_command(name="tiktok", description="Watch a TikTok video without leaving Discord.", aliases=["tt"])
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.describe(link="The TikTok video URL to embed.")
@@ -615,9 +605,7 @@ class UserUtility(commands.Cog):
         pattern = r"(?:https?://)?(?:www\.)?tiktok\.com/@([a-zA-Z0-9_-]+)/video/(\d+)/?"
         match = re.search(pattern, link)
         if not match:
-            await ctx.reply(
-                "Invalid TikTok URL.", mention_author=False, delete_after=5, ephemeral=True
-            )
+            await ctx.reply("Invalid TikTok URL.", mention_author=False, delete_after=5, ephemeral=True)
             return
 
         newlink = link.replace("tiktok.com", "tnktok.com")
@@ -654,9 +642,7 @@ class UserUtility(commands.Cog):
                     )
                     return
                 short_url = await resp.text()
-            embed = discord.Embed(
-                title="Shortened URL", description=f"{short_url}", color=discord.Color.blue()
-            )
+            embed = discord.Embed(title="Shortened URL", description=f"{short_url}", color=discord.Color.blue())
             embed.add_field(name="Original", value=url.lower(), inline=False)
             await ctx.reply(embed=embed, mention_author=False)
         except Exception as e:
@@ -786,10 +772,7 @@ class UserUtility(commands.Cog):
         target = to or "en"
         resolved = _resolve_language(target)
         if resolved is None:
-            await ctx.send(
-                "Unknown language "
-                f"`{target}`. Use a language name or code (e.g., `Spanish` or `es`)."
-            )
+            await ctx.send(f"Unknown language `{target}`. Use a language name or code (e.g., `Spanish` or `es`).")
             return
         dest_code, dest_name = resolved
         try:

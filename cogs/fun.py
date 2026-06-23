@@ -194,20 +194,13 @@ class Fun(commands.Cog):
         rate = random.randint(0, 100)
         await ctx.send(
             embed=discord.Embed(
-                description=f"{target.mention} is {rate}% gay!",
-                title="Gay Rate",
-                color=discord.Color.pink()
+                description=f"{target.mention} is {rate}% gay!", title="Gay Rate", color=discord.Color.pink()
             ),
-            ephemeral=True
+            ephemeral=True,
         )
-        
 
-    @commands.hybrid_command(
-        name="faker", description="Generate a fake name and address by country name or code."
-    )
-    @app_commands.describe(
-        country="Optional: Country name or 2-letter code (e.g. Nepal, India, US, IN)"
-    )
+    @commands.hybrid_command(name="faker", description="Generate a fake name and address by country name or code.")
+    @app_commands.describe(country="Optional: Country name or 2-letter code (e.g. Nepal, India, US, IN)")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -290,14 +283,10 @@ class Fun(commands.Cog):
             f"📮 **Postal Code:** `{postal_code}`"
         )
 
-        embed = discord.Embed(
-            title="📍 Generated Address Info", description=description, color=discord.Color.teal()
-        )
+        embed = discord.Embed(title="📍 Generated Address Info", description=description, color=discord.Color.teal())
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(
-        name="dad-joke", description="Get a random dad joke from icanhazdadjoke."
-    )
+    @commands.hybrid_command(name="dad-joke", description="Get a random dad joke from icanhazdadjoke.")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -308,9 +297,7 @@ class Fun(commands.Cog):
             async with session.get("https://icanhazdadjoke.com/", headers=headers) as resp:
                 if resp.status == 200:
                     data = await resp.json()
-                    embed = discord.Embed(
-                        title="👨 Dad Joke", description=data["joke"], color=discord.Color.orange()
-                    )
+                    embed = discord.Embed(title="👨 Dad Joke", description=data["joke"], color=discord.Color.orange())
                 else:
                     embed = discord.Embed(
                         title="❌ API Error",
@@ -320,16 +307,12 @@ class Fun(commands.Cog):
 
         await ctx.send(embed=embed)
 
-
-    @commands.hybrid_command(
-        name="dark-joke",
-        description="Get a random dark joke from the Official Joke API."
-    )
+    @commands.hybrid_command(name="dark-joke", description="Get a random dark joke from the Official Joke API.")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.cooldown(1, 3, commands.BucketType.user)
     @commands.max_concurrency(20, commands.BucketType.default, wait=True)
-    async def dark_joke_cmd(self, ctx: commands.Context):
+    async def dark_joke_cmd(self, ctx: commands.Context) -> None:
         """
         Get a random dark joke from the Official Joke API.
         """
@@ -340,21 +323,19 @@ class Fun(commands.Cog):
                     return await ctx.send("Could not fetch a joke at this time.")
                 data = await resp.json()
 
-            if data.get('type') == 'single':
-                joke_text = data.get('joke', 'No joke found.')
+            if data.get("type") == "single":
+                joke_text = data.get("joke", "No joke found.")
             else:
-                setup = data.get('setup', '')
-                delivery = data.get('delivery', '')
+                setup = data.get("setup", "")
+                delivery = data.get("delivery", "")
                 joke_text = f"{setup}\n\n{delivery}"
 
             embed = discord.Embed(
-                title="Here's a dark joke for you!",
-                description=joke_text,
-                color=discord.Color.dark_grey()
+                title="Here's a dark joke for you!", description=joke_text, color=discord.Color.dark_grey()
             )
-            await ctx.reply(embed=embed,mention_author=False)
+            await ctx.reply(embed=embed, mention_author=False)
         except Exception as e:
-            await ctx.send(f"An error occurred")
+            await ctx.send("An error occurred")
             await log_exception(e)
 
     @commands.hybrid_command(name="fact", description="Get a random completely useless fact.")

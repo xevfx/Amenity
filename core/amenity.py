@@ -40,7 +40,7 @@ class Amenity(commands.Bot):
             help_command=AmenityHelpCommand(),
             owner_id=931347423773741097,
             strip_after_prefix=True,
-            allowed_mentions=discord.AllowedMentions.none(),
+            allowed_mentions=discord.AllowedMentions(everyone=False, users=True, roles=False, replied_user=True)
         )
 
     async def on_connect(self) -> None:
@@ -191,9 +191,7 @@ class Amenity(commands.Bot):
 
         if isinstance(exception, app_commands.CommandOnCooldown):
             embed = discord.Embed(
-                description=(
-                    f"Command on cooldown. Try again after {exception.retry_after:.2f} seconds."
-                ),
+                description=(f"Command on cooldown. Try again after {exception.retry_after:.2f} seconds."),
                 color=discord.Color.red(),
             )
             await send_error(embed, ephemeral=True)
@@ -208,9 +206,7 @@ class Amenity(commands.Bot):
             return
 
         if isinstance(exception, app_commands.NoPrivateMessage):
-            embed = discord.Embed(
-                description="This command can only be used in a server.", color=discord.Color.red()
-            )
+            embed = discord.Embed(description="This command can only be used in a server.", color=discord.Color.red())
             await send_error(embed, ephemeral=True)
             return
 

@@ -11,6 +11,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from api.emojis import Emoji
 from api.log import log_exception
 
 if TYPE_CHECKING:
@@ -57,11 +58,7 @@ class Github(commands.Cog):
     async def github(self, ctx: commands.Context) -> None:
         prefix = ctx.prefix or "/"
         cmds = "\n".join(
-            [
-                f"{prefix}github {cmd.name} - {cmd.description}"
-                for cmd in self.github.walk_commands()
-                if cmd.description
-            ]
+            [f"{prefix}github {cmd.name} - {cmd.description}" for cmd in self.github.walk_commands() if cmd.description]
         )
         if not cmds:
             cmds = "No commands available."
@@ -116,8 +113,7 @@ class Github(commands.Cog):
     async def reposearch(self, ctx: commands.Context, *, query: str) -> None:
         try:
             api_url = (
-                "https://api.github.com/search/repositories"
-                f"?q={quote_plus(query)}&sort=stars&order=desc&per_page=10"
+                f"https://api.github.com/search/repositories?q={quote_plus(query)}&sort=stars&order=desc&per_page=10"
             )
             data, status = await self._fetch_json(api_url)
             if not data or status != 200:
@@ -131,9 +127,9 @@ class Github(commands.Cog):
 
             def make_embed(repo: dict) -> discord.Embed:
                 embed = discord.Embed(
-                    title=repo["full_name"],
-                    url=repo["html_url"],
-                    description=repo.get("description") or "No description provided.",
+                    title=f"{Emoji.GITHUB.value} {repo['full_name']}",
+                    url=repo['html_url'],
+                    description=repo.get('description') or "No description provided.",
                     color=discord.Color.dark_grey(),
                 )
                 owner = repo.get("owner") or {}
@@ -180,12 +176,8 @@ class Github(commands.Cog):
                     self.repos = repos
                     self.index = 0
                     self.message: discord.Message | None = None
-                    self.previous_button = discord.ui.Button(
-                        label="Previous", style=discord.ButtonStyle.secondary
-                    )
-                    self.next_button = discord.ui.Button(
-                        label="Next", style=discord.ButtonStyle.secondary
-                    )
+                    self.previous_button = discord.ui.Button(label="Previous", style=discord.ButtonStyle.secondary)
+                    self.next_button = discord.ui.Button(label="Next", style=discord.ButtonStyle.secondary)
                     self.previous_button.callback = self.previous_callback
                     self.next_button.callback = self.next_callback
                     self.add_item(self.previous_button)
@@ -222,21 +214,18 @@ class Github(commands.Cog):
             await ctx.send("An error occurred while searching for repositories")
             log_exception(exc)
 
-    @commands.hybrid_command(
-        name="prinfo",
+    @github.command(
+        name="pull-request",
         description="Fetch detailed metrics about a GitHub Pull Request using its URL link.",
     )
-    @app_commands.describe(pr_url="The full web link to the GitHub Pull Request")
-    @app_commands.allowed_installs(guilds=True, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @commands.cooldown(1, 30, commands.BucketType.user)
+    @app_commands.describe(pr_url="The full URL of the GitHub Pull Request to fetch details for.")
     async def pr_info_cmd(self, ctx: commands.Context, pr_url: str) -> None:
 
         # 1. Regex URL Parsing match check
         match = re.match(r"https?://github\.com/([^/]+)/([^/]+)/pull/(\d+)", pr_url.strip())
         if not match:
             err_embed = discord.Embed(
-                title="❌ Invalid PR Link",
+                title=f"{Emoji.CROSS.value} Invalid PR Link",
                 description="Please provide a valid GitHub PR link format.\nExample: `https://github.com/discordjs/discord.js/pull/1234`",
                 color=discord.Color.red(),
             )
@@ -256,13 +245,13 @@ class Github(commands.Cog):
         ):
             if resp.status == 404:
                 embed = discord.Embed(
-                    title="❌ PR Not Found",
+                    title=f"{Emoji.CROSS.value} PR Not Found",
                     description=f"Could not find PR #{pr_number} under `{owner}/{repo}`.",
                     color=discord.Color.red(),
                 )
             elif resp.status != 200:
                 embed = discord.Embed(
-                    title="❌ API Failure",
+                    title=f"{Emoji.CROSS.value} API Failure",
                     description=f"GitHub API returned code `{resp.status}`.",
                     color=discord.Color.red(),
                 )
@@ -299,23 +288,22 @@ class Github(commands.Cog):
 
                 # 3. Design output layout metrics block representation
                 description = (
-                    f"📁 **Repository:** [{owner}/{repo}](https://github.com/{owner}/{repo})\n"
-                    f"🔀 **Pull Request:** [#{pr_number}]({pr_url}) — **{title}**\n"
-                    f"🏁 **Status:** `{state}`\n"
+                    f"{Emoji.FILE.value} **Repository:** [{owner}/{repo}](https://github.com/{owner}/{repo})\n"
+                    f"{Emoji.INVITE.value} **Pull Request:** [#{pr_number}]({pr_url}) — **{title}**\n"
+                    f"{Emoji.PING.value} **Status:** `{state}`\n"
                     f"--- \n"
-                    f"👤 **Opened By:** @{author}\n"
-                    f"📅 **Created At:** {discord_ts}\n"
-                    f"🌿 **Branch Path:** `{head_branch}` ➡️ `{base_branch}`\n\n"
-                    f"📊 **Pull Request Stats:**\n"
-                    f"🟩 Line Additions: `+{additions}`\n"
-                    f"🟥 Line Deletions: `-{deletions}`\n"
-                    f"📝 Changed Files: `{changed_files}`\n"
-                    f"📦 Internal Commits: `{commits}`"
+                    f"{Emoji.CROWN.value} **Opened By:** @{author}\n"
+                    f"{Emoji.TIME.value} **Created At:** {discord_ts}\n"
+                    f"{Emoji.LEAF.value} **Branch Path:** `{head_branch}` ➡️ `{base_branch}`\n\n"
+                    f"{Emoji.UPSHIFT.value} **Pull Request Stats:**\n"
+                    f"{Emoji.ADD.value} Line Additions: `+{additions}`\n"
+                    f"{Emoji.DELETE.value} Line Deletions: `-{deletions}`\n"
+                    f"{Emoji.SHINE.value} Changed Files: `{changed_files}`\n"
+                    f"{Emoji.ENCRYPTION.value} Internal Commits: `{commits}`"
                 )
 
-                embed = discord.Embed(
-                    title="🔀 GitHub Pull Request Details", description=description, color=color
-                )
+                embed = discord.Embed(title=f"{Emoji.GITHUB.value} GitHub Pull Request Details",
+                                      description=description, color=color)
                 embed.set_thumbnail(url=avatar)
 
         await ctx.send(embed=embed)

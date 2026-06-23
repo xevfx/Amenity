@@ -7,6 +7,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from api.emojis import Emoji
 from api.log import log_exception
 from core.amenity import Amenity
 from core.cache import cache
@@ -168,18 +169,19 @@ class Crypto(commands.Cog):
         if not coins:
             return None
 
+        # Prefer exact ID match
         for entry in coins:
             if entry.get("id") == query:
                 return entry.get("id")
 
+        # Then name match
         for entry in coins:
-            name = str(entry.get("name") or "").lower()
-            if name == query:
+            if str(entry.get("name") or "").lower() == query:
                 return entry.get("id")
 
+        # Then symbol match
         for entry in coins:
-            symbol = str(entry.get("symbol") or "").lower()
-            if symbol == query:
+            if str(entry.get("symbol") or "").lower() == query:
                 return entry.get("id")
 
         return None
@@ -207,9 +209,7 @@ class Crypto(commands.Cog):
         if isinstance(cached, (int, float)):
             return float(cached)
 
-        coingecko_url = (
-            "https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=usd"
-        )
+        coingecko_url = "https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=usd"
         data = await self._fetch_json(coingecko_url)
         price = None
         if data and isinstance(data.get("litecoin"), dict):
@@ -233,9 +233,7 @@ class Crypto(commands.Cog):
         if isinstance(cached, (int, float)):
             return float(cached)
 
-        coingecko_url = (
-            f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
-        )
+        coingecko_url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
         data = await self._fetch_json(coingecko_url)
         price = None
         if data and isinstance(data.get(coin_id), dict):
@@ -296,9 +294,7 @@ class Crypto(commands.Cog):
                     await ctx.send("⚠️ Rate limited by BlockCypher. Please try again later.")
                     return
                 else:
-                    await ctx.send(
-                        f"Error fetching balance from BlockCypher (Status: {response.status})."
-                    )
+                    await ctx.send(f"Error fetching balance from BlockCypher (Status: {response.status}).")
                     return
         except Exception as exc:
             log_exception(exc)
@@ -364,9 +360,7 @@ class Crypto(commands.Cog):
                     await ctx.send("⚠️ Rate limited by BlockCypher. Please try again later.")
                     return
                 else:
-                    await ctx.send(
-                        f"Error fetching balance from BlockCypher (Status: {response.status})."
-                    )
+                    await ctx.send(f"Error fetching balance from BlockCypher (Status: {response.status}).")
                     return
         except Exception as exc:
             log_exception(exc)
@@ -438,9 +432,7 @@ class Crypto(commands.Cog):
                 if response.status == 200:
                     data = await response.json()
                 else:
-                    await ctx.send(
-                        f"Error fetching balance from Solana RPC (Status: {response.status})."
-                    )
+                    await ctx.send(f"Error fetching balance from Solana RPC (Status: {response.status}).")
                     return
         except Exception as exc:
             log_exception(exc)
@@ -530,7 +522,7 @@ class Crypto(commands.Cog):
             change_str = f"\n\n{emoji} **24h Change:** {change_24h:+.2f}%"
 
         embed = discord.Embed(
-            title=f"💰 Price of {coin.upper()}",
+            title=f"{Emoji.CRYPTO.value} Price of {coin.upper()}",
             description=" | ".join(lines) + change_str,
             color=discord.Color.green()
             if (isinstance(change_24h, (int, float)) and change_24h >= 0)
@@ -578,19 +570,14 @@ class Crypto(commands.Cog):
 
         try:
             if from_is_fiat and to_is_fiat:
-                url = (
-                    "https://api.frankfurter.app/latest"
-                    f"?amount={amount}&from={fromm.upper()}&to={to.upper()}"
-                )
+                url = f"https://api.frankfurter.app/latest?amount={amount}&from={fromm.upper()}&to={to.upper()}"
                 data, status = await self._fetch_json_status(url)
                 rates = data.get("rates", {}) if isinstance(data, dict) else {}
                 result = rates.get(to.upper())
                 if result is not None:
                     embed = discord.Embed(
                         title="Currency Conversion",
-                        description=(
-                            f"**{amount:,.2f} {fromm.upper()}** = **{result:,.2f} {to.upper()}**"
-                        ),
+                        description=(f"**{amount:,.2f} {fromm.upper()}** = **{result:,.2f} {to.upper()}**"),
                         color=discord.Color.blue(),
                     )
                     embed.set_footer(text="Exchange rates from Frankfurter (ECB)")
@@ -607,10 +594,7 @@ class Crypto(commands.Cog):
                     await ctx.send(f"Could not find crypto: `{fromm}`")
                     return
 
-                url = (
-                    "https://api.coingecko.com/api/v3/simple/price"
-                    f"?ids={coin_id}&vs_currencies={to}"
-                )
+                url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies={to}"
                 data, status = await self._fetch_json_status(url)
                 if status == 429:
                     await ctx.send("⚠️ Rate limited. Please try again later.")
@@ -620,9 +604,7 @@ class Crypto(commands.Cog):
                     result = amount * rate
                     embed = discord.Embed(
                         title="Crypto to Fiat",
-                        description=(
-                            f"**{amount:,.8g} {fromm.upper()}** = **{result:,.2f} {to.upper()}**"
-                        ),
+                        description=(f"**{amount:,.8g} {fromm.upper()}** = **{result:,.2f} {to.upper()}**"),
                         color=discord.Color.gold(),
                     )
                     embed.set_footer(text="Data from CoinGecko")
@@ -637,10 +619,7 @@ class Crypto(commands.Cog):
                     await ctx.send(f"Could not find crypto: `{to}`")
                     return
 
-                url = (
-                    "https://api.coingecko.com/api/v3/simple/price"
-                    f"?ids={coin_id}&vs_currencies={fromm}"
-                )
+                url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies={fromm}"
                 data, status = await self._fetch_json_status(url)
                 if status == 429:
                     await ctx.send("⚠️ Rate limited. Please try again later.")
@@ -654,9 +633,7 @@ class Crypto(commands.Cog):
                     result_str = f"{result:,.6f}" if result >= 1 else f"{result:.8f}"
                     embed = discord.Embed(
                         title="Fiat to Crypto",
-                        description=(
-                            f"**{amount:,.2f} {fromm.upper()}** = **{result_str} {to.upper()}**"
-                        ),
+                        description=(f"**{amount:,.2f} {fromm.upper()}** = **{result_str} {to.upper()}**"),
                         color=discord.Color.gold(),
                     )
                     embed.set_footer(text="Data from CoinGecko")
@@ -676,10 +653,7 @@ class Crypto(commands.Cog):
                     await ctx.send(f"Could not find crypto: `{to}`")
                     return
 
-                url = (
-                    "https://api.coingecko.com/api/v3/simple/price"
-                    f"?ids={from_coin_id},{to_coin_id}&vs_currencies=usd"
-                )
+                url = f"https://api.coingecko.com/api/v3/simple/price?ids={from_coin_id},{to_coin_id}&vs_currencies=usd"
                 data, status = await self._fetch_json_status(url)
                 if status == 429:
                     await ctx.send("⚠️ Rate limited. Please try again later.")
@@ -692,9 +666,7 @@ class Crypto(commands.Cog):
                     result_str = f"{result:,.6f}" if result >= 1 else f"{result:.8f}"
                     embed = discord.Embed(
                         title="Crypto to Crypto",
-                        description=(
-                            f"**{amount:,.8g} {fromm.upper()}** = **{result_str} {to.upper()}**"
-                        ),
+                        description=(f"**{amount:,.8g} {fromm.upper()}** = **{result_str} {to.upper()}**"),
                         color=discord.Color.purple(),
                     )
                     embed.add_field(

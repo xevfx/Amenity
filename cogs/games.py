@@ -87,9 +87,7 @@ class TicTacToeButton(discord.ui.Button["TicTacToeView"]):
             view.stop()
         else:
             # Game continues, update turn prompt
-            current_mention = (
-                view.player_x.mention if view.turn == view.X else view.player_o.mention
-            )
+            current_mention = view.player_x.mention if view.turn == view.X else view.player_o.mention
             content = (
                 f"🎮 Tic-Tac-Toe: {view.player_x.mention} (X) vs "
                 f"{view.player_o.mention} (O)\n➡️ Current Turn: {current_mention}"
@@ -187,9 +185,7 @@ class MinesTileButton(discord.ui.Button["MinesView"]):
                 await view.end_game(interaction, won=True)
             else:
                 # Update grid view and continue playing
-                await interaction.response.edit_message(
-                    content=view.get_status_message(), view=view
-                )
+                await interaction.response.edit_message(content=view.get_status_message(), view=view)
 
 
 class MinesView(discord.ui.View):
@@ -236,19 +232,11 @@ class MinesView(discord.ui.View):
 
         # Determine structural header state string
         if won:
-            header = (
-                "🏆 **Perfect Game!** You successfully cleared every single "
-                "diamond without triggering a mine!"
-            )
+            header = "🏆 **Perfect Game!** You successfully cleared every single diamond without triggering a mine!"
         else:
-            header = (
-                f"💥 **BOOM!** You hit a mine after discovering "
-                f"`{self.diamonds_found}` diamonds. Game Over!"
-            )
+            header = f"💥 **BOOM!** You hit a mine after discovering `{self.diamonds_found}` diamonds. Game Over!"
 
-        await interaction.response.edit_message(
-            content=f"{header}\n\n{self.get_status_message()}", view=self
-        )
+        await interaction.response.edit_message(content=f"{header}\n\n{self.get_status_message()}", view=self)
 
 
 class Games(commands.Cog):
@@ -285,7 +273,6 @@ class Games(commands.Cog):
             return
         await ctx.send(embed=embed)
 
-
     @commands.hybrid_command(name="coinflip", description="Flip a coin.")
     @app_commands.describe(side="Optional: call heads or tails")
     @app_commands.allowed_installs(guilds=True, users=True)
@@ -295,13 +282,11 @@ class Games(commands.Cog):
         try:
             side = side.lower() if side else None
             result = random.choice(["heads", "tails"])
-            
+
             if side in ("heads", "tails", "h", "t"):
                 # Determine if the user's guess matches the result
-                win = (side.startswith("h") and result == "heads") or (
-                    side.startswith("t") and result == "tails"
-                )
-                
+                win = (side.startswith("h") and result == "heads") or (side.startswith("t") and result == "tails")
+
                 await self._send_embed(
                     ctx,
                     f"The coin landed **{result.upper()}**. {'You win!' if win else 'You lose.'}",
@@ -309,23 +294,17 @@ class Games(commands.Cog):
                     color=discord.Color.green() if win else discord.Color.red(),
                 )
             else:
-                await self._send_embed(
-                    ctx, f"The coin landed **{result.upper()}**.", title="Coin Flip"
-                )
+                await self._send_embed(ctx, f"The coin landed **{result.upper()}**.", title="Coin Flip")
         except Exception as exc:
             log_exception(exc)
             await self._send_embed(ctx, "An error occurred while flipping the coin.", ephemeral=True)
-
-
 
     @commands.hybrid_command(name="blackjack", description="Play Blackjack with another user.")
     @app_commands.describe(opponent="User to challenge")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def blackjack(
-        self, ctx: commands.Context, opponent: discord.User | None = None
-    ) -> None:
+    async def blackjack(self, ctx: commands.Context, opponent: discord.User | None = None) -> None:
         try:
             if opponent is None:
                 await self._send_embed(ctx, "Usage: /blackjack @opponent", ephemeral=True)
@@ -333,7 +312,7 @@ class Games(commands.Cog):
             if opponent.bot:
                 await self._send_embed(ctx, "You cannot challenge a bot.", ephemeral=True)
                 return
-            if opponent == ctx.author:
+            if opponent.id == ctx.author.id:
                 await self._send_embed(ctx, "You cannot challenge yourself.", ephemeral=True)
                 return
 
@@ -343,13 +322,9 @@ class Games(commands.Cog):
                     self.accepted: bool | None = None
 
                 @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
-                async def accept_bj(
-                    inner_self, interaction: discord.Interaction, btn: discord.ui.Button
-                ) -> None:
-                    if interaction.user != opponent:
-                        await interaction.response.send_message(
-                            "Only the challenged user may accept.", ephemeral=True
-                        )
+                async def accept_bj(inner_self, interaction: discord.Interaction, btn: discord.ui.Button) -> None:
+                    if interaction.user.id != opponent.id:
+                        await interaction.response.send_message("Only the challenged user may accept.", ephemeral=True)
                         return
                     inner_self.accepted = True
                     for child in inner_self.children:
@@ -360,26 +335,19 @@ class Games(commands.Cog):
                     inner_self.stop()
 
                 @discord.ui.button(label="Decline", style=discord.ButtonStyle.danger)
-                async def decline_bj(
-                    inner_self, interaction: discord.Interaction, btn: discord.ui.Button
-                ) -> None:
-                    if interaction.user != opponent:
-                        await interaction.response.send_message(
-                            "Only the challenged user may decline.", ephemeral=True
-                        )
+                async def decline_bj(inner_self, interaction: discord.Interaction, btn: discord.ui.Button) -> None:
+                    if interaction.user.id != opponent.id:
+                        await interaction.response.send_message("Only the challenged user may decline.", ephemeral=True)
                         return
                     inner_self.accepted = False
                     for child in inner_self.children:
                         child.disabled = True
-                    await interaction.response.edit_message(
-                        content="Challenge declined.", view=inner_self
-                    )
+                    await interaction.response.edit_message(content="Challenge declined.", view=inner_self)
                     inner_self.stop()
 
             chal_view = BJChallengeView()
             chal_msg = await ctx.send(
-                f"{opponent.mention}, you have been challenged to Blackjack "
-                f"by {ctx.author.mention}.",
+                f"{opponent.mention}, you have been challenged to Blackjack by {ctx.author.mention}.",
                 view=chal_view,
             )
 
@@ -412,14 +380,8 @@ class Games(commands.Cog):
                     self.hand_messages: dict[int, discord.WebhookMessage] = {}
 
                 def build_main_embed(self) -> discord.Embed:
-                    status = (
-                        "**Game Over**"
-                        if self.finished
-                        else "Click **View My Hand** to see your cards privately!"
-                    )
-                    embed = discord.Embed(
-                        title="♠ Blackjack ♥", description=status, color=discord.Color.green()
-                    )
+                    status = "**Game Over**" if self.finished else "Click **View My Hand** to see your cards privately!"
+                    embed = discord.Embed(title="♠ Blackjack ♥", description=status, color=discord.Color.green())
 
                     for p in players:
                         val = _hand_value(hands[p.id])
@@ -437,10 +399,7 @@ class Games(commands.Cog):
                             else:
                                 initial_two_cards = hands[p.id][:2]
                                 initial_value = _hand_value(initial_two_cards)
-                                line = (
-                                    f"**Hand:** {_hand_display(initial_two_cards)} = "
-                                    f"**{initial_value}**"
-                                )
+                                line = f"**Hand:** {_hand_display(initial_two_cards)} = **{initial_value}**"
 
                         name = getattr(p, "global_name", None) or p.name
                         embed.add_field(name=name, value=line, inline=False)
@@ -448,17 +407,10 @@ class Games(commands.Cog):
 
                 def build_hand_embed(self, pid: int) -> discord.Embed:
                     val = _hand_value(hands[pid])
-                    status_text = (
-                        "💥 BUSTED!"
-                        if val > 21
-                        else ("✨ BLACKJACK!" if val == 21 else "Active Hand")
-                    )
+                    status_text = "💥 BUSTED!" if val > 21 else ("✨ BLACKJACK!" if val == 21 else "Active Hand")
                     return discord.Embed(
                         title="Your Private Hand",
-                        description=(
-                            f"{_hand_display(hands[pid])}\n"
-                            f"**Your Total Value:** {val} ({status_text})"
-                        ),
+                        description=(f"{_hand_display(hands[pid])}\n**Your Total Value:** {val} ({status_text})"),
                         color=discord.Color.blue(),
                     )
 
@@ -502,25 +454,19 @@ class Games(commands.Cog):
 
                 async def callback(inner_self, interaction: discord.Interaction) -> None:
                     bj_view: BJView = inner_self.view  # type: ignore[assignment]
-                    if interaction.user not in players:
-                        await interaction.response.send_message(
-                            "You are not a player in this game.", ephemeral=True
-                        )
+                    if interaction.user.id not in [p.id for p in players]:
+                        await interaction.response.send_message("You are not a player in this game.", ephemeral=True)
                         return
 
                     pid = interaction.user.id
 
                     if inner_self.action == "view_hand":
-                        await interaction.response.send_message(
-                            embed=bj_view.build_hand_embed(pid), ephemeral=True
-                        )
+                        await interaction.response.send_message(embed=bj_view.build_hand_embed(pid), ephemeral=True)
                         bj_view.hand_messages[pid] = await interaction.original_response()
                         return
 
                     if bj_view.finished:
-                        await interaction.response.send_message(
-                            "Game already finished.", ephemeral=True
-                        )
+                        await interaction.response.send_message("Game already finished.", ephemeral=True)
                         return
 
                     if pid in bj_view.finished_players or _hand_value(hands[pid]) >= 21:
@@ -550,9 +496,7 @@ class Games(commands.Cog):
                         await interaction.response.edit_message(embed=embed, view=bj_view)
                         if pid in bj_view.hand_messages:
                             try:
-                                await bj_view.hand_messages[pid].edit(
-                                    embed=bj_view.build_hand_embed(pid)
-                                )
+                                await bj_view.hand_messages[pid].edit(embed=bj_view.build_hand_embed(pid))
                             except discord.NotFound:
                                 bj_view.hand_messages.pop(pid, None)
 
@@ -564,7 +508,7 @@ class Games(commands.Cog):
             # FIX: Check natural deal conditions before starting layout processing
             p1_val = _hand_value(hands[ctx.author.id])
             p2_val = _hand_value(hands[opponent.id])
-            
+
             # If anyone naturally deals a 21 or busts at startup, push them to finished state right away
             if p1_val >= 21:
                 view.finished_players.add(ctx.author.id)
@@ -587,12 +531,7 @@ class Games(commands.Cog):
             else:
                 await ctx.send("An error occurred while playing Blackjack.")
 
-
-
-
-    @commands.hybrid_command(
-        name="tic-tac-toe", description="Play a game of Tic-Tac-Toe using buttons."
-    )
+    @commands.hybrid_command(name="tic-tac-toe", description="Play a game of Tic-Tac-Toe using buttons.")
     @app_commands.describe(opponent="Optional: The user you want to challenge")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -625,16 +564,12 @@ class Games(commands.Cog):
             if ctx.interaction.response.is_done():
                 await ctx.interaction.followup.send(content=content, view=view, ephemeral=False)
             else:
-                await ctx.interaction.response.send_message(
-                    content=content, view=view, ephemeral=False
-                )
+                await ctx.interaction.response.send_message(content=content, view=view, ephemeral=False)
             return
 
         await ctx.send(content=content, view=view)
 
-    @commands.hybrid_command(
-        name="mines", description="Play a game of classic Mines to the finish."
-    )
+    @commands.hybrid_command(name="mines", description="Play a game of classic Mines to the finish.")
     @app_commands.describe(mines="The number of hidden mines on the board (Between 1 and 24)")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -644,10 +579,7 @@ class Games(commands.Cog):
         if mines < 1 or mines > 24:
             await self._send_embed(
                 ctx,
-                description=(
-                    "Please choose a realistic challenge level! "
-                    "Mines must be between **1** and **24**."
-                ),
+                description=("Please choose a realistic challenge level! Mines must be between **1** and **24**."),
                 title="Invalid Configuration",
                 color=discord.Color.red(),
                 ephemeral=True,
@@ -662,9 +594,7 @@ class Games(commands.Cog):
             if ctx.interaction.response.is_done():
                 await ctx.interaction.followup.send(content=content, view=view, ephemeral=False)
             else:
-                await ctx.interaction.response.send_message(
-                    content=content, view=view, ephemeral=False
-                )
+                await ctx.interaction.response.send_message(content=content, view=view, ephemeral=False)
             return
 
         await ctx.send(content=content, view=view)

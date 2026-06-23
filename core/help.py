@@ -9,6 +9,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from api.emojis import Emoji
 from core.cache import cache
 
 if TYPE_CHECKING:
@@ -56,13 +57,7 @@ def _is_group(command: commands.Command) -> bool:
 
 
 def _get_command_description(command: commands.Command) -> str:
-    desc = (
-        command.help
-        or command.brief
-        or command.description
-        or command.short_doc
-        or inspect.getdoc(command.callback)
-    )
+    desc = command.help or command.brief or command.description or command.short_doc or inspect.getdoc(command.callback)
     return _normalize_description(desc)
 
 
@@ -89,10 +84,7 @@ def _format_params(command: commands.Command) -> list[str]:
             continue
         desc = _describe_param(param)
         if param.default != param.empty:
-            if param.default is None:
-                desc = f"{desc} (optional)"
-            else:
-                desc = f"{desc} (default: {param.default})"
+            desc = f"{desc} (optional)" if param.default is None else f"{desc} (default: {param.default})"
         params.append(f"`{name}` - {desc}")
     return params
 
@@ -198,9 +190,7 @@ class HelpIndex:
         for cog in self.bot.cogs.values():
             if not await self.can_see_cog(cog, user):
                 continue
-            commands_list = [
-                cmd for cmd in cog.walk_commands() if await self.can_see_command(cmd, user)
-            ]
+            commands_list = [cmd for cmd in cog.walk_commands() if await self.can_see_command(cmd, user)]
             if commands_list:
                 result[cog] = sorted(commands_list, key=lambda c: c.qualified_name)
         return result
@@ -302,7 +292,7 @@ class HelpView(discord.ui.View):
 
     async def create_home_embed(self) -> discord.Embed:
         embed = discord.Embed(
-            title="Amenity Commands",
+            title=f"{Emoji.CROWN.value} Amenity Commands",
             description="Select a category from the dropdown to view commands.",
             color=0x2F3136,
         )
@@ -340,7 +330,7 @@ class HelpView(discord.ui.View):
             description = _normalize_description(getattr(cog, "description", None))
 
         embed = discord.Embed(
-            title=f"{title} Commands",
+            title=f"{Emoji.COMMAND.value} {title} Commands",
             description=description,
             color=0x2F3136,
         )
@@ -641,10 +631,7 @@ class AmenityHelpCommand(commands.HelpCommand):
         if not cog:
             lowered = query.lower()
             for candidate in ctx.bot.cogs.values():
-                if (
-                    candidate.qualified_name.lower() == lowered
-                    or _cog_display_name(candidate).lower() == lowered
-                ):
+                if candidate.qualified_name.lower() == lowered or _cog_display_name(candidate).lower() == lowered:
                     cog = candidate
                     break
 
@@ -662,11 +649,7 @@ class AmenityHelpCommand(commands.HelpCommand):
         if not await index.can_see_cog(cog, self.context.author):
             await self.send_error_message("You don't have permission to view this category.")
             return
-        commands_list = [
-            cmd
-            for cmd in cog.walk_commands()
-            if await index.can_see_command(cmd, self.context.author)
-        ]
+        commands_list = [cmd for cmd in cog.walk_commands() if await index.can_see_command(cmd, self.context.author)]
         view = HelpView(
             bot=self.context.bot,
             index=index,
@@ -767,10 +750,7 @@ class HelpCog(commands.Cog):
             lowered = query.lower()
             cog = None
             for candidate in mapping:
-                if (
-                    candidate.qualified_name.lower() == lowered
-                    or _cog_display_name(candidate).lower() == lowered
-                ):
+                if candidate.qualified_name.lower() == lowered or _cog_display_name(candidate).lower() == lowered:
                     cog = candidate
                     break
             if cog:

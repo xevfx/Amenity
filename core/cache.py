@@ -49,9 +49,7 @@ class TimeCache[T]:
         self.set(key, value, ttl=ttl)
         return value
 
-    async def get_or_set_async(
-        self, key: str, factory: Callable[[], T | Awaitable[T]], ttl: float | None = None
-    ) -> T:
+    async def get_or_set_async(self, key: str, factory: Callable[[], T | Awaitable[T]], ttl: float | None = None) -> T:
         value = self.get(key, _MISSING)
         if value is not _MISSING:
             return value  # type: ignore[return-value]

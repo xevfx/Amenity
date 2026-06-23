@@ -5,6 +5,8 @@ import discord
 from discord.ext import commands
 from discord.ui import Button, View
 
+from .emojis import Emoji
+
 
 class Links:
     """Simple utility for creating Discord link buttons."""
@@ -46,9 +48,7 @@ class BotLinks:
 
     def __init__(self, support_url: str | None = None, invite_url: str | None = None) -> None:
         self.support_url = support_url or "https://discord.gg/x4kaVDcubT"
-        self.invite_url = (
-            invite_url or "https://discord.com/oauth2/authorize?client_id=1455170105666306113"
-        )
+        self.invite_url = invite_url or "https://discord.com/oauth2/authorize?client_id=1455170105666306113"
 
     def support(self, label: str = "Support Server", emoji: str = "🎗️") -> View:
         """Get support server link view."""
@@ -73,8 +73,8 @@ class ConfirmView(View):
         self,
         author_id: int,
         *,
-        confirm_label: str = "Confirm",
-        cancel_label: str = "Cancel",
+        confirm_label: str = f"{Emoji.DELETE.value} Confirm",
+        cancel_label: str = f"{Emoji.CROSS.value} Cancel",
         confirm_style: discord.ButtonStyle = discord.ButtonStyle.danger,
         cancel_style: discord.ButtonStyle = discord.ButtonStyle.secondary,
         timeout: float = 30.0,
@@ -133,8 +133,8 @@ async def confirm_action(
     *,
     timeout: float = 30.0,
     ephemeral: bool = True,
-    confirm_label: str = "Confirm",
-    cancel_label: str = "Cancel",
+    confirm_label: str = f"{Emoji.DELETE.value} Confirm",
+    cancel_label: str = f"{Emoji.CROSS.value} Cancel",
     confirm_style: discord.ButtonStyle = discord.ButtonStyle.danger,
     cancel_style: discord.ButtonStyle = discord.ButtonStyle.secondary,
     confirm_message: str | None = None,

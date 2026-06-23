@@ -9,6 +9,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from api.buttons import confirm_action
+from api.emojis import Emoji
 from api.log import log_command_error
 from api.paginator import EmbedPaginator, PaginatorHelper
 from api.parser import StringToTime
@@ -22,9 +23,7 @@ class Reminder(commands.Cog):
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        self.db_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "data/reminders.db")
-        )
+        self.db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data/reminders.db"))
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._init_db()
         self.check_reminders.start()
@@ -70,8 +69,7 @@ class Reminder(commands.Cog):
     def _fetch_user_reminders(self, user_id: int) -> list[dict]:
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT id, name, remind_at, created_at "
-                "FROM reminders WHERE user_id = ? ORDER BY remind_at",
+                "SELECT id, name, remind_at, created_at FROM reminders WHERE user_id = ? ORDER BY remind_at",
                 (user_id,),
             ).fetchall()
         return [dict(row) for row in rows]
@@ -139,7 +137,7 @@ class Reminder(commands.Cog):
                 with suppress(discord.HTTPException):
                     await user.send(
                         embed=discord.Embed(
-                            title="Reminder",
+                            title=f"{Emoji.TIME.value} Reminder",
                             description=f"Reminding you about:\n> {name}",
                             timestamp=discord.utils.utcnow(),
                         )
@@ -153,8 +151,7 @@ class Reminder(commands.Cog):
         now = int(tm.time())
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT id, user_id, name "
-                "FROM reminders WHERE remind_at <= ? ORDER BY remind_at LIMIT 50",
+                "SELECT id, user_id, name FROM reminders WHERE remind_at <= ? ORDER BY remind_at LIMIT 50",
                 (now,),
             ).fetchall()
         if rows:
@@ -189,8 +186,7 @@ class Reminder(commands.Cog):
         if ctx.invoked_subcommand is None:
             await self._send_embed(
                 ctx,
-                "Use `/reminder create`, `/reminder list`, `/reminder delete`, or "
-                "`/reminder nuke`.",
+                "Use `/reminder create`, `/reminder list`, `/reminder delete`, or `/reminder nuke`.",
                 ephemeral=True,
             )
             return
@@ -269,7 +265,7 @@ class Reminder(commands.Cog):
         lines = [f"{reminder['name']} | <t:{reminder['remind_at']}:R>" for reminder in reminders]
         embeds = PaginatorHelper.create_adaptive_embeds(
             lines,
-            title="Your reminders",
+            title=f"{Emoji.TIME.value} Your reminders",
             items_per_page=10,
             max_chars=1000,
         )
@@ -405,7 +401,7 @@ async def setup(bot: Amenity) -> None:
 
 class ReminderContextModal(discord.ui.Modal):
     def __init__(self, reminder_cog: Reminder, message: discord.Message) -> None:
-        super().__init__(title="Create reminder")
+        super().__init__(title=f"{Emoji.TIME.value} Create reminder")
         self.reminder_cog = reminder_cog
         self.message = message
         self.time_input = discord.ui.TextInput(

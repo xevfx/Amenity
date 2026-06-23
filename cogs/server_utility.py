@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from api.emojis import Emoji
 from core.amenity import Amenity
 
 
@@ -40,11 +41,7 @@ class ServerUtility(commands.Cog):
                 humans = total_members - bots
                 embed.add_field(
                     name="Members",
-                    value=(
-                        f"👥 **Total**: {total_members:,}\n"
-                        f"👤 **Humans**: {humans:,}\n"
-                        f"🤖 **Bots**: {bots:,}"
-                    ),
+                    value=(f"👥 **Total**: {total_members:,}\n👤 **Humans**: {humans:,}\n🤖 **Bots**: {bots:,}"),
                     inline=True,
                 )
             else:
@@ -64,7 +61,7 @@ class ServerUtility(commands.Cog):
             threads = len(guild.threads)
             total_channels = len(guild.channels)
             if categories:
-                chan_lines.append(f"📁 **Categories**: {categories}")
+                chan_lines.append(f"{Emoji.FILE.value} **Categories**: {categories}")
             if text_chans:
                 chan_lines.append(f"💬 **Text**: {text_chans}")
             if voice_chans:
@@ -117,9 +114,7 @@ class ServerUtility(commands.Cog):
             # User App Mode
             member_count = getattr(guild, "member_count", None)
             if member_count is not None:
-                embed.add_field(
-                    name="Members", value=f"👥 **Total**: {member_count:,}", inline=True
-                )
+                embed.add_field(name="Members", value=f"👥 **Total**: {member_count:,}", inline=True)
 
             features = guild.features
             if features:
@@ -133,9 +128,7 @@ class ServerUtility(commands.Cog):
         embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.display_avatar.url)
         return embed
 
-    @commands.hybrid_group(
-        name="server", description="Server utility commands", invoke_without_command=True
-    )
+    @commands.hybrid_group(name="server", description="Server utility commands", invoke_without_command=True)
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
     async def server_group(self, ctx: commands.Context) -> None:
@@ -162,14 +155,12 @@ class ServerUtility(commands.Cog):
         embed = (
             discord.Embed(color=discord.Color.dark_magenta())
             .set_author(
-                name="Server info:",
+                name=f"{Emoji.HOUSE.value} Server info:",
                 icon_url=guild.me.display_avatar.url if guild.icon is None else guild.icon.url,
             )
             .set_footer(
                 text=f"Requested By {ctx.author}",
-                icon_url=ctx.author.avatar.url
-                if ctx.author.avatar
-                else ctx.author.default_avatar.url,
+                icon_url=ctx.author.avatar.url if ctx.author.avatar else ctx.author.default_avatar.url,
             )
         )
         if guild.icon is not None:
@@ -186,24 +177,16 @@ class ServerUtility(commands.Cog):
         )
         ftrs = ""
         if guild.features:
-            ftrs = ("\n").join(
-                [f"> {feature.replace('_', ' ').title()}" for feature in guild.features]
-            )
+            ftrs = ("\n").join([f"> {feature.replace('_', ' ').title()}" for feature in guild.features])
 
         embed.add_field(
             name="**__Features__**",
-            value=f"{
-                ftrs
-                if ftrs and len(ftrs) <= 1024
-                else (ftrs[0:1000] + 'and more...' if ftrs else 'None')
-            }",
+            value=f"{ftrs if ftrs and len(ftrs) <= 1024 else (ftrs[0:1000] + 'and more...' if ftrs else 'None')}",
         )
 
         await ctx.reply(embed=embed, mention_author=False)
 
-    @commands.hybrid_group(
-        name="role", description="Role utility commands", invoke_without_command=True
-    )
+    @commands.hybrid_group(name="role", description="Role utility commands", invoke_without_command=True)
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
     async def role_group(self, ctx: commands.Context) -> None:
@@ -227,7 +210,7 @@ class ServerUtility(commands.Cog):
             return
 
         embed = discord.Embed(
-            title=f"Role Info: @{role.name}",
+            title=f"{Emoji.SEARCH.value} Role Info: @{role.name}",
             color=role.color if role.color.value != 0 else 0x00FFFF,
         )
         created_timestamp = int(role.created_at.timestamp())
@@ -245,11 +228,7 @@ class ServerUtility(commands.Cog):
         embed.add_field(name="Position", value=str(role.position), inline=True)
 
         # Key permissions
-        enabled_perms = [
-            perm_name.replace("_", " ").title()
-            for perm_name, enabled in role.permissions
-            if enabled
-        ]
+        enabled_perms = [perm_name.replace("_", " ").title() for perm_name, enabled in role.permissions if enabled]
         if enabled_perms:
             perms_str = ", ".join(enabled_perms[:10])
             if len(enabled_perms) > 10:
@@ -259,9 +238,7 @@ class ServerUtility(commands.Cog):
         embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.display_avatar.url)
         await ctx.reply(embed=embed, mention_author=False)
 
-    @commands.hybrid_group(
-        name="member", description="Member utility commands", invoke_without_command=True
-    )
+    @commands.hybrid_group(name="member", description="Member utility commands", invoke_without_command=True)
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
     async def member_group(self, ctx: commands.Context) -> None:
@@ -308,9 +285,7 @@ class ServerUtility(commands.Cog):
         embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.display_avatar.url)
         await ctx.reply(embed=embed, mention_author=False)
 
-    @commands.hybrid_group(
-        name="channel", description="Channel utility commands", invoke_without_command=True
-    )
+    @commands.hybrid_group(name="channel", description="Channel utility commands", invoke_without_command=True)
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
     async def channel_group(self, ctx: commands.Context) -> None:
@@ -337,9 +312,7 @@ class ServerUtility(commands.Cog):
             created_str = f"<t:{created_timestamp}:F> (<t:{created_timestamp}:R>)"
             embed.add_field(name="Created At", value=created_str, inline=False)
 
-            embed.set_footer(
-                text=f"Requested by {ctx.author}", icon_url=ctx.author.display_avatar.url
-            )
+            embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.display_avatar.url)
             await ctx.reply(embed=embed, mention_author=False)
             return
 
@@ -387,11 +360,7 @@ class ServerUtility(commands.Cog):
             embed.add_field(name="NSFW", value="Yes", inline=True)
 
         # Slowmode
-        if (
-            isinstance(target, discord.TextChannel)
-            and target.slowmode_delay is not None
-            and target.slowmode_delay > 0
-        ):
+        if isinstance(target, discord.TextChannel) and target.slowmode_delay is not None and target.slowmode_delay > 0:
             embed.add_field(
                 name="Slowmode Delay",
                 value=f"{target.slowmode_delay} seconds",
