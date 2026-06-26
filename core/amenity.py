@@ -4,15 +4,11 @@ import pkgutil
 from pathlib import Path
 
 import discord
-from discord import app_commands
 
 # import asyncio
 from discord.ext import commands
 
-from api.buttons import BotLinks
 from api.log import (
-    log_app_command_error,
-    log_app_command_usage,
     log_command_error,
     log_command_usage,
 )
@@ -153,79 +149,80 @@ class Amenity(commands.Bot):
         raise exception
 
     async def on_command_completion(self, context: commands.Context) -> None:
+
         await log_command_usage(context)
 
-    async def on_app_command_completion(
-        self,
-        interaction: discord.Interaction,
-        command: app_commands.AppCommand,
-    ) -> None:
-        await log_app_command_usage(interaction, command)
+    # async def on_app_command_completion(
+    #     self,
+    #     interaction: discord.Interaction,
+    #     command: app_commands.AppCommand,
+    # ) -> None:
+    #     await log_app_command_usage(interaction, command)
 
-    async def on_app_command_error(
-        self,
-        interaction: discord.Interaction,
-        exception: Exception,
-    ) -> None:
-        # Helper to send response (handles both response and followup)
-        async def send_error(
-            embed: discord.Embed,
-            ephemeral: bool = True,
-            view: discord.ui.View | None = None,
-        ) -> None:
-            try:
-                if interaction.response.is_done():
-                    await interaction.followup.send(
-                        embed=embed,
-                        ephemeral=ephemeral,
-                        view=view,
-                    )
-                else:
-                    await interaction.response.send_message(
-                        embed=embed,
-                        ephemeral=ephemeral,
-                        view=view,
-                    )
-            except discord.HTTPException:
-                pass  # Interaction may have expired
+    # async def on_app_command_error(
+    #     self,
+    #     interaction: discord.Interaction,
+    #     exception: Exception,
+    # ) -> None:
+    #     # Helper to send response (handles both response and followup)
+    #     async def send_error(
+    #         embed: discord.Embed,
+    #         ephemeral: bool = True,
+    #         view: discord.ui.View | None = None,
+    #     ) -> None:
+    #         try:
+    #             if interaction.response.is_done():
+    #                 await interaction.followup.send(
+    #                     embed=embed,
+    #                     ephemeral=ephemeral,
+    #                     view=view,
+    #                 )
+    #             else:
+    #                 await interaction.response.send_message(
+    #                     embed=embed,
+    #                     ephemeral=ephemeral,
+    #                     view=view,
+    #                 )
+    #         except discord.HTTPException:
+    #             pass  # Interaction may have expired
 
-        if isinstance(exception, app_commands.CommandOnCooldown):
-            embed = discord.Embed(
-                description=(f"Command on cooldown. Try again after {exception.retry_after:.2f} seconds."),
-                color=discord.Color.red(),
-            )
-            await send_error(embed, ephemeral=True)
-            return
+    #     if isinstance(exception, app_commands.CommandOnCooldown):
+    #         embed = discord.Embed(
+    #             description=(f"Command on cooldown. Try again after {exception.retry_after:.2f} seconds."),
+    #             color=discord.Color.red(),
+    #         )
+    #         await send_error(embed, ephemeral=True)
+    #         return
 
-        if isinstance(exception, app_commands.TransformerError):
-            embed = discord.Embed(
-                description="Invalid argument provided. Please check your input.",
-                color=discord.Color.red(),
-            )
-            await send_error(embed, ephemeral=True)
-            return
+    #     if isinstance(exception, app_commands.TransformerError):
+    #         embed = discord.Embed(
+    #             description="Invalid argument provided. Please check your input.",
+    #             color=discord.Color.red(),
+    #         )
+    #         await send_error(embed, ephemeral=True)
+    #         return
 
-        if isinstance(exception, app_commands.NoPrivateMessage):
-            embed = discord.Embed(description="This command can only be used in a server.", color=discord.Color.red())
-            await send_error(embed, ephemeral=True)
-            return
+    #     if isinstance(exception, app_commands.NoPrivateMessage):
+    #         embed = discord.Embed(description="This command can only be used in a server.", color=discord.Color.red())
+    #         await send_error(embed, ephemeral=True)
+    #         return
 
-        if isinstance(exception, app_commands.CheckFailure):
-            embed = discord.Embed(
-                description="You don't have permission to use this command.",
-                color=discord.Color.red(),
-            )
-            await send_error(embed, ephemeral=True)
-            return
+    #     if isinstance(exception, app_commands.CheckFailure):
+    #         embed = discord.Embed(
+    #             description="You don't have permission to use this command.",
+    #             color=discord.Color.red(),
+    #         )
+    #         await send_error(embed, ephemeral=True)
+    #         return
 
-        embed = discord.Embed(
-            description="An unexpected error occurred. Please try again later.",
-            color=discord.Color.red(),
-        )
-        await send_error(embed, ephemeral=True, view=BotLinks().support())
-        await log_app_command_error(interaction, exception)
-        raise exception
+    #     embed = discord.Embed(
+    #         description="An unexpected error occurred. Please try again later.",
+    #         color=discord.Color.red(),
+    #     )
+    #     await send_error(embed, ephemeral=True, view=BotLinks().support())
+    #     await log_app_command_error(interaction, exception)
+    #     raise exception
 
-    async def invoke_help_command(self, ctx: commands.Context) -> None:
-        """Send help for the current command."""
-        await ctx.send_help(ctx.command)
+    # async def invoke_help_command(self, ctx: commands.Context) -> None:
+    #     """Send help for the current command."""
+    #     await ctx.send_help(ctx.command)

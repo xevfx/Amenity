@@ -11,6 +11,7 @@ from googletrans import LANGUAGES, Translator
 from PIL import Image, ImageColor, ImageDraw, ImageFilter
 from simpleeval import simple_eval
 
+from api.emojis import Emoji
 from api.log import log_exception
 from core.amenity import Amenity
 
@@ -798,6 +799,23 @@ class UserUtility(commands.Cog):
         except Exception as e:
             # await ctx.send("An error occurred during translation")
             await ctx.send(e)
+
+
+    @commands.hybrid_command(name="deco", description="Get a user avatar decoration.")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @app_commands.describe(user="The user whose avatar decoration you want to see.")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.max_concurrency(50, commands.BucketType.default, wait=True)
+    async def deco(self, ctx: commands.Context, user: discord.User | None = None) -> None:
+        """Get a user avatar decoration."""
+        target = user or ctx.author
+        decoration = target.avatar_decoration
+        if not decoration:
+            await ctx.send(f"{target} does not have an avatar decoration.")
+            return
+        await ctx.send(f"{Emoji.INVITE.value} [Link of decoration](https://discord.com/shop#itemSkuId={target.avatar_decoration_sku_id})\n\n{target.avatar_decoration.url}")
+
 
 
 async def setup(bot: Amenity) -> None:

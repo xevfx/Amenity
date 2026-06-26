@@ -3,6 +3,7 @@ import os
 from contextlib import suppress
 
 import aiohttp
+import aiosqlite
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -91,9 +92,26 @@ class Crypto(commands.Cog):
         self.bot = bot
         self.aiohttp = aiohttp.ClientSession()
 
+    async def cog_load(self) -> None:
+        self.addy_db_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "data/addy.db"),
+        )
+        os.makedirs(os.path.dirname(self.addy_db_path), exist_ok=True)
+        self.addy_conn = await aiosqlite.connect(self.addy_db_path)
+        await self.addy_conn.execute("""
+            CREATE TABLE IF NOT EXISTS addresses (
+                user_id INTEGER NOT NULL,
+                coin TEXT NOT NULL,
+                address TEXT NOT NULL,
+                PRIMARY KEY (user_id, coin)
+            )
+        """)
+        await self.addy_conn.commit()
+
     def cog_unload(self) -> None:
         if not self.aiohttp.closed:
             self.bot.loop.create_task(self.aiohttp.close())
+        self.bot.loop.create_task(self.addy_conn.close())
 
     def _is_fiat(self, code: str) -> bool:
         return code.lower().strip() in _FIAT_CODES
@@ -517,7 +535,7 @@ class Crypto(commands.Cog):
         change_24h = coin_data.get("usd_24h_change")
         change_str = ""
         if isinstance(change_24h, (int, float)):
-            emoji = "📈" if change_24h >= 0 else "📉"
+            emoji = Emoji.UPSHIFT.value if change_24h >= 0 else Emoji.DOWNSHIFT.value
             change_str = f"\n\n{emoji} **24h Change:** {change_24h:+.2f}%"
 
         embed = discord.Embed(
@@ -681,6 +699,167 @@ class Crypto(commands.Cog):
         except Exception as exc:
             log_exception(exc)
             await ctx.send("An error occurred during conversion.")
+
+
+    # ── addy (address book) helpers ─────────────────────────────────
+
+    def _addy_cache_key(self, user_id: int) -> str:
+        return f"addy:{user_id}"
+
+    def _invalidate_addy_cache(self, user_id: int) -> None:
+        cache.delete(self._addy_cache_key(user_id))
+
+    async def _get_user_addresses(self, user_id: int) -> dict[str, str]:
+        key = self._addy_cache_key(user_id)
+
+        async def _fetch() -> dict[str, str]:
+            cursor = await self.addy_conn.execute(
+                "SELECT coin, address FROM addresses WHERE user_id = ?",
+                (user_id,),
+            )
+            rows = await cursor.fetchall()
+            return {row[0]: row[1] for row in rows}
+
+        return await cache.get_or_set_async(key, _fetch, ttl=300)  # type: ignore[return-value]
+
+    async def _set_user_address(self, user_id: int, coin: str, address: str) -> None:
+        await self.addy_conn.execute(
+            "INSERT OR REPLACE INTO addresses (user_id, coin, address) VALUES (?, ?, ?)",
+            (user_id, coin, address),
+        )
+        await self.addy_conn.commit()
+        self._invalidate_addy_cache(user_id)
+
+    # ── /addy group ────────────────────────────────────────────────
+
+    @commands.hybrid_group(
+        name="addy",
+        description="Manage your saved crypto addresses",
+        invoke_without_command=True,
+    )
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def addy(self, ctx: commands.Context) -> None:
+        if ctx.invoked_subcommand is not None:
+            return
+        addresses = await self._get_user_addresses(ctx.author.id)
+        if not addresses:
+            await self._send_embed(
+                ctx,
+                "You have no saved addresses.\n"
+                "Use `/addy set-ltc <address>`, `/addy set-btc <address>`, "
+                "`/addy set-eth <address>`, or `/addy set-sol <address>` to add one.",
+                ephemeral=False,
+            )
+            return
+        lines = [f"**{coin.upper()}:** `{addr}`" for coin, addr in sorted(addresses.items())]
+        embed = discord.Embed(
+            title=f"{Emoji.CRYPTO.value} Your saved addresses",
+            description="\n".join(lines),
+            color=discord.Color.blurple(),
+        )
+        embed.set_footer(
+            text="Use /addy set-<coin> <address> to update",
+        )
+        await ctx.send(embed=embed)
+
+    @addy.command(name="set-ltc", description="Save your Litecoin address")
+    @app_commands.describe(address="Your Litecoin address")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def addy_set_ltc(self, ctx: commands.Context, address: str) -> None:
+        address = address.strip()
+        if not address:
+            await self._send_embed(ctx, "Please provide a Litecoin address.", ephemeral=False)
+            return
+        await self._set_user_address(ctx.author.id, "ltc", address)
+        await self._send_embed(
+            ctx,
+            f"Your Litecoin address has been saved: `{address}`",
+            ephemeral=True,
+        )
+
+    @addy.command(name="set-btc", description="Save your Bitcoin address")
+    @app_commands.describe(address="Your Bitcoin address")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def addy_set_btc(self, ctx: commands.Context, address: str) -> None:
+        address = address.strip()
+        if not address:
+            await self._send_embed(ctx, "Please provide a Bitcoin address.", ephemeral=False)
+            return
+        await self._set_user_address(ctx.author.id, "btc", address)
+        await self._send_embed(
+            ctx,
+            f"Your Bitcoin address has been saved: `{address}`",
+            ephemeral=True,
+        )
+
+    @addy.command(name="set-eth", description="Save your Ethereum address")
+    @app_commands.describe(address="Your Ethereum address")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def addy_set_eth(self, ctx: commands.Context, address: str) -> None:
+        address = address.strip()
+        if not address:
+            await self._send_embed(ctx, "Please provide an Ethereum address.", ephemeral=False)
+            return
+        await self._set_user_address(ctx.author.id, "eth", address)
+        await self._send_embed(
+            ctx,
+            f"Your Ethereum address has been saved: `{address}`",
+            ephemeral=True,
+        )
+
+    @addy.command(name="set-sol", description="Save your Solana address")
+    @app_commands.describe(address="Your Solana address")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def addy_set_sol(self, ctx: commands.Context, address: str) -> None:
+        address = address.strip()
+        if not address:
+            await self._send_embed(ctx, "Please provide a Solana address.", ephemeral=False)
+            return
+        await self._set_user_address(ctx.author.id, "sol", address)
+        await self._send_embed(
+            ctx,
+            f"Your Solana address has been saved: `{address}`",
+            ephemeral=True,
+        )
+
+    # ── /addy <coin> lookup ─────────────────────────────────────────
+
+    async def _addy_lookup(self, ctx: commands.Context, coin: str, display: str) -> None:
+        addresses = await self._get_user_addresses(ctx.author.id)
+        addr = addresses.get(coin)
+        if not addr:
+            await self._send_embed(
+                ctx,
+                f"You have no saved {display} address.\nUse `/addy set-{coin} <address>` to add one.",
+                ephemeral=True,
+            )
+            return
+        await self._send_embed(
+            ctx,
+            f"{addr}",
+            ephemeral=False,
+        )
+
+    @addy.command(name="ltc", description="Get your saved Litecoin address")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def addy_ltc(self, ctx: commands.Context) -> None:
+        await self._addy_lookup(ctx, "ltc", "Litecoin")
+
+    @addy.command(name="btc", description="Get your saved Bitcoin address")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def addy_btc(self, ctx: commands.Context) -> None:
+        await self._addy_lookup(ctx, "btc", "Bitcoin")
+
+    @addy.command(name="eth", description="Get your saved Ethereum address")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def addy_eth(self, ctx: commands.Context) -> None:
+        await self._addy_lookup(ctx, "eth", "Ethereum")
+
+    @addy.command(name="sol", description="Get your saved Solana address")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def addy_sol(self, ctx: commands.Context) -> None:
+        await self._addy_lookup(ctx, "sol", "Solana")
 
 
 async def setup(bot: Amenity) -> None:

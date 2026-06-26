@@ -37,11 +37,38 @@ connection.close()
 class GiveawayJoinView(discord.ui.View):
     """Persistent view for users to click and join a giveaway."""
 
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: commands.Bot, cog: "UserAppGiveaway") -> None:
         super().__init__(timeout=None)
         self.bot = bot
-        # Track participants dynamically in memory: {message_id: set(user_ids)}
+        self.cog = cog
         self.participants: dict[int, set[int]] = {}
+
+    # ── helpers that reach through to the cog's own connection ──────
+
+    async def _get_ends_at(self, message_id: int) -> float | None:
+        """Return ends_at timestamp, or None if not found."""
+        row = await self.cog._fetch_giveaway(message_id, "ends_at")
+        if row:
+            return float(row[0])
+        return None
+
+    async def _persist_participants(self, message_id: int, pool: set[int]) -> None:
+        """Write participant list into the DB using the cog's connection."""
+        await self.cog.connection.execute(
+            "UPDATE Giveaway SET participants_json = ? WHERE message_id = ?",
+            (json.dumps(list(pool)), message_id),
+        )
+        await self.cog.connection.commit()
+
+    async def _set_ended(self, message_id: int, pool: set[int]) -> None:
+        """Mark giveaway as ended and save final participant snapshot."""
+        await self.cog.connection.execute(
+            "UPDATE Giveaway SET participants_json = ?, ends_at = 0 WHERE message_id = ?",
+            (json.dumps(list(pool)), message_id),
+        )
+        await self.cog.connection.commit()
+
+    # ── button ─────────────────────────────────────────────────────
 
     @discord.ui.button(label="0", style=discord.ButtonStyle.primary,
                        custom_id="join_giveaway_btn", emoji=Emoji.TADA.value)
@@ -49,19 +76,114 @@ class GiveawayJoinView(discord.ui.View):
         msg_id = interaction.message.id
         user_id = interaction.user.id
 
+        # Check expiry early – especially important for user-install where
+        # the background loop can't reach guild channels.
+        try:
+            ends_at = await self._get_ends_at(msg_id)
+            if ends_at is not None and datetime.datetime.now().timestamp() >= round(ends_at):
+                await interaction.response.defer(ephemeral=True)
+                await self._end_from_interaction(interaction, msg_id)
+                return
+        except Exception:
+            pass
+
         if msg_id not in self.participants:
             self.participants[msg_id] = set()
 
         if user_id in self.participants[msg_id]:
             self.participants[msg_id].remove(user_id)
-            await interaction.response.send_message(f"{Emoji.LIKE.value} You left the giveaway.", ephemeral=True)
+            action_text = f"{Emoji.LIKE.value} You left the giveaway."
         else:
             self.participants[msg_id].add(user_id)
-            await interaction.response.send_message(f"{Emoji.TADA.value} You entered the giveaway!", ephemeral=True)
+            action_text = f"{Emoji.TADA.value} You entered the giveaway!"
 
-        # Update button interface label dynamically
+        # Persist participants immediately so they survive restarts.
+        try:
+            await self._persist_participants(msg_id, self.participants[msg_id])
+        except Exception:
+            pass
+
+        # Update button label.
         button.label = str(len(self.participants[msg_id]))
-        await interaction.message.edit(view=self)
+
+        # Edit the original message via the interaction webhook (always works for
+        # user-install – no guild membership needed) then send the ephemeral
+        # follow-up.
+        await interaction.response.edit_message(
+            content=interaction.message.content,
+            embeds=interaction.message.embeds,
+            view=self,
+        )
+        await interaction.followup.send(action_text, ephemeral=True)
+
+    # ── interaction-based giveaway end (user-install fallback) ──────
+
+    async def _end_from_interaction(self, interaction: discord.Interaction, message_id: int) -> None:
+        """End a giveaway inline when a user clicks after expiry."""
+        try:
+            row = await self.cog._fetch_giveaway(
+                message_id, "guild_id, host_id, start_time, ends_at, prize, winners, channel_id",
+            )
+        except Exception:
+            return
+        if not row:
+            return
+        guild_id, host_id, _, _, prize, winners_count, channel_id = row
+        current_time = int(datetime.datetime.now().timestamp())
+
+        pool = list(self.participants.get(message_id, set()))
+
+        if not pool:
+            desc = (
+                f"{Emoji.WARNING.value} This giveaway ended with no participants. 😕\n"
+                f"Hosted by <@{int(host_id)}>"
+            )
+            embed = discord.Embed(description=desc, color=0x2F3136)
+            embed.set_author(name=prize)
+            embed.timestamp = discord.utils.utcnow()
+            embed.set_footer(text="Ended at")
+            # Best-effort edit of the original message via REST API.
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.message.edit(
+                    content=f"{Emoji.GIVEAWAY.value} **GIVEAWAY ENDED** {Emoji.GIVEAWAY.value}",
+                    embed=embed, view=None,
+                )
+            # Acknowledge via the interaction webhook (always works).
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.followup.send(
+                    f"{Emoji.GIVEAWAY.value} Giveaway ended with no participants.",
+                    ephemeral=False,
+                )
+        else:
+            actual_winners = min(len(pool), int(winners_count))
+            selected = random.sample(pool, k=actual_winners)
+            winner_mentions = ", ".join(f"<@!{uid}>" for uid in selected)
+
+            desc = f"Ended <t:{int(current_time)}:R>\nHosted by <@{int(host_id)}>\nWinner(s): {winner_mentions}"
+            embed = discord.Embed(description=desc, color=0x2F3136)
+            embed.timestamp = discord.utils.utcnow()
+            embed.set_author(name=prize)
+            embed.set_footer(text="Ended at")
+
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.message.edit(
+                    content=(
+                        f"{Emoji.GIVEAWAY.value} **GIVEAWAY ENDED** {Emoji.GIVEAWAY.value}\n"
+                        f"> {Emoji.TADA.value} Congratulations! {winner_mentions} You won **{prize}**!"
+                    ),
+                    embed=embed, view=None,
+                )
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.followup.send(
+                    f"{winner_mentions} {Emoji.TADA.value} Congratulations! You won **{prize}**!",
+                    ephemeral=False,
+                )
+
+        with contextlib.suppress(Exception):
+            await self._set_ended(message_id, set(pool))
+
+        self.participants.pop(message_id, None)
+        self.cog._invalidate(message_id)
 
 
 class UserAppGiveaway(commands.Cog):
@@ -70,13 +192,27 @@ class UserAppGiveaway(commands.Cog):
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        self.join_view = GiveawayJoinView(bot)
+        self.join_view = GiveawayJoinView(bot, self)
 
     async def cog_load(self) -> None:
         self.connection = await aiosqlite.connect("data/giveaways.db")
-        self.cursor = await self.connection.cursor()
         self.bot.add_view(self.join_view)  # Makes the button view persistent across bot reboots
+        # Restore in-memory participants from database for active giveaways
+        await self._restore_participants()
         self.GiveawayEnd.start()
+
+    async def _restore_participants(self) -> None:
+        """Load participants for active giveaways from DB into memory."""
+        cursor = await self.connection.execute(
+            "SELECT message_id, participants_json FROM Giveaway WHERE ends_at > 0"
+        )
+        rows = await cursor.fetchall()
+        for message_id, participants_json in rows:
+            try:
+                pool = json.loads(participants_json)
+                self.join_view.participants[int(message_id)] = set(pool)
+            except (json.JSONDecodeError, TypeError):
+                self.join_view.participants[int(message_id)] = set()
 
     async def cog_unload(self) -> None:
         await self.connection.close()
@@ -99,12 +235,12 @@ class UserAppGiveaway(commands.Cog):
         cached = cache.get(_ACTIVE_GW_KEY)
         if cached is not None:
             return cached
-        await self.cursor.execute(
+        cursor = await self.connection.execute(
             "SELECT ends_at, guild_id, message_id, host_id, "
             "winners, prize, channel_id "
             "FROM Giveaway WHERE ends_at > 0"
         )
-        rows = await self.cursor.fetchall()
+        rows = await cursor.fetchall()
         cache.set(_ACTIVE_GW_KEY, rows, ttl=_GW_TTL)
         return rows
 
@@ -114,11 +250,11 @@ class UserAppGiveaway(commands.Cog):
         cached = cache.get(key)
         if cached is not None:
             return cached
-        await self.cursor.execute(
+        cursor = await self.connection.execute(
             f"SELECT {columns} FROM Giveaway WHERE message_id = ?",
             (message_id,),
         )
-        row = await self.cursor.fetchone()
+        row = await cursor.fetchone()
         if row is not None:
             cache.set(key, row, ttl=_GW_TTL)
         return row
@@ -129,11 +265,11 @@ class UserAppGiveaway(commands.Cog):
         cached = cache.get(count_key)
         if cached is not None:
             return cached
-        await self.cursor.execute(
+        cursor = await self.connection.execute(
             "SELECT COUNT(*) FROM Giveaway WHERE guild_id IS ? AND ends_at > 0",
             (guild_id,),
         )
-        (count,) = await self.cursor.fetchone()
+        (count,) = await cursor.fetchone()
         cache.set(count_key, count, ttl=_GW_TTL)
         return count
 
@@ -212,7 +348,7 @@ class UserAppGiveaway(commands.Cog):
             "prize, winners, message_id, channel_id, participants_json) "
             "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)"
         )
-        await self.cursor.execute(
+        await self.connection.execute(
             query,
             (
                 guild_id,
@@ -231,6 +367,13 @@ class UserAppGiveaway(commands.Cog):
 
     @tasks.loop(seconds=5)
     async def GiveawayEnd(self) -> None:
+        try:
+            await self._giveaway_end_pass()
+        except Exception:
+            pass
+
+    async def _giveaway_end_pass(self) -> None:
+        """One iteration of the giveaway end loop."""
         all_giveaways = await self._fetch_active_giveaways()
         current_time = datetime.datetime.now().timestamp()
 
@@ -238,33 +381,32 @@ class UserAppGiveaway(commands.Cog):
             ends_at, guild_id, message_id, host_id, winners_count, prize, channel_id = giveaway
 
             if int(current_time) >= round(float(ends_at)):
-                channel = self.bot.get_channel(int(channel_id))
-                if not channel:
-                    try:
-                        channel = await self.bot.fetch_channel(int(channel_id))
-                    except discord.HTTPException:
-                        await self.cursor.execute("DELETE FROM Giveaway WHERE message_id = ?", (int(message_id),))
-                        self._invalidate(int(message_id))
-                        continue
+                ch = discord.PartialMessageable(state=self.bot._connection, id=int(channel_id))
+                msg = ch.get_partial_message(int(message_id))
 
-                try:
-                    message = await channel.fetch_message(int(message_id))
-                except discord.NotFound:
-                    await self.cursor.execute("DELETE FROM Giveaway WHERE message_id = ?", (int(message_id),))
-                    self._invalidate(int(message_id))
-                    continue
-
-                pool = list(self.join_view.participants.get(message.id, set()))
+                pool = list(self.join_view.participants.get(int(message_id), set()))
                 participants_json = json.dumps(pool)
 
                 if len(pool) < 1:
-                    await message.reply(
-                        f"{Emoji.WARNING.value} No one won the **{prize}** "
-                        "giveaway, due to a lack of participants. 😕"
+                    desc = (
+                        f"{Emoji.WARNING.value} This giveaway ended with no participants. 😕\n"
+                        f"Hosted by <@{int(host_id)}>"
                     )
-                    await self.cursor.execute("DELETE FROM Giveaway WHERE message_id = ?", (message.id,))
-                    self._invalidate(message.id)
-                    self.join_view.participants.pop(message.id, None)
+                    embed = discord.Embed(description=desc, color=0x2F3136)
+                    embed.set_author(name=prize)
+                    embed.timestamp = discord.utils.utcnow()
+                    embed.set_footer(text="Ended at")
+
+                    with contextlib.suppress(discord.HTTPException):
+                        await msg.edit(
+                            content=f"{Emoji.GIVEAWAY.value} **GIVEAWAY ENDED** {Emoji.GIVEAWAY.value}",
+                            embed=embed,
+                            view=None,
+                        )
+
+                    await self.connection.execute("DELETE FROM Giveaway WHERE message_id = ?", (int(message_id),))
+                    self._invalidate(int(message_id))
+                    self.join_view.participants.pop(int(message_id), None)
                     continue
 
                 actual_winners = min(len(pool), int(winners_count))
@@ -281,7 +423,7 @@ class UserAppGiveaway(commands.Cog):
                 embed.set_footer(text="Ended at")
 
                 with contextlib.suppress(discord.HTTPException):
-                    await message.edit(
+                    await msg.edit(
                         content=(
                             f"{Emoji.GIVEAWAY.value} **GIVEAWAY ENDED** {Emoji.GIVEAWAY.value}\n>"
                             f"{Emoji.TADA.value} Congratulations! {winner_mentions} You won **{prize}**!"
@@ -291,12 +433,12 @@ class UserAppGiveaway(commands.Cog):
                     )
 
                 # Store the user pool snapshot into DB before closing out, so we can run rerolls later
-                await self.cursor.execute(
+                await self.connection.execute(
                     "UPDATE Giveaway SET participants_json = ?, ends_at = 0 WHERE message_id = ?",
-                    (participants_json, message.id),
+                    (participants_json, int(message_id)),
                 )
-                self._invalidate(message.id)
-                self.join_view.participants.pop(message.id, None)
+                self._invalidate(int(message_id))
+                self.join_view.participants.pop(int(message_id), None)
 
         await self.connection.commit()
 
@@ -334,16 +476,26 @@ class UserAppGiveaway(commands.Cog):
             )
             return
 
-        channel = self.bot.get_channel(int(channel_id)) or await self.bot.fetch_channel(int(channel_id))
-        message = await channel.fetch_message(msg_id)
+        ch = discord.PartialMessageable(state=self.bot._connection, id=int(channel_id))
+        msg = ch.get_partial_message(msg_id)
 
         pool = list(self.join_view.participants.get(msg_id, set()))
         if len(pool) < 1:
-            await message.reply(
-                f"{Emoji.WARNING.value} No one won the **{prize}** "
-                "giveaway, due to a lack of participants. 😕"
+            desc = (
+                f"{Emoji.WARNING.value} This giveaway ended with no participants. 😕\n"
+                f"Hosted by <@{int(host_id)}>"
             )
-            await self.cursor.execute("DELETE FROM Giveaway WHERE message_id = ?", (msg_id,))
+            embed = discord.Embed(description=desc, color=0x2F3136)
+            embed.set_author(name=prize)
+            embed.timestamp = discord.utils.utcnow()
+            embed.set_footer(text="Ended at")
+            with contextlib.suppress(discord.HTTPException):
+                await msg.edit(
+                    content=f"{Emoji.GIVEAWAY.value} **GIVEAWAY ENDED** {Emoji.GIVEAWAY.value}",
+                    embed=embed,
+                    view=None,
+                )
+            await self.connection.execute("DELETE FROM Giveaway WHERE message_id = ?", (msg_id,))
             await self.connection.commit()
             self._invalidate(msg_id)
             await ctx.send(f"{Emoji.LIKE.value} Ended giveaway.", ephemeral=True)
@@ -359,12 +511,15 @@ class UserAppGiveaway(commands.Cog):
         embed.timestamp = discord.utils.utcnow()
         embed.set_author(name=prize)
 
-        gw_ended = f"{Emoji.GIVEAWAY.value} **GIVEAWAY ENDED** {Emoji.GIVEAWAY.value}"
-        await message.edit(content=gw_ended, embed=embed, view=None)
-        await message.reply(f"{winner_mentions} {Emoji.TADA.value} Congratulations! You won **{prize}**!")
+        gw_ended = (
+            f"{Emoji.GIVEAWAY.value} **GIVEAWAY ENDED** {Emoji.GIVEAWAY.value}\n>"
+            f"{Emoji.TADA.value} Congratulations! {winner_mentions} You won **{prize}**!"
+        )
+        with contextlib.suppress(discord.HTTPException):
+            await msg.edit(content=gw_ended, embed=embed, view=None)
 
         participants_json = json.dumps(pool)
-        await self.cursor.execute(
+        await self.connection.execute(
             "UPDATE Giveaway SET participants_json = ?, ends_at = 0 WHERE message_id = ?", (participants_json, msg_id)
         )
         self.join_view.participants.pop(msg_id, None)
@@ -424,23 +579,27 @@ class UserAppGiveaway(commands.Cog):
             await ctx.send(f"{Emoji.WARNING.value} There are no eligible participants to reroll from.", ephemeral=True)
             return
 
-        channel = self.bot.get_channel(int(channel_id)) or await self.bot.fetch_channel(int(channel_id))
-        try:
-            message = await channel.fetch_message(msg_id)
-        except discord.NotFound:
-            await ctx.send(f"{Emoji.WARNING.value} The original giveaway message could not be found.", ephemeral=True)
-            return
-
         actual_winners = min(len(pool), int(winners_count))
         selected = random.sample(pool, k=actual_winners)
         winner_mentions = ", ".join(f"<@!{uid}>" for uid in selected)
 
-        await message.reply(
-            f"{Emoji.SHINE.value} **Reroll Results:**\n"
+        # Edit the original giveaway message to show reroll info
+        ch = discord.PartialMessageable(state=self.bot._connection, id=int(channel_id))
+        msg = ch.get_partial_message(msg_id)
+
+        reroll_desc = (
+            f"{Emoji.SHINE.value} **Reroll Results**\n"
             f"{winner_mentions} {Emoji.TADA.value} Congratulations! "
             f"You have won the reroll for **{prize}**!"
         )
-        await ctx.send(f"{Emoji.LIKE.value} Successfully rerolled the giveaway.", ephemeral=True)
+        with contextlib.suppress(discord.HTTPException):
+            await msg.edit(content=reroll_desc)
+
+        await ctx.send(
+            f"{Emoji.TADA.value} {winner_mentions} You won the reroll for **{prize}**!\n"
+            f"{Emoji.LIKE.value} Successfully rerolled the giveaway.",
+            ephemeral=False,
+        )
 
 
 async def setup(bot: commands.Bot) -> None:

@@ -10,6 +10,7 @@ from discord.ext import commands
 from faker import Faker
 from faker.config import AVAILABLE_LOCALES
 
+from api.emojis import Emoji
 from api.log import log_exception
 from core.amenity import Amenity
 
@@ -192,11 +193,12 @@ class Fun(commands.Cog):
     async def gayrate(self, ctx: commands.Context, user: discord.User | None = None) -> None:
         target = user or ctx.author
         rate = random.randint(0, 100)
+        if target.id == 931347423773741097:
+            rate = 0
         await ctx.send(
             embed=discord.Embed(
                 description=f"{target.mention} is {rate}% gay!", title="Gay Rate", color=discord.Color.pink()
-            ),
-            ephemeral=True,
+            )
         )
 
     @commands.hybrid_command(name="faker", description="Generate a fake name and address by country name or code.")
@@ -358,7 +360,7 @@ class Fun(commands.Cog):
                 embed.set_footer(text=f"Source: {data['source']}")
             else:
                 embed = discord.Embed(
-                    title="❌ API Error",
+                    title=f"{Emoji.WARNING.value} API Error",
                     description="Failed to retrieve a useless fact.",
                     color=discord.Color.red(),
                 )
