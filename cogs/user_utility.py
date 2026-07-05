@@ -202,6 +202,32 @@ class UserUtility(commands.Cog):
             type=self.translate_to_english_menu.type,
         )
 
+    def _format_user_badges(self, user: discord.User) -> str:
+        badge_map = [
+            ("staff", "Staff"),
+            ("partner", "Partner"),
+            ("hypesquad", "HypeSquad"),
+            ("bug_hunter", "Bug Hunter"),
+            ("hypesquad_bravery", "House Bravery"),
+            ("hypesquad_brilliance", "House Brilliance"),
+            ("hypesquad_balance", "House Balance"),
+            ("early_supporter", "Early Supporter"),
+            ("team_user", "Team User"),
+            ("system", "System"),
+            ("bug_hunter_level_2", "Bug Hunter Level 2"),
+            ("verified_bot", "Verified Bot"),
+            ("verified_bot_developer", "Verified Bot Developer"),
+            ("certified_moderator", "Certified Moderator"),
+            ("bot_http_interactions", "Bot HTTP Interactions"),
+            ("active_developer", "Active Developer"),
+            ("spammer", "Spammer"),
+            ("quarantined", "Quarantined"),
+        ]
+        badges = [label for attr, label in badge_map if getattr(user.public_flags, attr, False)]
+        if getattr(user, "premium_type", None):
+            badges.append("Nitro")
+        return ", ".join(badges) if badges else "None"
+
     @commands.hybrid_command(name="ping", description="Check the bot's latency.")
     @commands.cooldown(1, 5, commands.BucketType.user)
     @app_commands.allowed_installs(guilds=True, users=True)
@@ -227,6 +253,47 @@ class UserUtility(commands.Cog):
             text=f"Requested by {ctx.author}",
             icon_url=ctx.author.display_avatar.url,
         )
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.hybrid_command(name="userinfo", description="Get information about a user.")
+    @app_commands.allowed_installs(guilds=False, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @app_commands.describe(user="The user to inspect.")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def userinfo(self, ctx: commands.Context, user: discord.User | None = None) -> None:
+        target = user or ctx.author
+
+        try:
+            fetched_user = await self.bot.fetch_user(target.id)
+        except discord.HTTPException:
+            fetched_user = None
+
+        profile = fetched_user or target
+        created_timestamp = int(profile.created_at.timestamp())
+        banner = getattr(profile, "banner", None)
+        accent_color = getattr(profile, "accent_color", None)
+
+        embed = discord.Embed(
+            title=f"User info: {profile}",
+            color=accent_color or discord.Color.blurple(),
+        )
+        embed.set_author(name=profile.display_name, icon_url=profile.display_avatar.url)
+        embed.set_thumbnail(url=profile.display_avatar.url)
+        if banner is not None:
+            embed.set_image(url=banner.url)
+
+        embed.add_field(name="Username", value=f"`{profile.name}`", inline=True)
+        embed.add_field(name="Display Name", value=f"`{profile.display_name}`", inline=True)
+        embed.add_field(name="User ID", value=f"`{profile.id}`", inline=True)
+        embed.add_field(name="Account Type", value="Bot" if profile.bot else "User", inline=True)
+        embed.add_field(name="Created At", value=f"<t:{created_timestamp}:F>\n<t:{created_timestamp}:R>", inline=False)
+        embed.add_field(name="Badges", value=self._format_user_badges(profile), inline=False)
+        embed.add_field(name="Avatar", value=f"[Open avatar]({profile.display_avatar.url})", inline=True)
+        embed.add_field(name="Banner", value=f"[Open banner]({banner.url})" if banner is not None else "None", inline=True)
+        if accent_color is not None:
+            embed.add_field(name="Accent Color", value=f"`{accent_color}`", inline=True)
+
+        embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.display_avatar.url)
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.hybrid_command(name="banner", description="Fetch a user's banner.")
