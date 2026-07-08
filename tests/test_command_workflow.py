@@ -253,7 +253,7 @@ def classify_command(record: CommandRecord) -> str:
         return "external-api-metadata"
     if name.startswith(("image ", "meme ")) or name in {"blackjack", "tic-tac-toe", "enlarge", "deco"}:
         return "interactive-or-asset-metadata"
-    if name.startswith(("reminder", "qrcode", "server", "role", "member", "channel")):
+    if name.startswith(("reminder", "template", "qr", "server", "role", "member", "channel")):
         return "stateful-or-discord-object-metadata"
     return "metadata"
 

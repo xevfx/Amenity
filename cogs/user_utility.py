@@ -11,6 +11,7 @@ from googletrans import LANGUAGES, Translator
 from PIL import Image, ImageColor, ImageDraw, ImageFilter
 from simpleeval import simple_eval
 
+from api.crypto_networks import CRYPTO_NETWORK_BY_VALUE, CRYPTO_NETWORK_CHOICES, crypto_qr_payload
 from api.emojis import Emoji
 from api.http import close_http_session, create_http_session
 from api.log import log_exception
@@ -347,10 +348,10 @@ class UserUtility(commands.Cog):
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.hybrid_group(
-        name="qrcode",
+        name="qr",
         invoke_without_command=True,
         with_app_command=True,
-        aliases=["qr"],
+        aliases=["qrcode"],
         description="Generate various types of QR codes.",
     )
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -358,7 +359,7 @@ class UserUtility(commands.Cog):
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def qr_group(self, ctx: commands.Context) -> None:
-        await ctx.reply("Use /qrcode", delete_after=5, ephemeral=True, mention_author=False)
+        await ctx.reply("Use /qr", delete_after=5, ephemeral=True, mention_author=False)
 
     async def _send_qr(
         self,
@@ -414,21 +415,35 @@ class UserUtility(commands.Cog):
             description=f"**Content:** {txt}",
         )
 
-    @qr_group.command(name="ltc", description="Create a QR for ltc addy")
-    @app_commands.describe(addy="The Litecoin address to encode in the QR code.")
-    async def qr_ltcaddy(self, ctx: commands.Context, *, addy: str) -> None:
+    @qr_group.command(name="crypto", description="Create a QR for a crypto address")
+    @app_commands.describe(network="The crypto network", addy="The address to encode in the QR code.")
+    @app_commands.choices(network=CRYPTO_NETWORK_CHOICES)
+    async def qr_crypto(self, ctx: commands.Context, network: str, *, addy: str) -> None:
+        network = network.strip().lower()
+        network_data = CRYPTO_NETWORK_BY_VALUE.get(network)
+        if not network_data:
+            await ctx.send(
+                embed=discord.Embed(
+                    description="Please choose a supported crypto network.",
+                    color=discord.Color.red(),
+                ),
+                ephemeral=True,
+            )
+            return
+
         addy_value = addy.strip()
         if not addy_value:
             await ctx.send(
                 embed=discord.Embed(
-                    description="Usage: /qrcode ltc <address>",
+                    description="Usage: /qr crypto <network> <addy>",
                     color=discord.Color.red(),
-                )
+                ),
+                ephemeral=True,
             )
             return
 
-        filename = self._qr_path(ctx, "ltc")
-        qr_payload = f"litecoin:{addy_value}"
+        filename = self._qr_path(ctx, network)
+        qr_payload = crypto_qr_payload(network_data, addy_value)
         if not generate_qr(qr_payload, filename, fill_gradient=QR_GRADIENT):
             await ctx.send(
                 embed=discord.Embed(
@@ -441,8 +456,9 @@ class UserUtility(commands.Cog):
         await self._send_qr(
             ctx,
             filename=filename,
-            title="Ltc QR Code",
+            title=f"{network_data.name} QR Code",
             description=f"Addy: {addy_value}",
+            fields=[("Payload", qr_payload)],
         )
 
     @qr_group.command(
