@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import pkgutil
@@ -6,7 +7,6 @@ from pathlib import Path
 import discord
 from discord import app_commands
 
-# import asyncio
 from discord.ext import commands, tasks
 
 from api.log import (
@@ -30,6 +30,11 @@ from core.installed_users import init_installed_users_db, track_installed_user
 
 logger = logging.getLogger(__name__)
 
+USER_ONLY_INSTALL_MESSAGE = (
+    "Amenity is a user-only app and cannot be installed to servers. "
+    "Please install it to your Discord account instead."
+)
+
 os.environ["JISHAKU_HIDE"] = "True"
 os.environ["JISHAKU_NO_UNDERSCORE"] = "True"
 os.environ["JISHAKU_FORCE_PAGINATOR"] = "True"
@@ -44,7 +49,7 @@ class Amenity(commands.Bot):
         intents.messages = True
         intents.dm_messages = True
         super().__init__(
-            command_prefix="",
+            command_prefix=",",
             intents=intents,
             case_insensitive=True,
             help_command=AmenityHelpCommand(),
@@ -137,6 +142,54 @@ class Amenity(commands.Bot):
         # )
         logger.info(f"[+] | LOGGED IN AS {self.user}")
         # logger.info(f"[+] | WATCHING {self.users}")
+
+    async def _find_guild_inviter(self, guild: discord.Guild) -> discord.User | discord.Member | None:
+        if self.user is None:
+            return None
+
+        try:
+            async for entry in guild.audit_logs(
+                limit=5,
+                action=discord.AuditLogAction.bot_add,
+            ):
+                if entry.target and entry.target.id == self.user.id:
+                    return entry.user
+        except discord.Forbidden:
+            logger.warning("Missing audit log permissions in guild %s (%s).", guild.name, guild.id)
+        except discord.HTTPException as exc:
+            logger.warning("Failed to fetch audit logs for guild %s (%s): %s", guild.name, guild.id, exc)
+
+        return None
+
+    async def on_guild_join(self, guild: discord.Guild) -> None:
+        await asyncio.sleep(2)
+
+        inviter = await self._find_guild_inviter(guild)
+        if inviter is not None and inviter.id == self.owner_id:
+            logger.info("Allowed owner-installed guild %s (%s).", guild.name, guild.id)
+            return
+
+        if inviter is not None:
+            try:
+                await inviter.send(USER_ONLY_INSTALL_MESSAGE)
+            except discord.Forbidden:
+                logger.warning("Could not DM inviter %s after joining guild %s (%s).", inviter, guild.name, guild.id)
+            except discord.HTTPException as exc:
+                logger.warning(
+                    "Failed to DM inviter %s after joining guild %s (%s): %s",
+                    inviter,
+                    guild.name,
+                    guild.id,
+                    exc,
+                )
+        else:
+            logger.warning("Could not determine inviter for guild %s (%s).", guild.name, guild.id)
+
+        try:
+            await guild.leave()
+            logger.info("Left guild %s (%s) because Amenity is user-only.", guild.name, guild.id)
+        except discord.HTTPException as exc:
+            logger.error("Failed to leave guild %s (%s): %s", guild.name, guild.id, exc)
 
     async def on_command_error(
         self,
