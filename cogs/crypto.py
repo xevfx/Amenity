@@ -91,7 +91,7 @@ def _blockcypher_url(network: str, address: str) -> str:
 
 class Crypto(commands.Cog):
     display_name = "Crypto"
-    group_name = "Utilities"
+    group_name = "Crypto"
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot

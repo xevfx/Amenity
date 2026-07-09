@@ -19,7 +19,7 @@ from core.cache import cache
 
 class Reminder(commands.Cog):
     display_name = "Reminders"
-    group_name = "Utilities"
+    group_name = "Reminders"
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot

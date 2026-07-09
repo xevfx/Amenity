@@ -79,7 +79,7 @@ MODEL_CHOICES: list[tuple[str, str]] = [
 
 class AI(commands.Cog):
     display_name = "AI"
-    group_name = "Utilities"
+    group_name = "AI"
 
     def __init__(self, bot: Amenity) -> None:
         self.bot = bot

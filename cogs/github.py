@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 class Github(commands.Cog):
     display_name = "GitHub"
-    group_name = "Utilities"
+    group_name = "GitHub"
 
     def __init__(self, bot: Amenity) -> None:
         self.bot = bot

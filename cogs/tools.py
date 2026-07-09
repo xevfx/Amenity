@@ -531,7 +531,7 @@ def invert_image(
 
 class Tools(commands.Cog):
     display_name = "Tools"
-    group_name = "Utilities"
+    group_name = "Tools"
 
     def __init__(self, bot: Amenity) -> None:
         self.bot = bot
