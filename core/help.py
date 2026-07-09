@@ -91,8 +91,6 @@ def _cog_group_name(cog: commands.Cog | None) -> str:
 def _group_label(group_name: str) -> str:
     if group_name == "other":
         return "Other"
-    if group_name in GROUP_ORDER:
-        return group_name
     return group_name.replace("_", " ").title()
 
 
