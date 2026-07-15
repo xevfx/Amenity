@@ -299,15 +299,27 @@ class Games(commands.Cog):
             log_exception(exc)
             await self._send_embed(ctx, "An error occurred while flipping the coin.", ephemeral=True)
 
-    @commands.hybrid_command(name="blackjack", description="Play Blackjack with another user.")
+    @commands.hybrid_command(name="blackjack", description="Play Blackjack with another user.", aliases=["bj"])
     @app_commands.describe(opponent="User to challenge")
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def blackjack(self, ctx: commands.Context, opponent: discord.User | None = None) -> None:
+        await self._blackjack(ctx, opponent)
+
+    @commands.hybrid_command(name="bj", description="Play Blackjack with another user.")
+    @app_commands.describe(opponent="User to challenge")
+    @app_commands.allowed_installs(guilds=False, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def blackjack_alias(self, ctx: commands.Context, opponent: discord.User | None = None) -> None:
+        await self._blackjack(ctx, opponent)
+
+    async def _blackjack(self, ctx: commands.Context, opponent: discord.User | None = None) -> None:
         try:
             if opponent is None:
-                await self._send_embed(ctx, "Usage: /blackjack @opponent", ephemeral=True)
+                command_name = ctx.command.qualified_name if ctx.command else "blackjack"
+                await self._send_embed(ctx, f"Usage: /{command_name} @opponent", ephemeral=True)
                 return
             if opponent.bot:
                 await self._send_embed(ctx, "You cannot challenge a bot.", ephemeral=True)
@@ -531,12 +543,23 @@ class Games(commands.Cog):
             else:
                 await ctx.send("An error occurred while playing Blackjack.")
 
-    @commands.hybrid_command(name="tic-tac-toe", description="Play a game of Tic-Tac-Toe using buttons.")
+    @commands.hybrid_command(name="tic-tac-toe", description="Play a game of Tic-Tac-Toe using buttons.", aliases=["ttt"])
     @app_commands.describe(opponent="Optional: The user you want to challenge")
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def tictactoe(self, ctx: commands.Context, opponent: discord.User | None = None) -> None:
+        await self._tictactoe(ctx, opponent)
+
+    @commands.hybrid_command(name="ttt", description="Play a game of Tic-Tac-Toe using buttons.")
+    @app_commands.describe(opponent="Optional: The user you want to challenge")
+    @app_commands.allowed_installs(guilds=False, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def tictactoe_alias(self, ctx: commands.Context, opponent: discord.User | None = None) -> None:
+        await self._tictactoe(ctx, opponent)
+
+    async def _tictactoe(self, ctx: commands.Context, opponent: discord.User | None = None) -> None:
         # Prevent playing against oneself
         if opponent == ctx.author:
             await self._send_embed(
