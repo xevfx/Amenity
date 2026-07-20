@@ -267,10 +267,13 @@ class Template(commands.Cog):
             await self._send_embed(ctx, "Template not found.", ephemeral=True)
             return
         content, embed, view = build_template_payload(template)
+        message_kwargs: dict[str, Any] = {"content": content, "embed": embed}
+        if view is not None:
+            message_kwargs["view"] = view
         if ctx.interaction:
-            await ctx.interaction.response.send_message(content=content, embed=embed, view=view)
+            await ctx.interaction.response.send_message(**message_kwargs)
             return
-        await ctx.send(content=content, embed=embed, view=view)
+        await ctx.send(**message_kwargs)
 
     @template_send.autocomplete("name")
     async def template_send_autocomplete(
@@ -496,7 +499,10 @@ class TemplateBuilderView(discord.ui.View):
         if content is None and embed is None:
             await interaction.response.send_message("Add text or an embed before previewing.", ephemeral=True)
             return
-        await interaction.response.send_message(content=content, embed=embed, view=view, ephemeral=True)
+        message_kwargs: dict[str, Any] = {"content": content, "embed": embed, "ephemeral": True}
+        if view is not None:
+            message_kwargs["view"] = view
+        await interaction.response.send_message(**message_kwargs)
 
     @discord.ui.button(label="Save", style=discord.ButtonStyle.success)
     async def save_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:

@@ -299,7 +299,7 @@ class Games(commands.Cog):
             log_exception(exc)
             await self._send_embed(ctx, "An error occurred while flipping the coin.", ephemeral=True)
 
-    @commands.hybrid_command(name="blackjack", description="Play Blackjack with another user.", aliases=["bj"])
+    @commands.hybrid_command(name="blackjack", description="Play Blackjack with another user.")
     @app_commands.describe(opponent="User to challenge")
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -546,7 +546,6 @@ class Games(commands.Cog):
     @commands.hybrid_command(
         name="tic-tac-toe",
         description="Play a game of Tic-Tac-Toe using buttons.",
-        aliases=["ttt"]
     )
     @app_commands.describe(opponent="Optional: The user you want to challenge")
     @app_commands.allowed_installs(guilds=False, users=True)
