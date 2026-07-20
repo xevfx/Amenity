@@ -20,6 +20,7 @@ from core.amenity import Amenity
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MEME_ASSETS_DIR = PROJECT_ROOT / "assets" / "memes"
 COOLVETICA_FONT = PROJECT_ROOT / "assets" / "fonts" / "coolvetica" / "Coolvetica Rg.otf"
+RIP_FONT = PROJECT_ROOT / "assets" / "fonts" / "coolvetica" / "Coolvetica Hv Comp.otf"
 
 
 class Fun(commands.Cog):
@@ -628,7 +629,7 @@ def _generate_rip(avatar_bytes: bytes, output_path: str, name: str) -> bool:
 
         font_size = 30
         while font_size > 8:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/msttcorefonts/Impact.ttf", font_size)
+            font = ImageFont.truetype(str(RIP_FONT), font_size)
             bbox = draw.textbbox((0, 0), name, font=font)
             if bbox[2] - bbox[0] <= w - 20:
                 break

@@ -29,6 +29,19 @@ GROUP_ORDER = {
     "Utilities": 8,
     "other": 99,
 }
+GROUP_DESCRIPTIONS = {
+    "AI": "Chat with AI models and use AI-powered tools.",
+    "Crypto": "Check crypto prices, balances, transactions, and addresses.",
+    "Fun": "Memes, random content, and other entertaining commands.",
+    "Games": "Play interactive games by yourself or with others.",
+    "GitHub": "Look up GitHub users, repositories, and pull requests.",
+    "Reminders": "Create and manage personal reminders.",
+    "Templates": "Create and manage reusable message templates.",
+    "Tools": "Image, text, and other general-purpose tools.",
+    "Utilities": "Useful commands for users, members, and servers.",
+    "Owner": "Bot management commands for the owner.",
+    "other": "Commands that do not belong to another group.",
+}
 GROUP_EMOJIS = {
     "AI": Emoji.SHINE.value,
     "Crypto": Emoji.CRYPTO.value,
@@ -96,6 +109,10 @@ def _group_label(group_name: str) -> str:
 
 def _group_emoji(group_name: str) -> str:
     return GROUP_EMOJIS.get(group_name, Emoji.COMMAND.value)
+
+
+def _group_description(group_name: str) -> str:
+    return GROUP_DESCRIPTIONS.get(group_name, f"{_group_label(group_name)} commands.")
 
 
 def _group_sort_key(group_name: str) -> tuple[int, str]:
@@ -388,7 +405,7 @@ class HelpView(discord.ui.View):
                 discord.SelectOption(
                     label=_group_label(group_name),
                     value=f"group:{group_name}",
-                    description=f"{self._group_command_count(group_name)} commands",
+                    description=_group_description(group_name),
                     emoji=_group_emoji(group_name),
                 )
             )
@@ -446,7 +463,10 @@ class HelpView(discord.ui.View):
         group_lines = []
         for group_name, _cogs in sorted(self._grouped_cogs().items(), key=lambda item: _group_sort_key(item[0])):
             command_count = self._group_command_count(group_name)
-            group_lines.append(f"{_group_emoji(group_name)} **{_group_label(group_name)}** - {command_count} commands")
+            group_lines.append(
+                f"{_group_emoji(group_name)} **{_group_label(group_name)}** - {_group_description(group_name)} "
+                f"({command_count} commands)"
+            )
 
         embed = discord.Embed(
             title=f"{Emoji.CROWN.value} Amenity Commands",
@@ -466,7 +486,7 @@ class HelpView(discord.ui.View):
         command_count = self._group_command_count(group_name)
         embed = discord.Embed(
             title=f"{_group_emoji(group_name)} {label} - {command_count} commands",
-            description="Categories in this group.",
+            description=_group_description(group_name),
             color=0x2F3136,
         )
 
@@ -524,9 +544,7 @@ class HelpView(discord.ui.View):
         end = start + per_page
         page_commands = top_commands[start:end]
         command_names = ", ".join(
-            command_name
-            for command in page_commands
-            for command_name in _format_command_names(command)
+            command_name for command in page_commands for command_name in _format_command_names(command)
         )
         embed.add_field(name="Commands", value=command_names, inline=False)
         embed.set_footer(text=f"Page {self.current_page + 1}/{self.total_pages}")

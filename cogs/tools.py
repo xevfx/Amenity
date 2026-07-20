@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import contextlib
 import hashlib
 import hmac
 import io
+import json
 import os
 import re
 import struct
 import subprocess
 import tempfile
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import SplitResult, parse_qsl, quote_plus, urlencode, urlsplit, urlunsplit
@@ -24,6 +27,7 @@ from PIL import Image, ImageDraw, ImageOps
 from api.http import close_http_session, create_http_session
 from api.log import log_exception
 from api.paginator import EmbedPaginator, PaginatorHelper
+from core.checks import premium_required
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -34,6 +38,12 @@ STROKE_SIZE = 5
 MAX_TEXT_OUTPUT = 1900
 MAX_SAY_MESSAGE = 2000
 MAX_SAY_EMBED_DESCRIPTION = 4096
+MAX_SEARCH_QUERY = 400
+MAX_SEARCH_RESULTS = 1
+MAX_SEARCH_SUMMARY = 300
+TAVILY_SEARCH_URL = "https://api.tavily.com/search"
+TAVILY_USAGE_URL = "https://api.tavily.com/usage"
+TAVILY_USAGE_PATH = Path(__file__).resolve().parent.parent / "data" / "tavily_usage.json"
 TRACKING_PARAMS = {
     "_branch_match_id",
     "_branch_referrer",
@@ -542,6 +552,7 @@ class Tools(commands.Cog):
     def __init__(self, bot: Amenity) -> None:
         self.bot = bot
         self.aiohttp = create_http_session()
+        self._tavily_usage_lock = asyncio.Lock()
         self.html_preview_menu = app_commands.ContextMenu(
             name="Preview HTML",
             callback=self.preview_html_file,
@@ -616,6 +627,115 @@ class Tools(commands.Cog):
         if not raw_url or not gist_url:
             raise RuntimeError("GitHub did not return a usable Gist URL.")
         return raw_url, gist_url
+
+    @staticmethod
+    def _read_tavily_usage() -> dict[str, object] | None:
+        try:
+            data = json.loads(TAVILY_USAGE_PATH.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            return None
+        return data if isinstance(data, dict) else None
+
+    @staticmethod
+    def _write_tavily_usage(data: dict[str, object]) -> None:
+        TAVILY_USAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = TAVILY_USAGE_PATH.with_suffix(".tmp")
+        temporary_path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        temporary_path.replace(TAVILY_USAGE_PATH)
+
+    async def _refresh_tavily_usage(self, api_key: str) -> tuple[dict[str, object] | None, int | None]:
+        headers = {"Authorization": f"Bearer {api_key}"}
+        async with self._tavily_usage_lock:
+            try:
+                async with self.aiohttp.get(TAVILY_USAGE_URL, headers=headers) as response:
+                    data = await response.json(content_type=None)
+                    if response.status != 200 or not isinstance(data, dict):
+                        return self._read_tavily_usage(), response.status
+            except (TimeoutError, aiohttp.ClientError, json.JSONDecodeError) as exc:
+                log_exception(exc)
+                return self._read_tavily_usage(), None
+
+            account = data.get("account")
+            key = data.get("key")
+            account_data = account if isinstance(account, dict) else {}
+            key_data = key if isinstance(key, dict) else {}
+            used = account_data.get("plan_usage", key_data.get("usage", 0))
+            limit = account_data.get("plan_limit", key_data.get("limit", 0))
+            used = used if isinstance(used, int | float) else 0
+            limit = limit if isinstance(limit, int | float) else 0
+            snapshot: dict[str, object] = {
+                "provider": "tavily",
+                "source": "tavily_api",
+                "updated_at": datetime.now(UTC).isoformat(),
+                "period": datetime.now(UTC).strftime("%Y-%m"),
+                "plan": account_data.get("current_plan", "Unknown"),
+                "used": used,
+                "limit": limit,
+                "remaining": max(0, limit - used),
+                "search_usage": account_data.get("search_usage", key_data.get("search_usage", 0)),
+                "paygo_usage": account_data.get("paygo_usage", 0),
+                "paygo_limit": account_data.get("paygo_limit", 0),
+            }
+            self._write_tavily_usage(snapshot)
+            return snapshot, 200
+
+    async def _record_tavily_credits(self, credits: int) -> dict[str, object]:
+        async with self._tavily_usage_lock:
+            now = datetime.now(UTC)
+            snapshot = self._read_tavily_usage() or {}
+            if snapshot.get("period") != now.strftime("%Y-%m"):
+                snapshot = {}
+
+            used = snapshot.get("used", 0)
+            limit = snapshot.get("limit", 1000)
+            search_usage = snapshot.get("search_usage", 0)
+            used = used if isinstance(used, int | float) else 0
+            limit = limit if isinstance(limit, int | float) else 1000
+            search_usage = search_usage if isinstance(search_usage, int | float) else 0
+            snapshot.update(
+                {
+                    "provider": "tavily",
+                    "source": "local_estimate",
+                    "updated_at": now.isoformat(),
+                    "period": now.strftime("%Y-%m"),
+                    "plan": snapshot.get("plan", "Researcher"),
+                    "used": used + credits,
+                    "limit": limit,
+                    "remaining": max(0, limit - used - credits),
+                    "search_usage": search_usage + credits,
+                    "paygo_usage": snapshot.get("paygo_usage", 0),
+                    "paygo_limit": snapshot.get("paygo_limit", 0),
+                }
+            )
+            self._write_tavily_usage(snapshot)
+            return snapshot
+
+    async def _search_web(self, query: str, api_key: str) -> tuple[list[dict[str, object]], int, int]:
+        headers = {"Authorization": f"Bearer {api_key}"}
+        payload = {
+            "query": query,
+            "search_depth": "basic",
+            "max_results": MAX_SEARCH_RESULTS,
+            "include_answer": True,
+            "include_raw_content": False,
+            "include_images": False,
+        }
+        async with self.aiohttp.post(TAVILY_SEARCH_URL, headers=headers, json=payload) as response:
+            data = await response.json(content_type=None)
+            if response.status != 200 or not isinstance(data, dict):
+                return [], response.status, 0
+
+        results = data.get("results")
+        answer = data.get("answer")
+        usage = data.get("usage")
+        credits = usage.get("credits", 1) if isinstance(usage, dict) else 1
+        credits = credits if isinstance(credits, int) else 1
+        if not isinstance(results, list):
+            return [], 200, credits
+        clean_results = [result for result in results if isinstance(result, dict)]
+        if clean_results and isinstance(answer, str) and answer.strip():
+            clean_results[0] = {**clean_results[0], "_answer": answer.strip()}
+        return clean_results, 200, credits
 
     async def preview_html_file(self, interaction: discord.Interaction, message: discord.Message) -> None:
         html_file = next(
@@ -935,6 +1055,91 @@ class Tools(commands.Cog):
         finally:
             output.unlink(missing_ok=True)
 
+    @commands.hybrid_command(name="search", description="Search the web.")
+    @app_commands.describe(query="What you want to search for.")
+    @app_commands.allowed_installs(guilds=False, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @commands.cooldown(1, 10, commands.BucketType.user)
+    @premium_required()
+    async def web_search(self, ctx: commands.Context, *, query: str) -> None:
+        query = query.strip()
+        if not query:
+            await ctx.reply("Please provide something to search for.", mention_author=False, ephemeral=True)
+            return
+        if len(query) > MAX_SEARCH_QUERY:
+            await ctx.reply(
+                f"Search queries must be {MAX_SEARCH_QUERY} characters or less.",
+                mention_author=False,
+                ephemeral=True,
+            )
+            return
+
+        api_key = os.getenv("TAVILY_API_KEY", "").strip()
+        if not api_key:
+            await ctx.reply("Web search is not configured.", mention_author=False, ephemeral=True)
+            return
+
+        await ctx.defer()
+
+        try:
+            results, status, credits = await self._search_web(query, api_key)
+        except (TimeoutError, aiohttp.ClientError) as exc:
+            log_exception(exc)
+            await ctx.send("Web search is temporarily unavailable. Please try again.")
+            return
+        except Exception as exc:
+            log_exception(exc)
+            await ctx.send("An error occurred while searching the web.")
+            return
+
+        if status == 401:
+            await ctx.send("Web search is not configured correctly.")
+            return
+        if status == 429:
+            await ctx.send("The web search limit has been reached. Please try again later.")
+            return
+        if status != 200:
+            await ctx.send("Web search is temporarily unavailable. Please try again.")
+            return
+
+        _, usage_status = await self._refresh_tavily_usage(api_key)
+        if usage_status != 200:
+            await self._record_tavily_credits(credits)
+
+        embed = discord.Embed(
+            title="Web Search",
+            description=f"Results for **{discord.utils.escape_markdown(query[:250])}**",
+            color=discord.Color.onyx_embed(),
+        )
+        result_count = 0
+        for result in results[:MAX_SEARCH_RESULTS]:
+            title = result.get("title")
+            url = result.get("url")
+            content = result.get("content")
+            if not isinstance(title, str) or not isinstance(url, str) or not url.startswith(("https://", "http://")):
+                continue
+
+            safe_title = discord.utils.escape_markdown(title.strip())[:256] or "Search result"
+            answer = result.get("_answer")
+            if isinstance(answer, str) and answer.strip():
+                safe_content = discord.utils.escape_markdown(answer.strip())[:900]
+            else:
+                safe_content = (
+                    discord.utils.escape_markdown(content.strip())[:MAX_SEARCH_SUMMARY]
+                    if isinstance(content, str)
+                    else ""
+                )
+            value = f"{safe_content}\n[Open result]({url})" if safe_content else f"[Open result]({url})"
+            embed.add_field(name=safe_title, value=value, inline=False)
+            result_count += 1
+
+        if not result_count:
+            await ctx.send(f"No results found for `{discord.utils.escape_markdown(query[:100])}`.")
+            return
+
+        embed.set_footer(text="Search results provided by Tavily")
+        await ctx.send(embed=embed)
+
     @commands.hybrid_command(name="encrypt", description="Encrypt or encode text.")
     @app_commands.choices(
         method=[
@@ -1235,7 +1440,7 @@ class Tools(commands.Cog):
 
         try:
             process = subprocess.run(
-                ["figlet", text],
+                ["pyfiglet", text],
                 capture_output=True,
                 check=True,
                 text=True,
