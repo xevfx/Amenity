@@ -4,6 +4,7 @@ import sqlite3
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from threading import Lock
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -34,6 +35,7 @@ class PendingInstalledUser:
 
 
 _pending_users: dict[int, PendingInstalledUser] = {}
+_pending_users_lock = Lock()
 
 
 def _now() -> int:
@@ -70,28 +72,30 @@ def track_installed_user(user: discord.abc.User) -> None:
     user_id = int(user.id)
     username = getattr(user, "name", None)
     display_name = getattr(user, "display_name", None) or getattr(user, "global_name", None)
-    pending = _pending_users.get(user_id)
-    if pending is None:
-        _pending_users[user_id] = PendingInstalledUser(
-            user_id=user_id,
-            username=username,
-            display_name=display_name,
-            first_seen=seen_at,
-            last_seen=seen_at,
-            command_count=1,
-        )
-        return
+    with _pending_users_lock:
+        pending = _pending_users.get(user_id)
+        if pending is None:
+            _pending_users[user_id] = PendingInstalledUser(
+                user_id=user_id,
+                username=username,
+                display_name=display_name,
+                first_seen=seen_at,
+                last_seen=seen_at,
+                command_count=1,
+            )
+            return
 
-    pending.username = username
-    pending.display_name = display_name
-    pending.last_seen = seen_at
-    pending.command_count += 1
+        pending.username = username
+        pending.display_name = display_name
+        pending.last_seen = seen_at
+        pending.command_count += 1
 
 
 def flush_installed_users() -> int:
     init_installed_users_db()
-    pending_users = list(_pending_users.values())
-    _pending_users.clear()
+    with _pending_users_lock:
+        pending_users = list(_pending_users.values())
+        _pending_users.clear()
     if not pending_users:
         return 0
 
@@ -145,7 +149,9 @@ def list_installed_users(*, include_pending: bool = True) -> list[InstalledUser]
         for row in rows
     }
     if include_pending:
-        for pending in _pending_users.values():
+        with _pending_users_lock:
+            pending_users = list(_pending_users.values())
+        for pending in pending_users:
             stored = users.get(pending.user_id)
             if stored is None:
                 users[pending.user_id] = InstalledUser(

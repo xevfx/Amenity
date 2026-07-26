@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import contextlib
 import hashlib
@@ -753,7 +754,7 @@ class Tools(commands.Cog):
                     return
                 avatar_bytes = await resp.read()
 
-            if not add_stroke_to_avatar(avatar_bytes, str(output)):
+            if not await asyncio.to_thread(add_stroke_to_avatar, avatar_bytes, str(output)):
                 await ctx.send("Failed to process the image.")
                 return
 
@@ -794,7 +795,7 @@ class Tools(commands.Cog):
                     return
                 avatar_bytes = await resp.read()
 
-            if not process_fn(avatar_bytes, str(output)):
+            if not await asyncio.to_thread(process_fn, avatar_bytes, str(output)):
                 await ctx.send("Failed to process the image.")
                 return
 
@@ -915,7 +916,7 @@ class Tools(commands.Cog):
         try:
             image_bytes = await image.read()
 
-            if not invert_image(image_bytes, str(output)):
+            if not await asyncio.to_thread(invert_image, image_bytes, str(output)):
                 await ctx.send("Failed to process the image.")
                 return
 
@@ -1233,8 +1234,10 @@ class Tools(commands.Cog):
             await ctx.send("Text must be 80 characters or less.")
             return
 
+        await ctx.defer()
         try:
-            process = subprocess.run(
+            process = await asyncio.to_thread(
+                subprocess.run,
                 ["figlet", text],
                 capture_output=True,
                 check=True,

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import re
@@ -30,7 +31,6 @@ class Template(commands.Cog):
         self.bot = bot
         self.db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data/templates.db"))
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        self._init_db()
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path, timeout=10)
@@ -140,6 +140,18 @@ class Template(commands.Cog):
             )
         self._invalidate_user_cache(user_id)
 
+    def _delete_template(self, template_id: int, user_id: int) -> int:
+        with self._connect() as conn:
+            cursor = conn.execute("DELETE FROM templates WHERE id = ? AND user_id = ?", (template_id, user_id))
+        self._invalidate_user_cache(user_id)
+        return cursor.rowcount
+
+    def _delete_user_templates(self, user_id: int) -> int:
+        with self._connect() as conn:
+            cursor = conn.execute("DELETE FROM templates WHERE user_id = ?", (user_id,))
+        self._invalidate_user_cache(user_id)
+        return cursor.rowcount
+
     async def _send_embed(
         self,
         ctx: commands.Context,
@@ -158,8 +170,8 @@ class Template(commands.Cog):
             return
         await ctx.send(embed=embed)
 
-    def _template_choices(self, user_id: int, current: str) -> list[app_commands.Choice[str]]:
-        templates = self._get_user_templates(user_id)
+    async def _template_choices(self, user_id: int, current: str) -> list[app_commands.Choice[str]]:
+        templates = await asyncio.to_thread(self._get_user_templates, user_id)
         current_lower = current.strip().lower()
         choices: list[app_commands.Choice[str]] = []
         for template in templates:
@@ -199,7 +211,7 @@ class Template(commands.Cog):
         name = name.strip()
         if not await self._validate_template_name(ctx, name):
             return
-        if self._get_template_by_name_or_id(ctx.author.id, name):
+        if await asyncio.to_thread(self._get_template_by_name_or_id, ctx.author.id, name):
             await self._send_embed(
                 ctx,
                 "A template with that name already exists. Use `/template edit`.",
@@ -215,7 +227,7 @@ class Template(commands.Cog):
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def template_edit(self, ctx: commands.Context, name: str) -> None:
-        template = self._get_template_by_name_or_id(ctx.author.id, name)
+        template = await asyncio.to_thread(self._get_template_by_name_or_id, ctx.author.id, name)
         if not template:
             await self._send_embed(ctx, "Template not found.", ephemeral=True)
             return
@@ -236,7 +248,7 @@ class Template(commands.Cog):
         interaction: discord.Interaction,
         current: str,
     ) -> list[app_commands.Choice[str]]:
-        return self._template_choices(interaction.user.id, current)
+        return await self._template_choices(interaction.user.id, current)
 
     @template.command(name="list", description="List and preview your templates", aliases=["ls"])
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -244,7 +256,7 @@ class Template(commands.Cog):
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def template_list(self, ctx: commands.Context) -> None:
-        templates = self._get_user_templates(ctx.author.id)
+        templates = await asyncio.to_thread(self._get_user_templates, ctx.author.id)
         if not templates:
             await self._send_embed(ctx, "You have no templates.", ephemeral=True)
             return
@@ -262,7 +274,7 @@ class Template(commands.Cog):
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def template_send(self, ctx: commands.Context, name: str) -> None:
-        template = self._get_template_by_name_or_id(ctx.author.id, name)
+        template = await asyncio.to_thread(self._get_template_by_name_or_id, ctx.author.id, name)
         if not template:
             await self._send_embed(ctx, "Template not found.", ephemeral=True)
             return
@@ -278,7 +290,7 @@ class Template(commands.Cog):
         interaction: discord.Interaction,
         current: str,
     ) -> list[app_commands.Choice[str]]:
-        return self._template_choices(interaction.user.id, current)
+        return await self._template_choices(interaction.user.id, current)
 
     @template.command(name="delete", description="Delete a template", aliases=["del"])
     @app_commands.describe(name="Template name")
@@ -287,13 +299,11 @@ class Template(commands.Cog):
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def template_delete(self, ctx: commands.Context, name: str) -> None:
-        template = self._get_template_by_name_or_id(ctx.author.id, name)
+        template = await asyncio.to_thread(self._get_template_by_name_or_id, ctx.author.id, name)
         if not template:
             await self._send_embed(ctx, "Template not found.", ephemeral=True)
             return
-        with self._connect() as conn:
-            conn.execute("DELETE FROM templates WHERE id = ? AND user_id = ?", (template["id"], ctx.author.id))
-        self._invalidate_user_cache(ctx.author.id)
+        await asyncio.to_thread(self._delete_template, template["id"], ctx.author.id)
         await self._send_embed(ctx, f"Deleted template `{template['name']}`.", ephemeral=True)
 
     @template_delete.autocomplete("name")
@@ -302,7 +312,7 @@ class Template(commands.Cog):
         interaction: discord.Interaction,
         current: str,
     ) -> list[app_commands.Choice[str]]:
-        return self._template_choices(interaction.user.id, current)
+        return await self._template_choices(interaction.user.id, current)
 
     @template.command(name="nuke", description="Delete all your templates")
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -326,10 +336,8 @@ class Template(commands.Cog):
         if not confirmed:
             return
         try:
-            with self._connect() as conn:
-                cursor = conn.execute("DELETE FROM templates WHERE user_id = ?", (ctx.author.id,))
-            self._invalidate_user_cache(ctx.author.id)
-            await self._send_embed(ctx, f"Deleted {cursor.rowcount} templates.", ephemeral=True)
+            deleted = await asyncio.to_thread(self._delete_user_templates, ctx.author.id)
+            await self._send_embed(ctx, f"Deleted {deleted} templates.", ephemeral=True)
         except Exception as exc:
             await self._send_embed(ctx, "Error deleting templates.", ephemeral=True)
             await log_command_error(ctx, exc)
@@ -503,10 +511,11 @@ class TemplateBuilderView(discord.ui.View):
         if not self.data.get("content") and not self.data.get("embed"):
             await interaction.response.send_message("Add text or an embed before saving.", ephemeral=True)
             return
-        self.cog._save_template(self.author_id, self.name, self.data)
+        await interaction.response.defer()
+        await asyncio.to_thread(self.cog._save_template, self.author_id, self.name, self.data)
         for item in self.children:
             item.disabled = True
-        await interaction.response.edit_message(
+        await interaction.edit_original_response(
             embed=discord.Embed(description=f"Saved template `{self.name}`."),
             view=self,
         )
@@ -777,4 +786,6 @@ def embed_has_content(embed: dict[str, Any]) -> bool:
 
 
 async def setup(bot: Amenity) -> None:
-    await bot.add_cog(Template(bot))
+    cog = Template(bot)
+    await asyncio.to_thread(cog._init_db)
+    await bot.add_cog(cog)

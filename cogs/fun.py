@@ -1,3 +1,4 @@
+import asyncio
 import io
 import random
 import tempfile
@@ -395,7 +396,8 @@ class Fun(commands.Cog):
                     return
                 avatar_bytes = await resp.read()
 
-            if not _generate_rip(avatar_bytes, str(output), target.display_name):
+            generated = await asyncio.to_thread(_generate_rip, avatar_bytes, str(output), target.display_name)
+            if not generated:
                 await ctx.send("Failed to generate the image.")
                 return
 
@@ -436,7 +438,7 @@ class Fun(commands.Cog):
         await ctx.defer()
 
         try:
-            if not _generate_waiting(str(output), text):
+            if not await asyncio.to_thread(_generate_waiting, str(output), text):
                 await ctx.send("Failed to generate the image.")
                 return
 
@@ -477,7 +479,7 @@ class Fun(commands.Cog):
         await ctx.defer()
 
         try:
-            if not _generate_whiteboard(str(output), text):
+            if not await asyncio.to_thread(_generate_whiteboard, str(output), text):
                 await ctx.send("Failed to generate the image.")
                 return
 
