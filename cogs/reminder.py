@@ -187,7 +187,7 @@ class Reminder(commands.Cog):
 
     @check_reminders.before_loop
     async def check_reminders_before_loop(self) -> None:
-        await self.bot.wait_until_ready()
+        await self.bot._wait_for_startup_maintenance()
 
     async def _send_embed(
         self,

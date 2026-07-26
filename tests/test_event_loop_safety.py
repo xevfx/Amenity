@@ -74,3 +74,24 @@ async def test_periodic_reminder_query_does_not_block_gateway_loop() -> None:
 
     assert worker_threads
     assert worker_threads[0] != event_loop_thread
+
+
+@pytest.mark.asyncio
+async def test_maintenance_loops_wait_for_the_startup_grace_period() -> None:
+    class Bot:
+        def __init__(self) -> None:
+            self.waits = 0
+
+        async def _wait_for_startup_maintenance(self) -> None:
+            self.waits += 1
+
+    bot = Bot()
+
+    await Amenity.before_check_premium_expiry(bot)
+    await Amenity.before_flush_installed_users(bot)
+
+    reminder = object.__new__(Reminder)
+    reminder.bot = bot
+    await Reminder.check_reminders_before_loop(reminder)
+
+    assert bot.waits == 3
