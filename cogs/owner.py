@@ -2,6 +2,7 @@ import asyncio
 import os
 import sys
 from contextlib import suppress
+from dataclasses import dataclass
 from pathlib import Path
 
 import discord
@@ -29,6 +30,25 @@ from core.checks import (
     unblacklist_user,
 )
 from core.installed_users import InstalledUser, list_installed_users
+
+BROADCAST_HEADER = "**Amenity announcement**\n\n"
+BROADCAST_FOOTER = "\n\n-# You are receiving this because you have used Amenity."
+MAX_BROADCAST_BODY_LENGTH = 2000 - len(BROADCAST_HEADER) - len(BROADCAST_FOOTER)
+BROADCAST_DELAY_SECONDS = 0.4
+BROADCAST_PROGRESS_INTERVAL = 25
+
+
+@dataclass(slots=True)
+class BroadcastResult:
+    total: int
+    sent: int = 0
+    blocked: int = 0
+    unavailable: int = 0
+    failed: int = 0
+
+    @property
+    def processed(self) -> int:
+        return self.sent + self.blocked + self.unavailable + self.failed
 
 
 class Owner(commands.Cog):
@@ -115,6 +135,61 @@ class Owner(commands.Cog):
         for index, user in enumerate(users, start=1):
             lines.append(await self._format_installed_user(user, index))
         return lines
+
+    def _format_broadcast_status(self, result: BroadcastResult, *, complete: bool = False) -> str:
+        heading = "Broadcast complete." if complete else "Broadcast in progress..."
+        return (
+            f"{heading}\n"
+            f"Processed: `{result.processed}/{result.total}`\n"
+            f"Sent: `{result.sent}` | DMs closed: `{result.blocked}` | "
+            f"Unavailable: `{result.unavailable}` | Failed: `{result.failed}`"
+        )
+
+    async def _broadcast_tracked_user_dm(
+        self,
+        users: list[InstalledUser],
+        payload: str,
+        *,
+        progress_message: discord.Message | None = None,
+        delay: float = BROADCAST_DELAY_SECONDS,
+    ) -> BroadcastResult:
+        result = BroadcastResult(total=len(users))
+
+        for index, tracked_user in enumerate(users, start=1):
+            user = self.bot.get_user(tracked_user.user_id)
+            if user is None:
+                try:
+                    user = await self.bot.fetch_user(tracked_user.user_id)
+                except discord.NotFound:
+                    result.unavailable += 1
+                except discord.HTTPException:
+                    result.failed += 1
+
+            if user is not None:
+                try:
+                    await user.send(
+                        payload,
+                        allowed_mentions=discord.AllowedMentions.none(),
+                    )
+                except discord.Forbidden:
+                    result.blocked += 1
+                except discord.NotFound:
+                    result.unavailable += 1
+                except discord.HTTPException:
+                    result.failed += 1
+                else:
+                    result.sent += 1
+
+            if progress_message is not None and (
+                index % BROADCAST_PROGRESS_INTERVAL == 0 or index == result.total
+            ):
+                with suppress(discord.HTTPException):
+                    await progress_message.edit(content=self._format_broadcast_status(result))
+
+            if delay > 0 and index < result.total:
+                await asyncio.sleep(delay)
+
+        return result
 
     async def _send_generated_premium_keys(
         self,
@@ -282,6 +357,69 @@ class Owner(commands.Cog):
         )
         view = EmbedPaginator(embeds, author_id=ctx.author.id)
         await ctx.reply(embed=embeds[0], view=view, mention_author=False)
+
+    @commands.command(
+        name="dm-users",
+        aliases=["broadcast-dm", "announce-users"],
+        hidden=True,
+    )
+    @commands.is_owner()
+    @commands.max_concurrency(1, commands.BucketType.default, wait=False)
+    async def dm_users(self, ctx: commands.Context, *, message: str) -> None:
+        """Send a confirmed operational announcement to every tracked user."""
+        message = message.strip()
+        if not message:
+            await self._send_owner_reply(ctx, "Provide a message to broadcast.")
+            return
+        if len(message) > MAX_BROADCAST_BODY_LENGTH:
+            await self._send_owner_reply(
+                ctx,
+                f"Message is too long. Keep it under `{MAX_BROADCAST_BODY_LENGTH}` characters.",
+            )
+            return
+
+        installed_users = await asyncio.to_thread(list_installed_users)
+        if not installed_users:
+            await self._send_owner_reply(ctx, "No tracked users are available.")
+            return
+
+        preview = discord.utils.escape_mentions(message[:500])
+        if len(message) > 500:
+            preview = f"{preview}..."
+        confirmed = await confirm_action(
+            ctx,
+            (
+                f"Send this DM to `{len(installed_users)}` tracked user(s)?\n"
+                "This cannot be undone.\n\n"
+                f">>> {preview}"
+            ),
+            timeout=30,
+            ephemeral=False,
+            confirm_label="Send DMs",
+            cancel_label="Cancel",
+            confirm_style=discord.ButtonStyle.danger,
+            confirm_message="Broadcast confirmed. Starting delivery...",
+            cancel_message="Broadcast cancelled.",
+            timeout_message="Broadcast cancelled.",
+        )
+        if not confirmed:
+            return
+
+        payload = f"{BROADCAST_HEADER}{message}{BROADCAST_FOOTER}"
+        progress_message = await ctx.reply(
+            f"Starting broadcast to `{len(installed_users)}` tracked user(s)...",
+            mention_author=False,
+        )
+        result = await self._broadcast_tracked_user_dm(
+            installed_users,
+            payload,
+            progress_message=progress_message,
+        )
+        final_status = self._format_broadcast_status(result, complete=True)
+        try:
+            await progress_message.edit(content=final_status)
+        except discord.HTTPException:
+            await self._send_owner_reply(ctx, final_status)
 
     @commands.command(name="restart", hidden=True)
     @commands.is_owner()

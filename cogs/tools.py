@@ -44,6 +44,7 @@ MAX_SEARCH_SUMMARY = 300
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
 TAVILY_USAGE_URL = "https://api.tavily.com/usage"
 TAVILY_USAGE_PATH = Path(__file__).resolve().parent.parent / "data" / "tavily_usage.json"
+TAVILY_KEY_ENV_VARS = ("TAVILY_API_KEY", "TAVILY_KEY")
 TRACKING_PARAMS = {
     "_branch_match_id",
     "_branch_referrer",
@@ -569,6 +570,21 @@ class Tools(commands.Cog):
             type=self.html_preview_menu.type,
         )
 
+    @staticmethod
+    def _tavily_api_key() -> str:
+        """Read the key in both local dotenv and hosting-secret conventions.
+
+        Some hosts export secrets with quotes preserved (for example,
+        ``"tvly-..."``), which makes an otherwise valid key fail with 401.
+        """
+        for name in TAVILY_KEY_ENV_VARS:
+            value = os.getenv(name)
+            if value:
+                value = value.strip().strip("\"'")
+                if value:
+                    return value
+        return ""
+
     async def _send_text_tool_response(
         self,
         ctx: commands.Context,
@@ -1074,7 +1090,7 @@ class Tools(commands.Cog):
             )
             return
 
-        api_key = os.getenv("TAVILY_API_KEY", "").strip()
+        api_key = self._tavily_api_key()
         if not api_key:
             await ctx.reply("Web search is not configured.", mention_author=False, ephemeral=True)
             return
@@ -1092,7 +1108,7 @@ class Tools(commands.Cog):
             await ctx.send("An error occurred while searching the web.")
             return
 
-        if status == 401:
+        if status in (401, 403):
             await ctx.send("Web search is not configured correctly.")
             return
         if status == 429:

@@ -77,8 +77,14 @@ The bot reads settings from `.env` with `python-dotenv`.
 | `BLOCKCYPHER_TOKEN` | No | Optional BlockCypher token for crypto commands. |
 | `ETHERSCAN_API_KEY` | No | Optional Etherscan API key for crypto commands. |
 | `BSCSCAN_API_KEY` | No | Optional BscScan API key for crypto commands. |
+| `TAVILY_API_KEY` (or `TAVILY_KEY`) | No | Tavily API key required by the premium `/search` command. |
 
 Keep `.env` private. Do not commit real tokens or API keys.
+
+When deploying, add `TAVILY_API_KEY` as a runtime environment variable/secret in
+the host's service settings (a local `.env` file is not shipped with the
+application). Paste only the key value, without quotes. `TAVILY_KEY` is also
+accepted for hosts that use that secret name.
 
 ## Discord Bot Setup
 
