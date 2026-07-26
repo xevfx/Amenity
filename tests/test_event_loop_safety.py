@@ -1,6 +1,7 @@
 import asyncio
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -95,3 +96,38 @@ async def test_maintenance_loops_wait_for_the_startup_grace_period() -> None:
     await Reminder.check_reminders_before_loop(reminder)
 
     assert bot.waits == 3
+
+
+@pytest.mark.asyncio
+async def test_blocking_executor_is_configured_and_prewarmed(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Loop:
+        def __init__(self) -> None:
+            self.executor: ThreadPoolExecutor | None = None
+            self.calls: list[tuple[ThreadPoolExecutor | None, object]] = []
+
+        def set_default_executor(self, executor: ThreadPoolExecutor) -> None:
+            self.executor = executor
+
+        async def _complete(self) -> None:
+            return None
+
+        def run_in_executor(self, executor: ThreadPoolExecutor | None, callback: object, *args: object) -> object:
+            del args
+            self.calls.append((executor, callback))
+            return self._complete()
+
+    loop = Loop()
+    bot = object.__new__(Amenity)
+    bot._blocking_executor = ThreadPoolExecutor(max_workers=amenity_module.BLOCKING_WORKER_COUNT)
+    bot._blocking_executor_ready = False
+    monkeypatch.setattr(amenity_module.asyncio, "get_running_loop", lambda: loop)
+
+    try:
+        await Amenity._prepare_blocking_executor(bot)
+    finally:
+        bot._blocking_executor.shutdown(wait=True)
+
+    assert loop.executor is bot._blocking_executor
+    assert len(loop.calls) == amenity_module.BLOCKING_WORKER_COUNT
+    assert all(executor is None for executor, _callback in loop.calls)
+    assert bot._blocking_executor_ready

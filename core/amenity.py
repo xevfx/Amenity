@@ -6,6 +6,7 @@ import pkgutil
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from pathlib import Path
 
@@ -42,6 +43,11 @@ logger = logging.getLogger(__name__)
 STARTUP_MAINTENANCE_DELAY_SECONDS = 30
 EVENT_LOOP_WATCHDOG_INTERVAL_SECONDS = 1
 EVENT_LOOP_STALL_SECONDS = 10
+# ``asyncio.to_thread`` normally grows its executor the first time a new worker
+# is needed.  ``Thread.start()`` waits synchronously for that worker to boot,
+# which is exactly where the gateway loop stalled in production.  A fixed,
+# pre-warmed pool moves that work to setup, before the gateway is connected.
+BLOCKING_WORKER_COUNT = 4
 
 USER_ONLY_INSTALL_MESSAGE = (
     "Amenity is a user-only app and cannot be installed to servers. "
@@ -74,6 +80,11 @@ class Amenity(commands.Bot):
         self._event_loop_watchdog_stop = threading.Event()
         self._event_loop_watchdog_thread: threading.Thread | None = None
         self._event_loop_watchdog_task: asyncio.Task[None] | None = None
+        self._blocking_executor = ThreadPoolExecutor(
+            max_workers=BLOCKING_WORKER_COUNT,
+            thread_name_prefix="amenity-worker",
+        )
+        self._blocking_executor_ready = False
 
     async def on_connect(self) -> None:
         """Called when bot connects to Discord gateway."""
@@ -84,6 +95,7 @@ class Amenity(commands.Bot):
 
     async def setup_hook(self) -> None:
         self.tree.on_error = self.on_app_command_error
+        await self._prepare_blocking_executor()
         self._start_event_loop_watchdog()
         await initialize_checks()
         await asyncio.to_thread(init_installed_users_db)
@@ -135,6 +147,28 @@ class Amenity(commands.Bot):
         await self._stop_event_loop_watchdog()
         await asyncio.to_thread(flush_pending_installed_users)
         await super().close()
+
+    @staticmethod
+    def _wait_for_worker_pool(barrier: threading.Barrier) -> None:
+        barrier.wait(timeout=10)
+
+    async def _prepare_blocking_executor(self) -> None:
+        if self._blocking_executor_ready:
+            return
+
+        loop = asyncio.get_running_loop()
+        loop.set_default_executor(self._blocking_executor)
+        barrier = threading.Barrier(BLOCKING_WORKER_COUNT)
+        try:
+            await asyncio.gather(
+                *(
+                    loop.run_in_executor(None, self._wait_for_worker_pool, barrier)
+                    for _ in range(BLOCKING_WORKER_COUNT)
+                )
+            )
+        except threading.BrokenBarrierError as exc:
+            raise RuntimeError("Could not start blocking workers before opening the Discord gateway.") from exc
+        self._blocking_executor_ready = True
 
     def _start_event_loop_watchdog(self) -> None:
         if self._event_loop_watchdog_thread is not None:
