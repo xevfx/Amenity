@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 from contextlib import suppress
@@ -124,7 +125,7 @@ class Owner(commands.Cog):
     ) -> None:
         premium_duration = self._validate_duration(premium_duration)
         key_lifespan = self._validate_duration(key_lifespan)
-        keys = generate_premium_keys(premium_duration, key_lifespan, count)
+        keys = await asyncio.to_thread(generate_premium_keys, premium_duration, key_lifespan, count)
         formatted = "\n".join(key.key for key in keys)
         await self._send_owner_reply(
             ctx,
@@ -142,8 +143,8 @@ class Owner(commands.Cog):
             await self._send_owner_reply(ctx, "Provide at least one premium key.")
             return
 
-        revoked = [key for key in keys if revoke_premium_key(key)]
-        await self._send_owner_reply(ctx, f"Revoked `{len(revoked)}` of `{len(keys)}` premium key(s).")
+        results = await asyncio.to_thread(lambda: [revoke_premium_key(key) for key in keys])
+        await self._send_owner_reply(ctx, f"Revoked `{sum(results)}` of `{len(keys)}` premium key(s).")
 
     def _get_cgroup_path(self, controller: str | None) -> Path | None:
         try:
@@ -230,7 +231,7 @@ class Owner(commands.Cog):
         """
         Show bot resource usage.
         """
-        total, used = self._read_meminfo()
+        total, used = await asyncio.to_thread(self._read_meminfo)
         cache_entries = len(cache)
         guild_count = len(self.bot.guilds)
         user_installs = await self._get_user_install_count()
@@ -266,7 +267,7 @@ class Owner(commands.Cog):
         """
         Show users who have used bot commands.
         """
-        installed_users = list_installed_users()
+        installed_users = await asyncio.to_thread(list_installed_users)
         if not installed_users:
             await self._send_owner_reply(ctx, "No command users have been tracked yet.")
             return
@@ -313,7 +314,7 @@ class Owner(commands.Cog):
         """
         output_path = output or "docs/commands.json"
         try:
-            export_commands(self.bot, output_path)
+            await asyncio.to_thread(export_commands, self.bot, output_path)
         except Exception as exc:
             await ctx.reply(
                 f"Failed to export commands: {exc}",
@@ -337,14 +338,14 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def blacklist_add(self, ctx: commands.Context, user_id: str, *, reason: str | None = None) -> None:
         user_id_int = self._parse_id(user_id)
-        blacklist_user(user_id_int, reason)
+        await asyncio.to_thread(blacklist_user, user_id_int, reason)
         await self._send_owner_reply(ctx, f"Blacklisted `{user_id_int}`.")
 
     @blacklist.command(name="remove", aliases=["r"], hidden=True)
     @commands.is_owner()
     async def blacklist_remove(self, ctx: commands.Context, user_id: str) -> None:
         user_id_int = self._parse_id(user_id)
-        removed = unblacklist_user(user_id_int)
+        removed = await asyncio.to_thread(unblacklist_user, user_id_int)
         status = "Removed" if removed else "Not found"
         await self._send_owner_reply(ctx, f"{status}: `{user_id_int}`.")
 
@@ -373,7 +374,7 @@ class Owner(commands.Cog):
         if normalized in {"command", "command disable", "command enable", "blacklist", "premium"}:
             await self._send_owner_reply(ctx, "That owner management command cannot be disabled.")
             return
-        disabled = disable_command(normalized)
+        disabled = await asyncio.to_thread(disable_command, normalized)
         await self._send_owner_reply(ctx, f"Disabled `{disabled}`.")
 
     @command_control.command(name="enable", hidden=True)
@@ -383,7 +384,7 @@ class Owner(commands.Cog):
         if normalized is None:
             await self._send_owner_reply(ctx, "Provide a command name.")
             return
-        enabled = enable_command(normalized)
+        enabled = await asyncio.to_thread(enable_command, normalized)
         status = "Enabled" if enabled else "Not disabled"
         await self._send_owner_reply(ctx, f"{status}: `{normalized}`.")
 
@@ -410,7 +411,7 @@ class Owner(commands.Cog):
     async def premium_add(self, ctx: commands.Context, user_id: str, duration: str) -> None:
         user_id_int = self._parse_id(user_id)
         duration = self._validate_duration(duration)
-        expires_at = add_premium(user_id_int, duration)
+        expires_at = await asyncio.to_thread(add_premium, user_id_int, duration)
         await self._send_owner_reply(ctx, f"Added `{duration}` premium to `{user_id_int}`. Expires <t:{expires_at}:R>.")
 
     @premium.command(name="remove", aliases=["deduct"], hidden=True)
@@ -418,7 +419,7 @@ class Owner(commands.Cog):
     async def premium_remove(self, ctx: commands.Context, user_id: str, duration: str) -> None:
         user_id_int = self._parse_id(user_id)
         duration = self._validate_duration(duration)
-        expires_at = remove_premium(user_id_int, duration)
+        expires_at = await asyncio.to_thread(remove_premium, user_id_int, duration)
         await self._send_owner_reply(
             ctx,
             f"Removed `{duration}` premium from `{user_id_int}`. {self._format_premium_status(expires_at)}",
@@ -428,7 +429,7 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def premium_revoke(self, ctx: commands.Context, user_id: str) -> None:
         user_id_int = self._parse_id(user_id)
-        revoked = revoke_premium(user_id_int)
+        revoked = await asyncio.to_thread(revoke_premium, user_id_int)
         status = "Revoked" if revoked else "No premium found"
         await self._send_owner_reply(ctx, f"{status}: `{user_id_int}`.")
 
@@ -482,7 +483,7 @@ class Owner(commands.Cog):
     @premium_keys.command(name="list", aliases=["ls"], hidden=True)
     @commands.is_owner()
     async def premium_keys_list(self, ctx: commands.Context, limit: int = 10) -> None:
-        keys = list_premium_keys(limit)
+        keys = await asyncio.to_thread(list_premium_keys, limit)
         if not keys:
             await self._send_owner_reply(ctx, "No premium keys found.")
             return

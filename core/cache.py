@@ -1,6 +1,7 @@
 import inspect
 import time
 from collections.abc import Awaitable, Callable
+from threading import RLock
 from typing import TypeVar
 
 T = TypeVar("T")
@@ -11,10 +12,12 @@ class TimeCache[T]:
     def __init__(self, default_ttl: float = 60.0) -> None:
         self.default_ttl = float(default_ttl)
         self._store: dict[str, tuple[T, float]] = {}
+        self._lock = RLock()
 
     def __len__(self) -> int:
-        self.prune()
-        return len(self._store)
+        with self._lock:
+            self.prune()
+            return len(self._store)
 
     def _expires_at(self, ttl: float | None) -> float:
         if ttl is None:
@@ -22,34 +25,39 @@ class TimeCache[T]:
         return time.monotonic() + float(ttl)
 
     def prune(self) -> int:
-        now = time.monotonic()
-        expired_keys = [key for key, (_, expires_at) in self._store.items() if expires_at <= now]
-        for key in expired_keys:
-            self._store.pop(key, None)
-        return len(expired_keys)
+        with self._lock:
+            now = time.monotonic()
+            expired_keys = [key for key, (_, expires_at) in self._store.items() if expires_at <= now]
+            for key in expired_keys:
+                self._store.pop(key, None)
+            return len(expired_keys)
 
     def set(self, key: str, value: T, ttl: float | None = None) -> None:
-        self.prune()
-        self._store[key] = (value, self._expires_at(ttl))
+        with self._lock:
+            self.prune()
+            self._store[key] = (value, self._expires_at(ttl))
 
     def get(self, key: str, default: T | object = None) -> T | object:
-        item = self._store.get(key)
-        if not item:
-            return default
-        value, expires_at = item
-        if expires_at <= time.monotonic():
-            self._store.pop(key, None)
-            return default
-        return value
+        with self._lock:
+            item = self._store.get(key)
+            if not item:
+                return default
+            value, expires_at = item
+            if expires_at <= time.monotonic():
+                self._store.pop(key, None)
+                return default
+            return value
 
     def has(self, key: str) -> bool:
         return self.get(key, _MISSING) is not _MISSING
 
     def delete(self, key: str) -> None:
-        self._store.pop(key, None)
+        with self._lock:
+            self._store.pop(key, None)
 
     def clear(self) -> None:
-        self._store.clear()
+        with self._lock:
+            self._store.clear()
 
     def get_or_set(self, key: str, factory: Callable[[], T], ttl: float | None = None) -> T:
         value = self.get(key, _MISSING)

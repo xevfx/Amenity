@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import secrets
 import sqlite3
 import string
@@ -177,7 +178,7 @@ def refresh_cache() -> None:
 
 
 async def initialize_checks() -> None:
-    refresh_cache()
+    await asyncio.to_thread(refresh_cache)
 
 
 def _ensure_cache() -> None:
@@ -202,7 +203,9 @@ def get_premium_expires_at(user_id: int) -> int | None:
     if expires_at is None:
         return None
     if expires_at <= _now():
-        revoke_premium(user_id)
+        # Keep command checks memory-only. The hourly cleanup task removes the
+        # expired row from SQLite without blocking the gateway event loop.
+        _premium_users.pop(user_id, None)
         return None
     return expires_at
 

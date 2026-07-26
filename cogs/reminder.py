@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sqlite3
 import time as tm
@@ -25,8 +26,6 @@ class Reminder(commands.Cog):
         self.bot = bot
         self.db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data/reminders.db"))
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        self._init_db()
-        self.check_reminders.start()
         self.remind_me_about_menu = app_commands.ContextMenu(
             name="Remind me about it",
             callback=self.remind_me_about,
@@ -125,7 +124,38 @@ class Reminder(commands.Cog):
         self._invalidate_user_cache(user_id)
         return name
 
-    async def _send_due_reminders(self, rows: Iterable[sqlite3.Row]) -> None:
+    def _fetch_due_reminders(self, now: int) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, user_id, name FROM reminders WHERE remind_at <= ? ORDER BY remind_at LIMIT 50",
+                (now,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def _delete_reminder_by_id(self, reminder_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM reminders WHERE id = ?", (reminder_id,))
+
+    def _delete_user_reminder(self, user_id: int, name: str) -> int:
+        with self._connect() as conn:
+            if name.startswith("id:"):
+                cursor = conn.execute(
+                    "DELETE FROM reminders WHERE id = ? AND user_id = ?",
+                    (int(name[3:].strip()), user_id),
+                )
+            else:
+                cursor = conn.execute(
+                    "DELETE FROM reminders WHERE name = ? AND user_id = ?",
+                    (name, user_id),
+                )
+        return cursor.rowcount
+
+    def _delete_user_reminders(self, user_id: int) -> int:
+        with self._connect() as conn:
+            cursor = conn.execute("DELETE FROM reminders WHERE user_id = ?", (user_id,))
+        return cursor.rowcount
+
+    async def _send_due_reminders(self, rows: Iterable[dict]) -> None:
         for row in rows:
             user_id = int(row["user_id"])
             name = row["name"]
@@ -145,18 +175,13 @@ class Reminder(commands.Cog):
                             timestamp=discord.utils.utcnow(),
                         )
                     )
-            with self._connect() as conn:
-                conn.execute("DELETE FROM reminders WHERE id = ?", (reminder_id,))
+            await asyncio.to_thread(self._delete_reminder_by_id, reminder_id)
             self._invalidate_user_cache(user_id)
 
     @tasks.loop(seconds=30)
     async def check_reminders(self) -> None:
         now = int(tm.time())
-        with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT id, user_id, name FROM reminders WHERE remind_at <= ? ORDER BY remind_at LIMIT 50",
-                (now,),
-            ).fetchall()
+        rows = await asyncio.to_thread(self._fetch_due_reminders, now)
         if rows:
             await self._send_due_reminders(rows)
 
@@ -238,11 +263,12 @@ class Reminder(commands.Cog):
 
             now = int(tm.time())
             remind_at = now + sec
-            name = self._insert_reminder(
+            name = await asyncio.to_thread(
+                self._insert_reminder,
                 ctx.author.id,
                 name,
                 remind_at,
-                created_at=now,
+                now,
             )
 
             await self._send_embed(
@@ -260,7 +286,7 @@ class Reminder(commands.Cog):
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def reminder_list(self, ctx: commands.Context) -> None:
-        reminders = self._get_user_reminders(ctx.author.id)
+        reminders = await asyncio.to_thread(self._get_user_reminders, ctx.author.id)
         if not reminders:
             await self._send_embed(ctx, "You have no reminders.", ephemeral=True)
             return
@@ -310,12 +336,7 @@ class Reminder(commands.Cog):
             if not id_value.isdigit():
                 await self._send_embed(ctx, "Reminder not found.", ephemeral=True)
                 return
-            reminder_id = int(id_value)
-            with self._connect() as conn:
-                cursor = conn.execute(
-                    "DELETE FROM reminders WHERE id = ? AND user_id = ?",
-                    (reminder_id, ctx.author.id),
-                )
+            name = f"id:{int(id_value)}"
         else:
             if len(name) > 120:
                 await self._send_embed(
@@ -324,12 +345,8 @@ class Reminder(commands.Cog):
                     ephemeral=True,
                 )
                 return
-            with self._connect() as conn:
-                cursor = conn.execute(
-                    "DELETE FROM reminders WHERE name = ? AND user_id = ?",
-                    (name, ctx.author.id),
-                )
-        if cursor.rowcount == 0:
+        deleted = await asyncio.to_thread(self._delete_user_reminder, ctx.author.id, name)
+        if deleted == 0:
             await self._send_embed(ctx, "Reminder not found.", ephemeral=True)
             return
         self._invalidate_user_cache(ctx.author.id)
@@ -345,7 +362,7 @@ class Reminder(commands.Cog):
         interaction: discord.Interaction,
         current: str,
     ) -> list[app_commands.Choice[str]]:
-        reminders = self._get_user_reminders(interaction.user.id)
+        reminders = await asyncio.to_thread(self._get_user_reminders, interaction.user.id)
         current_lower = current.strip().lower()
         choices: list[app_commands.Choice[str]] = []
         for reminder in reminders:
@@ -386,20 +403,19 @@ class Reminder(commands.Cog):
             return
 
         try:
-            with self._connect() as conn:
-                cursor = conn.execute(
-                    "DELETE FROM reminders WHERE user_id = ?",
-                    (ctx.author.id,),
-                )
+            deleted = await asyncio.to_thread(self._delete_user_reminders, ctx.author.id)
             self._invalidate_user_cache(ctx.author.id)
-            await self._send_embed(ctx, f"Deleted {cursor.rowcount} reminders.", ephemeral=True)
+            await self._send_embed(ctx, f"Deleted {deleted} reminders.", ephemeral=True)
         except Exception as exc:
             await self._send_embed(ctx, "Error deleting reminders.", ephemeral=True)
             await log_command_error(ctx, exc)
 
 
 async def setup(bot: Amenity) -> None:
-    await bot.add_cog(Reminder(bot))
+    cog = Reminder(bot)
+    await asyncio.to_thread(cog._init_db)
+    await bot.add_cog(cog)
+    cog.check_reminders.start()
 
 
 class ReminderContextModal(discord.ui.Modal):
@@ -472,14 +488,15 @@ class ReminderContextModal(discord.ui.Modal):
 
         now = int(tm.time())
         remind_at = now + sec
-        full_name = self.reminder_cog._insert_reminder(
+        await interaction.response.defer(ephemeral=True)
+        full_name = await asyncio.to_thread(
+            self.reminder_cog._insert_reminder,
             interaction.user.id,
             full_name,
             remind_at,
-            created_at=now,
+            now,
         )
 
-        await interaction.response.send_message(
-            f"You will be reminded about '{full_name}' in <t:{remind_at}:R>.",
-            ephemeral=True,
+        await interaction.edit_original_response(
+            content=f"You will be reminded about '{full_name}' in <t:{remind_at}:R>."
         )

@@ -68,7 +68,7 @@ class Amenity(commands.Bot):
     async def setup_hook(self) -> None:
         self.tree.on_error = self.on_app_command_error
         await initialize_checks()
-        init_installed_users_db()
+        await asyncio.to_thread(init_installed_users_db)
         self.add_check(user_not_blacklisted_predicate)
         self.add_check(command_enabled_predicate)
         self.check_premium_expiry.start()
@@ -114,12 +114,12 @@ class Amenity(commands.Bot):
     async def close(self) -> None:
         self.check_premium_expiry.cancel()
         self.flush_installed_users.cancel()
-        flush_pending_installed_users()
+        await asyncio.to_thread(flush_pending_installed_users)
         await super().close()
 
     @tasks.loop(hours=1)
     async def check_premium_expiry(self) -> None:
-        removed = cleanup_expired_premium()
+        removed = await asyncio.to_thread(cleanup_expired_premium)
         if removed:
             logger.info("Removed %s expired premium subscription(s).", removed)
 
@@ -129,7 +129,7 @@ class Amenity(commands.Bot):
 
     @tasks.loop(minutes=30)
     async def flush_installed_users(self) -> None:
-        flushed = flush_pending_installed_users()
+        flushed = await asyncio.to_thread(flush_pending_installed_users)
         if flushed:
             logger.info("Flushed %s tracked command user(s).", flushed)
 

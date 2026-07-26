@@ -1,3 +1,4 @@
+import asyncio
 import os
 import re
 import tempfile
@@ -408,7 +409,7 @@ class UserUtility(commands.Cog):
             return
 
         filename = self._qr_path(ctx, "text")
-        if not generate_qr(txt, filename, fill_gradient=QR_GRADIENT):
+        if not await asyncio.to_thread(generate_qr, txt, filename, fill_gradient=QR_GRADIENT):
             await ctx.send(
                 embed=discord.Embed(
                     description="Failed to generate QR code.",
@@ -453,7 +454,7 @@ class UserUtility(commands.Cog):
 
         filename = self._qr_path(ctx, network)
         qr_payload = crypto_qr_payload(network_data, addy_value)
-        if not generate_qr(qr_payload, filename, fill_gradient=QR_GRADIENT):
+        if not await asyncio.to_thread(generate_qr, qr_payload, filename, fill_gradient=QR_GRADIENT):
             await ctx.send(
                 embed=discord.Embed(
                     description="Failed to generate QR code.",
@@ -522,7 +523,7 @@ class UserUtility(commands.Cog):
             url += f"&am={amount}&cu=INR"
 
         filename = self._qr_path(ctx, "upi")
-        if not generate_qr(url, filename, fill_gradient=QR_GRADIENT):
+        if not await asyncio.to_thread(generate_qr, url, filename, fill_gradient=QR_GRADIENT):
             await ctx.send(
                 embed=discord.Embed(
                     description="Failed to generate QR code.",
@@ -564,7 +565,7 @@ class UserUtility(commands.Cog):
             url = f"https://www.paypal.me/{ppid_value}"
 
         filename = self._qr_path(ctx, "paypal")
-        if not generate_qr(url, filename, fill_gradient=QR_GRADIENT):
+        if not await asyncio.to_thread(generate_qr, url, filename, fill_gradient=QR_GRADIENT):
             await ctx.send(
                 embed=discord.Embed(
                     description="Failed to generate QR code.",
@@ -585,7 +586,7 @@ class UserUtility(commands.Cog):
     async def qr_url(self, ctx: commands.Context, *, url: str) -> None:
 
         filename = self._qr_path(ctx, "url")
-        if not generate_qr(url, filename, fill_gradient=QR_GRADIENT):
+        if not await asyncio.to_thread(generate_qr, url, filename, fill_gradient=QR_GRADIENT):
             await ctx.send(
                 embed=discord.Embed(
                     description="Failed to generate QR code.",
@@ -616,7 +617,7 @@ class UserUtility(commands.Cog):
         qr_data = f'{{"eSewa_id":"{number_value}","name":"{fullname_value}"}}'
 
         filename = self._qr_path(ctx, "esewa")
-        if not generate_qr(qr_data, filename, fill_gradient=QR_GRADIENT):
+        if not await asyncio.to_thread(generate_qr, qr_data, filename, fill_gradient=QR_GRADIENT):
             await ctx.send(
                 embed=discord.Embed(
                     description="Failed to generate QR code.",
@@ -780,7 +781,8 @@ class UserUtility(commands.Cog):
                 await ctx.send("Invalid characters in expression.")
                 return
 
-            result = simple_eval(expression)
+            await ctx.defer()
+            result = await asyncio.to_thread(simple_eval, expression)
             embed = discord.Embed(title="Math Calculation", color=discord.Color.purple())
             embed.add_field(name="Expression", value=_code_block(expression), inline=False)
             embed.add_field(name="Result", value=_code_block(str(result)), inline=False)
