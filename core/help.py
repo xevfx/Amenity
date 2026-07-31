@@ -115,6 +115,13 @@ def _group_description(group_name: str) -> str:
     return GROUP_DESCRIPTIONS.get(group_name, f"{_group_label(group_name)} commands.")
 
 
+def _cog_description(cog: commands.Cog) -> str:
+    description = getattr(cog, "description", None)
+    if description:
+        return str(description).strip()
+    return _group_description(_cog_group_name(cog))
+
+
 def _group_sort_key(group_name: str) -> tuple[int, str]:
     return GROUP_ORDER.get(group_name, 50), _group_label(group_name).lower()
 
@@ -464,8 +471,7 @@ class HelpView(discord.ui.View):
         for group_name, _cogs in sorted(self._grouped_cogs().items(), key=lambda item: _group_sort_key(item[0])):
             command_count = self._group_command_count(group_name)
             group_lines.append(
-                f"{_group_emoji(group_name)} **{_group_label(group_name)}** - {_group_description(group_name)} "
-                f"({command_count} commands)"
+                f"{_group_emoji(group_name)} **{_group_label(group_name)}** ({command_count} commands)"
             )
 
         embed = discord.Embed(
@@ -521,7 +527,7 @@ class HelpView(discord.ui.View):
             cog_label = _cog_display_name(cog)
             title = cog_label if group_label == cog_label else f"{group_label} > {cog_label}"
             icon = _cog_emoji(cog)
-            description = _normalize_description(getattr(cog, "description", None))
+            description = _cog_description(cog)
 
         embed = discord.Embed(
             title=f"{icon} {title} Commands",
