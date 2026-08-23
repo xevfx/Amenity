@@ -5,8 +5,6 @@ from typing import TYPE_CHECKING, Any
 
 import aiohttp
 
-from api.log import log_exception
-
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
@@ -19,22 +17,11 @@ def create_http_session(*, timeout: aiohttp.ClientTimeout | None = None) -> aioh
     return aiohttp.ClientSession(timeout=timeout or DEFAULT_TIMEOUT)
 
 
-def close_http_session(session: aiohttp.ClientSession, loop: asyncio.AbstractEventLoop) -> asyncio.Task[None] | None:
+async def close_http_session(session: aiohttp.ClientSession) -> None:
     if session.closed:
-        return None
-
-    task = loop.create_task(session.close())
-    task.add_done_callback(_log_task_exception)
-    return task
-
-
-def _log_task_exception(task: asyncio.Task[None]) -> None:
-    try:
-        task.result()
-    except asyncio.CancelledError:
         return
-    except Exception as exc:
-        log_exception(exc)
+
+    await session.close()
 
 
 async def fetch_json(
@@ -55,6 +42,6 @@ async def fetch_json(
         return None, None
     except asyncio.CancelledError:
         raise
-    except Exception as exc:
-        log_exception(exc)
+    except Exception:
+        # log_exception(exc)
         return None, None

@@ -35,7 +35,7 @@ class Reminder(commands.Cog):
         )
         self.bot.tree.add_command(self.remind_me_about_menu)
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
         self.check_reminders.cancel()
         self.bot.tree.remove_command(
             self.remind_me_about_menu.name,

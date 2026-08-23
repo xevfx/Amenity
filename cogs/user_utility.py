@@ -232,8 +232,8 @@ class UserUtility(commands.Cog):
         )
         self.bot.tree.add_command(self.translate_to_english_menu)
 
-    def cog_unload(self) -> None:
-        close_http_session(self.aiohttp, self.bot.loop)
+    async def cog_unload(self) -> None:
+        await close_http_session(self.aiohttp)
         self.bot.tree.remove_command(
             self.translate_to_english_menu.name,
             type=self.translate_to_english_menu.type,

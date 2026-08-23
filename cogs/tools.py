@@ -59,6 +59,7 @@ MAX_SEARCH_QUERY = 400
 MAX_SEARCH_RESULTS = 1
 MAX_SEARCH_SUMMARY = 300
 WIKIPEDIA_SEARCH_URL = "https://en.wikipedia.org/w/api.php"
+WIKIPEDIA_USER_AGENT = "AmenityBot/1.0 (https://github.com/xevfx/Amenity; bot@amenity)"
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
 TAVILY_USAGE_URL = "https://api.tavily.com/usage"
 TAVILY_USAGE_PATH = Path(__file__).resolve().parent.parent / "data" / "tavily_usage.json"
@@ -594,8 +595,8 @@ class Tools(commands.Cog):
         )
         self.bot.tree.add_command(self.html_preview_menu)
 
-    def cog_unload(self) -> None:
-        close_http_session(self.aiohttp, self.bot.loop)
+    async def cog_unload(self) -> None:
+        await close_http_session(self.aiohttp)
         self.bot.tree.remove_command(
             self.html_preview_menu.name,
             type=self.html_preview_menu.type,
@@ -692,44 +693,46 @@ class Tools(commands.Cog):
 
     async def _refresh_tavily_usage(self, api_key: str) -> tuple[dict[str, object] | None, int | None]:
         headers = {"Authorization": f"Bearer {api_key}"}
-        async with self._tavily_usage_lock:
-            try:
-                async with self.aiohttp.get(TAVILY_USAGE_URL, headers=headers) as response:
-                    data = await response.json(content_type=None)
-                    if response.status != 200 or not isinstance(data, dict):
-                        return self._read_tavily_usage(), response.status
-            except (TimeoutError, aiohttp.ClientError, json.JSONDecodeError) as exc:
-                log_exception(exc)
-                return self._read_tavily_usage(), None
+        try:
+            async with self.aiohttp.get(TAVILY_USAGE_URL, headers=headers) as response:
+                data = await response.json(content_type=None)
+                if response.status != 200 or not isinstance(data, dict):
+                    read_snapshot = await asyncio.to_thread(self._read_tavily_usage)
+                    return read_snapshot, response.status
+        except (TimeoutError, aiohttp.ClientError, json.JSONDecodeError) as exc:
+            log_exception(exc)
+            read_snapshot = await asyncio.to_thread(self._read_tavily_usage)
+            return read_snapshot, None
 
-            account = data.get("account")
-            key = data.get("key")
-            account_data = account if isinstance(account, dict) else {}
-            key_data = key if isinstance(key, dict) else {}
-            used = account_data.get("plan_usage", key_data.get("usage", 0))
-            limit = account_data.get("plan_limit", key_data.get("limit", 0))
-            used = used if isinstance(used, int | float) else 0
-            limit = limit if isinstance(limit, int | float) else 0
-            snapshot: dict[str, object] = {
-                "provider": "tavily",
-                "source": "tavily_api",
-                "updated_at": datetime.now(UTC).isoformat(),
-                "period": datetime.now(UTC).strftime("%Y-%m"),
-                "plan": account_data.get("current_plan", "Unknown"),
-                "used": used,
-                "limit": limit,
-                "remaining": max(0, limit - used),
-                "search_usage": account_data.get("search_usage", key_data.get("search_usage", 0)),
-                "paygo_usage": account_data.get("paygo_usage", 0),
-                "paygo_limit": account_data.get("paygo_limit", 0),
-            }
-            self._write_tavily_usage(snapshot)
-            return snapshot, 200
+        account = data.get("account")
+        key = data.get("key")
+        account_data = account if isinstance(account, dict) else {}
+        key_data = key if isinstance(key, dict) else {}
+        used = account_data.get("plan_usage", key_data.get("usage", 0))
+        limit = account_data.get("plan_limit", key_data.get("limit", 0))
+        used = used if isinstance(used, int | float) else 0
+        limit = limit if isinstance(limit, int | float) else 0
+        snapshot: dict[str, object] = {
+            "provider": "tavily",
+            "source": "tavily_api",
+            "updated_at": datetime.now(UTC).isoformat(),
+            "period": datetime.now(UTC).strftime("%Y-%m"),
+            "plan": account_data.get("current_plan", "Unknown"),
+            "used": used,
+            "limit": limit,
+            "remaining": max(0, limit - used),
+            "search_usage": account_data.get("search_usage", key_data.get("search_usage", 0)),
+            "paygo_usage": account_data.get("paygo_usage", 0),
+            "paygo_limit": account_data.get("paygo_limit", 0),
+        }
+        async with self._tavily_usage_lock:
+            await asyncio.to_thread(self._write_tavily_usage, snapshot)
+        return snapshot, 200
 
     async def _record_tavily_credits(self, credits: int) -> dict[str, object]:
         async with self._tavily_usage_lock:
             now = datetime.now(UTC)
-            snapshot = self._read_tavily_usage() or {}
+            snapshot = await asyncio.to_thread(self._read_tavily_usage) or {}
             if snapshot.get("period") != now.strftime("%Y-%m"):
                 snapshot = {}
 
@@ -754,7 +757,7 @@ class Tools(commands.Cog):
                     "paygo_limit": snapshot.get("paygo_limit", 0),
                 }
             )
-            self._write_tavily_usage(snapshot)
+            await asyncio.to_thread(self._write_tavily_usage, snapshot)
             return snapshot
 
     async def _search_web(self, query: str, api_key: str) -> tuple[list[dict[str, object]], int, int]:
@@ -793,7 +796,8 @@ class Tools(commands.Cog):
             "format": "json",
             "origin": "*",
         }
-        async with self.aiohttp.get(WIKIPEDIA_SEARCH_URL, params=params) as response:
+        headers = {"User-Agent": WIKIPEDIA_USER_AGENT}
+        async with self.aiohttp.get(WIKIPEDIA_SEARCH_URL, params=params, headers=headers) as response:
             data = await response.json(content_type=None)
             if response.status != 200 or not isinstance(data, dict):
                 return [], None
@@ -823,7 +827,7 @@ class Tools(commands.Cog):
             "piprop": "thumbnail",
             "pithumbsize": 240,
         }
-        async with self.aiohttp.get(WIKIPEDIA_SEARCH_URL, params=summary_params) as response:
+        async with self.aiohttp.get(WIKIPEDIA_SEARCH_URL, params=summary_params, headers=headers) as response:
             data = await response.json(content_type=None)
             if response.status != 200 or not isinstance(data, dict):
                 return clean_results, None
@@ -834,6 +838,7 @@ class Tools(commands.Cog):
 
         summary_page = next((value for value in pages.values() if isinstance(value, dict)), None)
         return clean_results, summary_page
+
 
     async def preview_html_file(self, interaction: discord.Interaction, message: discord.Message) -> None:
         html_file = next(

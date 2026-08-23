@@ -124,10 +124,10 @@ class Amenity(commands.Bot):
             extension = f"cogs.{module.name}"
             try:
                 await self.load_extension(extension)
-                print(f"Loaded extension: {extension}")
+                print(f"[+] {extension}")
             except Exception as e:
                 failed_extensions.append(extension)
-                logger.exception("Failed to load extension %s: %s", extension, e)
+                logger.exception("[?] %s: %s", extension, e)
 
         if failed_extensions:
             failed = ", ".join(failed_extensions)
@@ -146,6 +146,7 @@ class Amenity(commands.Bot):
         self.flush_installed_users.cancel()
         await self._stop_event_loop_watchdog()
         await asyncio.to_thread(flush_pending_installed_users)
+        self._blocking_executor.shutdown(wait=False, cancel_futures=True)
         await super().close()
 
     @staticmethod

@@ -230,7 +230,7 @@ async def _build_command_embed(
     embed = discord.Embed(
         title=command.qualified_name,
         description=_get_command_description(command),
-        color=0x2F3136,
+        color=0x05C1F5,
     )
 
     if command.parent:
@@ -483,7 +483,7 @@ class HelpView(discord.ui.View):
                     f"\nUse `{self.prefix}help <command>` for details.",
                 ]
             ),
-            color=0x2F3136,
+            color=0x0EEDEB,
         )
         return embed
 
@@ -493,7 +493,7 @@ class HelpView(discord.ui.View):
         embed = discord.Embed(
             title=f"{_group_emoji(group_name)} {label} - {command_count} commands",
             description=_group_description(group_name),
-            color=0x2F3136,
+            color=0x0EEDEB,
         )
 
         if group_name == "other":
@@ -532,7 +532,7 @@ class HelpView(discord.ui.View):
         embed = discord.Embed(
             title=f"{icon} {title} Commands",
             description=description,
-            color=0x2F3136,
+            color=0x0EEDEB,
         )
 
         if not commands_list:
@@ -705,7 +705,7 @@ class HelpSearchModal(discord.ui.Modal, title="Search Commands"):
             embed = discord.Embed(
                 title="Search Results",
                 description="\n".join(lines),
-                color=0x2F3136,
+                color=0x0EEDEB,
             )
         self.help_view.current_cog = None
         self.help_view.current_page = 0
