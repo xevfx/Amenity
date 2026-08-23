@@ -1,4 +1,3 @@
-import asyncio
 import os
 from contextlib import suppress
 from datetime import datetime
@@ -113,18 +112,9 @@ class Crypto(commands.Cog):
         """)
         await self.addy_conn.commit()
 
-    def cog_unload(self) -> None:
-        close_http_session(self.aiohttp, self.bot.loop)
-        task = self.bot.loop.create_task(self.addy_conn.close())
-        task.add_done_callback(self._log_task_exception)
-
-    def _log_task_exception(self, task: asyncio.Task[None]) -> None:
-        try:
-            task.result()
-        except asyncio.CancelledError:
-            return
-        except Exception as exc:
-            log_exception(exc)
+    async def cog_unload(self) -> None:
+        await close_http_session(self.aiohttp)
+        await self.addy_conn.close()
 
     def _is_fiat(self, code: str) -> bool:
         return code.lower().strip() in _FIAT_CODES

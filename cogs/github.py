@@ -26,8 +26,8 @@ class Github(commands.Cog):
         self.bot = bot
         self.aiohttp = create_http_session()
 
-    def cog_unload(self) -> None:
-        close_http_session(self.aiohttp, self.bot.loop)
+    async def cog_unload(self) -> None:
+        await close_http_session(self.aiohttp)
 
     async def _fetch_json(self, url: str) -> tuple[dict | None, int | None]:
         data, status = await fetch_json(self.aiohttp, url)

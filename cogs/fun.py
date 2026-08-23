@@ -38,8 +38,8 @@ class Fun(commands.Cog):
                 country_code = parts[1].upper()
                 self.supported_countries[country_code] = locale
 
-    def cog_unload(self) -> None:
-        close_http_session(self.aiohttp, self.bot.loop)
+    async def cog_unload(self) -> None:
+        await close_http_session(self.aiohttp)
 
     async def _fetch_json(
         self,

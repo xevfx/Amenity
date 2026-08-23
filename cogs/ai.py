@@ -107,8 +107,8 @@ class AI(commands.Cog):
         self.bot.tree.add_command(self.summarize_menu)
         self.bot.tree.add_command(self.professional_menu)
 
-    def cog_unload(self) -> None:
-        close_http_session(self.aiohttp, self.bot.loop)
+    async def cog_unload(self) -> None:
+        await close_http_session(self.aiohttp)
         for menu in (
             self.summarize_menu,
             self.professional_menu,

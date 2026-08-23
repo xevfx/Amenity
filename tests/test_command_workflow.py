@@ -314,28 +314,28 @@ async def test_offline_command_behavior_and_metrics() -> None:
         try:
             await call(cog, ctx)
         finally:
-            cog.cog_unload()
+            await cog.cog_unload()
 
     async def with_tools(ctx: FakeContext, call: Callable[[Tools, FakeContext], Awaitable[None]]) -> None:
         cog = Tools(ctx.bot)
         try:
             await call(cog, ctx)
         finally:
-            cog.cog_unload()
+            await cog.cog_unload()
 
     async def with_fun(ctx: FakeContext, call: Callable[[Fun, FakeContext], Awaitable[None]]) -> None:
         cog = Fun(ctx.bot)
         try:
             await call(cog, ctx)
         finally:
-            cog.cog_unload()
+            await cog.cog_unload()
 
     async def with_github(ctx: FakeContext, call: Callable[[Github, FakeContext], Awaitable[None]]) -> None:
         cog = Github(ctx.bot)
         try:
             await call(cog, ctx)
         finally:
-            cog.cog_unload()
+            await cog.cog_unload()
 
     async def github_user(cog: Github, ctx: FakeContext) -> None:
         async def fake_fetch(url: str) -> tuple[dict[str, Any], int]:
