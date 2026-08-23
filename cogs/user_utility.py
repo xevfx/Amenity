@@ -4,6 +4,7 @@ import re
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import discord
 import qrcode
@@ -38,6 +39,17 @@ def _truncate(value: str, limit: int) -> str:
 def _code_block(value: str, *, limit: int = EMBED_FIELD_VALUE_LIMIT) -> str:
     truncated = _truncate(value.replace("```", "`\u200b``"), limit - CODE_BLOCK_OVERHEAD)
     return f"```\n{truncated}\n```"
+
+
+def _remove_instagram_tracking(link: str) -> str:
+    has_scheme = bool(re.match(r"https?://", link, flags=re.IGNORECASE))
+    parseable_link = link if has_scheme else f"https://{link}"
+    parts = urlsplit(parseable_link)
+    query = urlencode(
+        [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key.lower() != "igsh"]
+    )
+    cleaned = urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
+    return cleaned if has_scheme else cleaned.removeprefix("https://")
 
 
 def _safe_unlink(path: str) -> None:
@@ -685,7 +697,8 @@ class UserUtility(commands.Cog):
             await ctx.reply("Invalid Instagram URL.", mention_author=False, delete_after=5, ephemeral=True)
             return
 
-        newlink = link.replace("instagram.com", "kkinstagram.com")
+        clean_link = _remove_instagram_tracking(link)
+        newlink = clean_link.replace("instagram.com", "kkinstagram.com")
         await ctx.reply(f"[Video]({newlink})", mention_author=False)
 
     @commands.hybrid_command(

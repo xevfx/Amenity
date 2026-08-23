@@ -4,6 +4,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from api.emojis import Emoji
 from api.log import log_exception
 from core.amenity import Amenity
 
@@ -171,12 +172,14 @@ class MinesTileButton(discord.ui.Button["MinesView"]):
         if view.grid[self.x][self.y] == "B":
             # Exploded! Game Over
             self.style = discord.ButtonStyle.danger
-            self.label = "💥"
+            self.label = None
+            self.emoji = Emoji.BLAST.value
             await view.end_game(interaction, won=False)
         else:
             # Found a diamond
             self.style = discord.ButtonStyle.success
-            self.label = "💎"
+            self.label = None
+            self.emoji = Emoji.DIMOND.value
             self.disabled = True
             view.diamonds_found += 1
 
@@ -210,10 +213,10 @@ class MinesView(discord.ui.View):
 
     def get_status_message(self) -> str:
         return (
-            f"🧨 **Mines Game**\n"
+            f"{Emoji.BOMB.value} **Mines Game**\n"
             f"Total Mines: `{self.num_mines}` | "
             f"Safe Tiles Remaining: `{self.total_diamonds - self.diamonds_found}`\n"
-            f"💎 **Diamonds Cleared:** `{self.diamonds_found}/{self.total_diamonds}`"
+            f"{Emoji.DIMOND.value} **Diamonds Cleared:** `{self.diamonds_found}/{self.total_diamonds}`"
         )
 
     async def end_game(self, interaction: discord.Interaction, won: bool) -> None:
@@ -223,18 +226,23 @@ class MinesView(discord.ui.View):
         for child in self.children:
             child.disabled = True
             if isinstance(child, MinesTileButton):
+                child.label = None
                 if self.grid[child.x][child.y] == "B":
-                    child.label = "💣" if child.label != "💥" else "💥"
-                    if child.label != "💥":
+                    triggered = str(child.emoji) == Emoji.BLAST.value
+                    child.emoji = Emoji.BLAST.value if triggered else Emoji.BOMB.value
+                    if not triggered:
                         child.style = discord.ButtonStyle.secondary
                 else:
-                    child.label = "💎"
+                    child.emoji = Emoji.DIMOND.value
 
         # Determine structural header state string
         if won:
             header = "🏆 **Perfect Game!** You successfully cleared every single diamond without triggering a mine!"
         else:
-            header = f"💥 **BOOM!** You hit a mine after discovering `{self.diamonds_found}` diamonds. Game Over!"
+            header = (
+                f"{Emoji.BLAST.value} **BOOM!** You hit a mine after discovering "
+                f"`{self.diamonds_found}` diamonds. Game Over!"
+            )
 
         await interaction.response.edit_message(content=f"{header}\n\n{self.get_status_message()}", view=self)
 
