@@ -839,6 +839,7 @@ class Tools(commands.Cog):
         summary_page = next((value for value in pages.values() if isinstance(value, dict)), None)
         return clean_results, summary_page
 
+
     async def preview_html_file(self, interaction: discord.Interaction, message: discord.Message) -> None:
         html_file = next(
             (
