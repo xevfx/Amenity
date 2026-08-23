@@ -1,6 +1,7 @@
 import os
 from contextlib import suppress
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 
 import aiohttp
 import aiosqlite
@@ -24,6 +25,10 @@ _BSCSCAN_API_KEY = os.getenv("BSCSCAN_API_KEY", "")
 _SOL_PRICE_CACHE_KEY = "sol:usd_price"
 _COIN_LIST_CACHE_KEY = "coingecko:coin_list"
 _PRICE_DETAILS_CACHE_PREFIX = "price:multi:"
+_BSC_RPC_URL = os.getenv("BSC_RPC_URL", "https://bsc-dataseed.binance.org/")
+_BSC_USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"
+_ERC20_BALANCE_OF_SELECTOR = "70a08231"
+_ERC20_TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 _FIAT_CODES = {
     "usd",
     "eur",
@@ -128,6 +133,59 @@ class Crypto(commands.Cog):
         if isinstance(data, dict):
             return data, status
         return None, status
+
+    def _is_evm_address(self, address: str) -> bool:
+        if not address.startswith("0x") or len(address) != 42:
+            return False
+        return all(char in "0123456789abcdefABCDEF" for char in address[2:])
+
+    def _is_evm_hash(self, tx_hash: str) -> bool:
+        if not tx_hash.startswith("0x") or len(tx_hash) != 66:
+            return False
+        return all(char in "0123456789abcdefABCDEF" for char in tx_hash[2:])
+
+    def _short_evm_value(self, value: str) -> str:
+        if len(value) <= 18:
+            return f"`{value}`"
+        return f"`{value[:12]}...{value[-4:]}`"
+
+    def _address_from_topic(self, topic: str) -> str | None:
+        if not isinstance(topic, str) or not topic.startswith("0x") or len(topic) != 66:
+            return None
+        return f"0x{topic[-40:]}"
+
+    def _format_token_amount(self, raw_value: int, decimals: int, symbol: str) -> str:
+        try:
+            amount = Decimal(raw_value) / (Decimal(10) ** decimals)
+        except (InvalidOperation, ValueError):
+            return f"0 {symbol}"
+
+        normalized = amount.normalize()
+        if normalized == normalized.to_integral():
+            amount_str = f"{normalized:,.0f}"
+        else:
+            amount_str = f"{amount:,.8f}".rstrip("0").rstrip(".")
+        return f"{amount_str} {symbol}"
+
+    async def _bsc_rpc_call(self, method: str, params: list) -> dict | list | str | int | None:
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": method,
+            "params": params,
+        }
+        async with self.aiohttp.post(
+            _BSC_RPC_URL,
+            json=payload,
+            timeout=aiohttp.ClientTimeout(total=15),
+        ) as response:
+            if response.status != 200:
+                return None
+            data = await response.json()
+
+        if not isinstance(data, dict) or data.get("error"):
+            return None
+        return data.get("result")
 
     async def _get_coin_list(self) -> list[dict]:
         # Avoid caching an empty list result from CoinGecko. If the cached
@@ -494,19 +552,28 @@ class Crypto(commands.Cog):
             await self._send_embed(ctx, "Usage: /balance usdt-bep20 <address>", ephemeral=False)
             return
 
-        contract = "0x55d398326f99059fF775485246999027B3197955"
-        url = f"https://api.bscscan.com/api?module=account&action=tokenbalance&contractaddress={contract}&address={address}"
-        if _BSCSCAN_API_KEY:
-            url += f"&apikey={_BSCSCAN_API_KEY}"
+        if not self._is_evm_address(address):
+            await ctx.send("Please provide a valid BSC address.")
+            return
 
-        data = await self._fetch_json(url)
-        if not data or data.get("status") != "1":
+        call_data = f"0x{_ERC20_BALANCE_OF_SELECTOR}{address[2:].lower().rjust(64, '0')}"
+        try:
+            result = await self._bsc_rpc_call(
+                "eth_call",
+                [{"to": _BSC_USDT_CONTRACT, "data": call_data}, "latest"],
+            )
+        except Exception as exc:
+            log_exception(exc)
+            await ctx.send("An error occurred while fetching USDT balance.")
+            return
+
+        if not isinstance(result, str) or not result.startswith("0x"):
             await ctx.send(f"Unable to fetch USDT balance for `{address}`.")
             return
 
         try:
-            balance_raw = int(data.get("result", "0"))
-        except (ValueError, TypeError):
+            balance_raw = int(result, 16)
+        except ValueError:
             await ctx.send(f"Unable to fetch USDT balance for `{address}`.")
             return
 
@@ -520,7 +587,8 @@ class Crypto(commands.Cog):
 
         balance_str = f"{balance:,.2f} USDT"
         if price_usd:
-            balance_str += f" (${balance:,.2f} USD)"
+            balance_usd = balance * price_usd
+            balance_str += f" (${balance_usd:,.2f} USD)"
         embed.add_field(name="Balance", value=balance_str, inline=False)
         await ctx.send(embed=embed)
 
@@ -955,69 +1023,103 @@ class Crypto(commands.Cog):
             await self._send_embed(ctx, "Usage: /txid usdt-bep20 <tx_hash>", ephemeral=False)
             return
 
-        url = f"https://api.bscscan.com/api?module=account&action=tokentx&txhash={tx_hash}&sort=asc"
-        if _BSCSCAN_API_KEY:
-            url += f"&apikey={_BSCSCAN_API_KEY}"
-
-        data = await self._fetch_json(url)
-        if not data or data.get("status") != "1":
-            await ctx.send(f"Transaction `{tx_hash}` not found or no token transfers on BSC.")
+        if not self._is_evm_hash(tx_hash):
+            await ctx.send("Please provide a valid BSC transaction hash.")
             return
 
-        transfers = data.get("result", [])
-        if not isinstance(transfers, list):
-            await ctx.send(f"Transaction `{tx_hash}` not found or no token transfers on BSC.")
+        try:
+            receipt = await self._bsc_rpc_call("eth_getTransactionReceipt", [tx_hash])
+            tx = await self._bsc_rpc_call("eth_getTransactionByHash", [tx_hash])
+        except Exception as exc:
+            log_exception(exc)
+            await ctx.send("An error occurred while fetching the transaction.")
             return
 
-        usdt_transfers = [t for t in transfers if t.get("tokenSymbol", "").upper() == "USDT"]
-        if not usdt_transfers:
+        if not isinstance(receipt, dict):
+            await ctx.send(f"Transaction `{tx_hash}` not found on BSC.")
+            return
+
+        logs = receipt.get("logs") or []
+        transfer_log = None
+        for log in logs:
+            if not isinstance(log, dict):
+                continue
+            topics = log.get("topics") or []
+            if (
+                isinstance(topics, list)
+                and len(topics) >= 3
+                and str(log.get("address", "")).lower() == _BSC_USDT_CONTRACT.lower()
+                and str(topics[0]).lower() == _ERC20_TRANSFER_TOPIC
+            ):
+                transfer_log = log
+                break
+
+        if transfer_log is None:
             await ctx.send(f"No USDT transfer found in transaction `{tx_hash}`.")
             return
 
-        tx_data = usdt_transfers[0]
-
         price_usd = await self._get_price_usd("tether", "usdt:usd_price")
 
-        from_addr = tx_data.get("from", "")
-        to_addr = tx_data.get("to", "")
-        value_dec = tx_data.get("value", "0")
-        token_symbol = tx_data.get("tokenSymbol", "USDT")
-        token_decimal = int(tx_data.get("tokenDecimal", 18))
+        topics = transfer_log.get("topics") or []
+        from_addr = self._address_from_topic(str(topics[1])) or "unknown"
+        to_addr = self._address_from_topic(str(topics[2])) or "unknown"
         try:
-            value_float = float(value_dec) / (10**token_decimal)
-        except (ValueError, TypeError):
-            value_float = 0.0
+            value_raw = int(str(transfer_log.get("data", "0x0")), 16)
+        except ValueError:
+            value_raw = 0
+        value_float = value_raw / 10**18
 
-        gas_used = int(tx_data.get("gasUsed", 0))
-        gas_price = int(tx_data.get("gasPrice", 0))
+        try:
+            gas_used = int(str(receipt.get("gasUsed", "0x0")), 16)
+        except ValueError:
+            gas_used = 0
+
+        gas_price_hex = receipt.get("effectiveGasPrice")
+        if gas_price_hex is None and isinstance(tx, dict):
+            gas_price_hex = tx.get("gasPrice")
+        try:
+            gas_price = int(str(gas_price_hex or "0x0"), 16)
+        except ValueError:
+            gas_price = 0
         gas_fee_bnb = (gas_used * gas_price) / 10**18
-        confirmations = tx_data.get("confirmations", "0")
-        block_number = tx_data.get("blockNumber", "0")
-        time_stamp = tx_data.get("timeStamp", "0")
+
+        block_number = 0
+        block_number_hex = receipt.get("blockNumber")
+        with suppress(ValueError, TypeError):
+            block_number = int(str(block_number_hex), 16)
+
+        confirmations = "0"
+        latest_block = await self._bsc_rpc_call("eth_blockNumber", [])
+        with suppress(ValueError, TypeError):
+            confirmations = str(max(int(str(latest_block), 16) - block_number + 1, 0))
+
+        time_stamp = None
+        if block_number_hex:
+            block = await self._bsc_rpc_call("eth_getBlockByNumber", [block_number_hex, False])
+            if isinstance(block, dict):
+                with suppress(ValueError, TypeError):
+                    time_stamp = int(str(block.get("timestamp", "0x0")), 16)
 
         embed = discord.Embed(
             title=f"{Emoji.CRYPTO.value} USDT (BEP-20) Transaction",
-            description=f"[`{tx_hash[:16]}...`](https://bscscan.com/tx/{tx_hash})",
+            description=f"[{self._short_evm_value(tx_hash)}](https://bscscan.com/tx/{tx_hash})",
             color=0xF0B90B,
         )
 
-        sent_str = f"{value_float:,.2f} {token_symbol}"
+        sent_str = self._format_token_amount(value_raw, 18, "USDT")
         if price_usd:
             sent_str += f" (${value_float * price_usd:,.2f} USD)"
         embed.add_field(name="Amount Sent", value=sent_str, inline=False)
 
-        embed.add_field(name="From", value=f"`{from_addr[:12]}...{from_addr[-4:]}`", inline=False)
-        embed.add_field(name="To", value=f"`{to_addr[:12]}...{to_addr[-4:]}`", inline=False)
+        embed.add_field(name="From", value=self._short_evm_value(from_addr), inline=False)
+        embed.add_field(name="To", value=self._short_evm_value(to_addr), inline=False)
 
         embed.add_field(name="Gas Fee", value=f"{gas_fee_bnb:.8f} BNB", inline=True)
         embed.add_field(name="Confirmations", value=str(confirmations), inline=True)
         embed.add_field(name="Block", value=str(block_number), inline=True)
         embed.set_footer(text="NOTE: These values are based on current price of the coin.")
-        try:
-            ts = int(time_stamp)
-            embed.add_field(name="Confirmed", value=f"<t:{ts}:R>", inline=False)
-        except (ValueError, TypeError):
-            pass
+        if time_stamp:
+            embed.add_field(name="Confirmed", value=f"<t:{time_stamp}:R>", inline=False)
 
         await ctx.send(embed=embed)
 

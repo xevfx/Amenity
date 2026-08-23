@@ -10,7 +10,6 @@ import json
 import os
 import re
 import struct
-import subprocess
 import tempfile
 import time
 from datetime import UTC, datetime
@@ -24,6 +23,11 @@ from discord import app_commands
 from discord.ext import commands
 from PIL import Image, ImageDraw, ImageOps
 
+try:
+    import pyfiglet
+except ImportError:  # pragma: no cover - exercised only when the optional runtime dependency is absent
+    pyfiglet = None
+
 from api.http import close_http_session, create_http_session
 from api.log import log_exception
 from api.paginator import EmbedPaginator, PaginatorHelper
@@ -36,6 +40,19 @@ if TYPE_CHECKING:
 
 STROKE_SIZE = 5
 MAX_TEXT_OUTPUT = 1900
+MAX_FIGLET_TEXT = 60
+FIGLET_WIDTH = 120
+FIGLET_FONTS = {
+    "standard": "standard",
+    "slant": "slant",
+    "small": "small",
+    "big": "big",
+    "block": "block",
+    "bubble": "bubble",
+    "digital": "digital",
+    "mini": "mini",
+}
+FIGLET_FONT_PREFIX_PATTERN = re.compile(r"^(?:font=|\[)([a-z0-9_-]+)(?:\]|\s+)(.*)$", re.IGNORECASE | re.DOTALL)
 MAX_SAY_MESSAGE = 2000
 MAX_SAY_EMBED_DESCRIPTION = 4096
 MAX_SEARCH_QUERY = 400
@@ -224,6 +241,19 @@ REVERSE_MORSE_CODE = {value: key for key, value in MORSE_CODE.items()}
 def _code_block(value: str) -> str:
     escaped = value.replace("```", "`\u200b``")
     return f"```\n{escaped}\n```"
+
+
+def _parse_figlet_input(text: str) -> tuple[str, str]:
+    normalized = " ".join(text.split())
+    match = FIGLET_FONT_PREFIX_PATTERN.match(normalized)
+    if not match:
+        return "standard", normalized
+
+    requested_font, remaining_text = match.groups()
+    font = FIGLET_FONTS.get(requested_font.lower())
+    if font is None:
+        return "standard", normalized
+    return font, remaining_text.strip()
 
 
 def _normalize_crypto_method(method: str) -> str:
@@ -808,6 +838,7 @@ class Tools(commands.Cog):
 
         summary_page = next((value for value in pages.values() if isinstance(value, dict)), None)
         return clean_results, summary_page
+
     async def preview_html_file(self, interaction: discord.Interaction, message: discord.Message) -> None:
         html_file = next(
             (
@@ -1211,6 +1242,91 @@ class Tools(commands.Cog):
         embed.set_footer(text="Search results provided by Tavily")
         await ctx.send(embed=embed)
 
+    @commands.hybrid_command(name="wikipedia", description="Search Wikipedia.")
+    @app_commands.describe(query="What you want to search Wikipedia for.")
+    @app_commands.allowed_installs(guilds=False, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def wikipedia(self, ctx: commands.Context, *, query: str) -> None:
+        query = query.strip()
+        if not query:
+            await ctx.reply("Please provide something to search for.", mention_author=False, ephemeral=True)
+            return
+        if len(query) > MAX_SEARCH_QUERY:
+            await ctx.reply(
+                f"Search queries must be {MAX_SEARCH_QUERY} characters or less.",
+                mention_author=False,
+                ephemeral=True,
+            )
+            return
+
+        await ctx.defer()
+
+        try:
+            results, page = await self._search_wikipedia(query)
+        except (TimeoutError, aiohttp.ClientError) as exc:
+            log_exception(exc)
+            await ctx.send("Wikipedia is temporarily unavailable. Please try again.")
+            return
+        except Exception as exc:
+            log_exception(exc)
+            await ctx.send("An error occurred while searching Wikipedia.")
+            return
+
+        if not results:
+            await ctx.send(f"No Wikipedia results found for `{discord.utils.escape_markdown(query[:100])}`.")
+            return
+
+        embed = discord.Embed(
+            title="Wikipedia Search",
+            description=f"Results for **{discord.utils.escape_markdown(query[:250])}**",
+            color=discord.Color.onyx_embed(),
+        )
+
+        if isinstance(page, dict):
+            title = page.get("title")
+            extract = page.get("extract")
+            fullurl = page.get("fullurl")
+            thumbnail = page.get("thumbnail", {})
+            if isinstance(title, str) and title.strip():
+                embed.add_field(name="Top Result", value=title.strip(), inline=False)
+            if isinstance(extract, str) and extract.strip():
+                embed.add_field(
+                    name="Summary",
+                    value=discord.utils.escape_markdown(extract.strip())[:MAX_SEARCH_SUMMARY],
+                    inline=False,
+                )
+            if isinstance(fullurl, str) and fullurl.startswith(("https://", "http://")):
+                embed.add_field(name="Article", value=f"[Open article]({fullurl})", inline=False)
+            if isinstance(thumbnail, dict):
+                thumb_url = thumbnail.get("source")
+                if isinstance(thumb_url, str) and thumb_url.startswith(("https://", "http://")):
+                    embed.set_thumbnail(url=thumb_url)
+
+        if len(results) > 1:
+            lines = []
+            for item in results[1:5]:
+                title = item.get("title")
+                snippet = item.get("snippet")
+                if not isinstance(title, str):
+                    continue
+                clean_title = discord.utils.escape_markdown(title.strip())[:100]
+                clean_snippet = (
+                    re.sub(r"<.*?>", "", snippet).replace("&quot;", '"').replace("&#039;", "'")
+                    if isinstance(snippet, str)
+                    else ""
+                )
+                clean_snippet = discord.utils.escape_markdown(clean_snippet.strip())[:160]
+                line = f"**{clean_title}**"
+                if clean_snippet:
+                    line += f" - {clean_snippet}"
+                lines.append(line)
+            if lines:
+                embed.add_field(name="More Results", value="\n".join(lines)[:1024], inline=False)
+
+        embed.set_footer(text="Search results provided by Wikipedia")
+        await ctx.send(embed=embed)
+
     @commands.hybrid_command(name="encrypt", description="Encrypt or encode text.")
     @app_commands.choices(
         method=[
@@ -1500,38 +1616,52 @@ class Tools(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="figlet", description="Render text as figlet ASCII art.")
-    @app_commands.describe(text="The text to render.")
+    @app_commands.describe(text="The text to render. Prefix with font=small or [slant] to change style.")
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def figlettext(self, ctx: commands.Context, *, text: str) -> None:
-        if len(text) > 80:
-            await ctx.send("Text must be 80 characters or less.")
+        font, text = _parse_figlet_input(text)
+        if not text:
+            await ctx.send("Text cannot be empty.")
+            return
+        if len(text) > MAX_FIGLET_TEXT:
+            await ctx.send(f"Text must be {MAX_FIGLET_TEXT} characters or less.")
+            return
+        if any(ord(character) < 32 or ord(character) > 126 for character in text):
+            await ctx.send("Figlet only supports basic ASCII text.")
+            return
+
+        if pyfiglet is None:
+            await ctx.send("Figlet is not available on this system.")
             return
 
         await ctx.defer()
         try:
-            process = await asyncio.to_thread(
-                subprocess.run,
-                ["pyfiglet", text],
-                capture_output=True,
-                check=True,
-                text=True,
-                timeout=5,
+            result = await asyncio.to_thread(
+                pyfiglet.figlet_format,
+                text,
+                font=font,
+                width=FIGLET_WIDTH,
             )
-            result = process.stdout.rstrip()
-        except Exception:
-            await ctx.send("Figlet is not available on this system.")
+            result = result.rstrip()
+        except pyfiglet.FontNotFound:
+            await ctx.send("That figlet font is not available.")
             return
 
         if not result:
             await ctx.send("No figlet output generated.")
             return
         if len(result) > MAX_TEXT_OUTPUT:
-            await ctx.send("The figlet output is too long to send.")
+            await ctx.send("The figlet output is too large to send. Try shorter text or the Small font.")
             return
 
-        await ctx.send(_code_block(result))
+        embed = discord.Embed(
+            title=f"Figlet - {font.title()}",
+            description=_code_block(result),
+            color=discord.Color.onyx_embed(),
+        )
+        await ctx.send(embed=embed)
 
 
 async def setup(bot: Amenity) -> None:
