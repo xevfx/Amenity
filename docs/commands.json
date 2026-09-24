@@ -1,13 +1,13 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-07-11T10:57:03.574988+00:00",
+  "generated_at": "2026-09-24T10:21:20.569195+00:00",
   "prefix": "",
   "counts": {
-    "commands": 99,
+    "commands": 103,
     "categories": 9,
-    "prefix": 98,
-    "slash": 99,
-    "hybrid": 98
+    "prefix": 102,
+    "slash": 103,
+    "hybrid": 102
   },
   "categories": [
     {
@@ -3337,6 +3337,73 @@
       "name": "Games",
       "commands": [
         {
+          "id": "bj",
+          "name": "bj",
+          "qualified_name": "bj",
+          "display_name": "bj",
+          "description": "Play Blackjack with another user.",
+          "category": "Games",
+          "cog": "Games",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "bj",
+            "qualified_name": "bj",
+            "aliases": [],
+            "usage": "bj [opponent]",
+            "signature": "[opponent]",
+            "parameters": [
+              {
+                "name": "opponent",
+                "display": "[opponent]",
+                "description": null,
+                "required": false,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Optional"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "bj",
+            "qualified_name": "bj",
+            "mention": "/bj",
+            "parameters": [
+              {
+                "name": "opponent",
+                "display": "[opponent]",
+                "description": "User to challenge",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "user",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/bj",
+            "Games",
+            "Play Blackjack with another user.",
+            "bj"
+          ],
+          "aliases": []
+        },
+        {
           "id": "blackjack",
           "name": "blackjack",
           "qualified_name": "blackjack",
@@ -3601,12 +3668,146 @@
             "Games",
             "Play a game of Tic-Tac-Toe using buttons.",
             "tic-tac-toe"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "ttt",
+          "name": "ttt",
+          "qualified_name": "ttt",
+          "display_name": "ttt",
+          "description": "Play a game of Tic-Tac-Toe using buttons.",
+          "category": "Games",
+          "cog": "Games",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "ttt",
+            "qualified_name": "ttt",
+            "aliases": [],
+            "usage": "ttt [opponent]",
+            "signature": "[opponent]",
+            "parameters": [
+              {
+                "name": "opponent",
+                "display": "[opponent]",
+                "description": null,
+                "required": false,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Optional"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "ttt",
+            "qualified_name": "ttt",
+            "mention": "/ttt",
+            "parameters": [
+              {
+                "name": "opponent",
+                "display": "[opponent]",
+                "description": "Optional: The user you want to challenge",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "user",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/ttt",
+            "Games",
+            "Play a game of Tic-Tac-Toe using buttons.",
+            "ttt"
           ],
           "aliases": []
         }
       ],
       "top_level_commands": [
         {
+          "id": "bj",
+          "name": "bj",
+          "qualified_name": "bj",
+          "display_name": "bj",
+          "description": "Play Blackjack with another user.",
+          "category": "Games",
+          "cog": "Games",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "bj",
+            "qualified_name": "bj",
+            "aliases": [],
+            "usage": "bj [opponent]",
+            "signature": "[opponent]",
+            "parameters": [
+              {
+                "name": "opponent",
+                "display": "[opponent]",
+                "description": null,
+                "required": false,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Optional"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "bj",
+            "qualified_name": "bj",
+            "mention": "/bj",
+            "parameters": [
+              {
+                "name": "opponent",
+                "display": "[opponent]",
+                "description": "User to challenge",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "user",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/bj",
+            "Games",
+            "Play Blackjack with another user.",
+            "bj"
+          ],
+          "aliases": []
+        },
+        {
           "id": "blackjack",
           "name": "blackjack",
           "qualified_name": "blackjack",
@@ -3873,9 +4074,76 @@
             "tic-tac-toe"
           ],
           "aliases": []
+        },
+        {
+          "id": "ttt",
+          "name": "ttt",
+          "qualified_name": "ttt",
+          "display_name": "ttt",
+          "description": "Play a game of Tic-Tac-Toe using buttons.",
+          "category": "Games",
+          "cog": "Games",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "ttt",
+            "qualified_name": "ttt",
+            "aliases": [],
+            "usage": "ttt [opponent]",
+            "signature": "[opponent]",
+            "parameters": [
+              {
+                "name": "opponent",
+                "display": "[opponent]",
+                "description": null,
+                "required": false,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Optional"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "ttt",
+            "qualified_name": "ttt",
+            "mention": "/ttt",
+            "parameters": [
+              {
+                "name": "opponent",
+                "display": "[opponent]",
+                "description": "Optional: The user you want to challenge",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "user",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/ttt",
+            "Games",
+            "Play a game of Tic-Tac-Toe using buttons.",
+            "ttt"
+          ],
+          "aliases": []
         }
       ],
-      "count": 4
+      "count": 6
     },
     {
       "name": "GitHub",
@@ -5624,7 +5892,7 @@
               {
                 "name": "text",
                 "display": "<text>",
-                "description": "The text to render.",
+                "description": "The text to render. Prefix with font=small or [slant] to change style.",
                 "required": true,
                 "default": null,
                 "kind": "slash_option",
@@ -6596,6 +6864,140 @@
             "say / message",
             "say message"
           ]
+        },
+        {
+          "id": "search",
+          "name": "search",
+          "qualified_name": "search",
+          "display_name": "search",
+          "description": "Search the web.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "search",
+            "qualified_name": "search",
+            "aliases": [],
+            "usage": "search <query...>",
+            "signature": "<query>",
+            "parameters": [
+              {
+                "name": "query",
+                "display": "<query...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 10.0,
+              "bucket": null,
+              "label": "1/10s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "search",
+            "qualified_name": "search",
+            "mention": "/search",
+            "parameters": [
+              {
+                "name": "query",
+                "display": "<query>",
+                "description": "What you want to search for.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/search",
+            "Search the web.",
+            "Tools",
+            "search"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "wikipedia",
+          "name": "wikipedia",
+          "qualified_name": "wikipedia",
+          "display_name": "wikipedia",
+          "description": "Search Wikipedia.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "wikipedia",
+            "qualified_name": "wikipedia",
+            "aliases": [],
+            "usage": "wikipedia <query...>",
+            "signature": "<query>",
+            "parameters": [
+              {
+                "name": "query",
+                "display": "<query...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "wikipedia",
+            "qualified_name": "wikipedia",
+            "mention": "/wikipedia",
+            "parameters": [
+              {
+                "name": "query",
+                "display": "<query>",
+                "description": "What you want to search Wikipedia for.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/wikipedia",
+            "Search Wikipedia.",
+            "Tools",
+            "wikipedia"
+          ],
+          "aliases": []
         }
       ],
       "top_level_commands": [
@@ -7074,7 +7476,7 @@
               {
                 "name": "text",
                 "display": "<text>",
-                "description": "The text to render.",
+                "description": "The text to render. Prefix with font=small or [slant] to change style.",
                 "required": true,
                 "default": null,
                 "kind": "slash_option",
@@ -7519,9 +7921,143 @@
             "say"
           ],
           "aliases": []
+        },
+        {
+          "id": "search",
+          "name": "search",
+          "qualified_name": "search",
+          "display_name": "search",
+          "description": "Search the web.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "search",
+            "qualified_name": "search",
+            "aliases": [],
+            "usage": "search <query...>",
+            "signature": "<query>",
+            "parameters": [
+              {
+                "name": "query",
+                "display": "<query...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 10.0,
+              "bucket": null,
+              "label": "1/10s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "search",
+            "qualified_name": "search",
+            "mention": "/search",
+            "parameters": [
+              {
+                "name": "query",
+                "display": "<query>",
+                "description": "What you want to search for.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/search",
+            "Search the web.",
+            "Tools",
+            "search"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "wikipedia",
+          "name": "wikipedia",
+          "qualified_name": "wikipedia",
+          "display_name": "wikipedia",
+          "description": "Search Wikipedia.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "wikipedia",
+            "qualified_name": "wikipedia",
+            "aliases": [],
+            "usage": "wikipedia <query...>",
+            "signature": "<query>",
+            "parameters": [
+              {
+                "name": "query",
+                "display": "<query...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "wikipedia",
+            "qualified_name": "wikipedia",
+            "mention": "/wikipedia",
+            "parameters": [
+              {
+                "name": "query",
+                "display": "<query>",
+                "description": "What you want to search Wikipedia for.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/wikipedia",
+            "Search Wikipedia.",
+            "Tools",
+            "wikipedia"
+          ],
+          "aliases": []
         }
       ],
-      "count": 18
+      "count": 20
     },
     {
       "name": "Utilities",
@@ -11796,6 +12332,73 @@
       "aliases": []
     },
     {
+      "id": "bj",
+      "name": "bj",
+      "qualified_name": "bj",
+      "display_name": "bj",
+      "description": "Play Blackjack with another user.",
+      "category": "Games",
+      "cog": "Games",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "bj",
+        "qualified_name": "bj",
+        "aliases": [],
+        "usage": "bj [opponent]",
+        "signature": "[opponent]",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": null,
+            "required": false,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "bj",
+        "qualified_name": "bj",
+        "mention": "/bj",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": "User to challenge",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "user",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/bj",
+        "Games",
+        "Play Blackjack with another user.",
+        "bj"
+      ],
+      "aliases": []
+    },
+    {
       "id": "blackjack",
       "name": "blackjack",
       "qualified_name": "blackjack",
@@ -13059,7 +13662,7 @@
           {
             "name": "text",
             "display": "<text>",
-            "description": "The text to render.",
+            "description": "The text to render. Prefix with font=small or [slant] to change style.",
             "required": true,
             "default": null,
             "kind": "slash_option",
@@ -16341,6 +16944,73 @@
       ]
     },
     {
+      "id": "search",
+      "name": "search",
+      "qualified_name": "search",
+      "display_name": "search",
+      "description": "Search the web.",
+      "category": "Tools",
+      "cog": "Tools",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "search",
+        "qualified_name": "search",
+        "aliases": [],
+        "usage": "search <query...>",
+        "signature": "<query>",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 10.0,
+          "bucket": null,
+          "label": "1/10s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "search",
+        "qualified_name": "search",
+        "mention": "/search",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query>",
+            "description": "What you want to search for.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/search",
+        "Search the web.",
+        "Tools",
+        "search"
+      ],
+      "aliases": []
+    },
+    {
       "id": "server",
       "name": "server",
       "qualified_name": "server",
@@ -17274,6 +17944,73 @@
       "aliases": []
     },
     {
+      "id": "ttt",
+      "name": "ttt",
+      "qualified_name": "ttt",
+      "display_name": "ttt",
+      "description": "Play a game of Tic-Tac-Toe using buttons.",
+      "category": "Games",
+      "cog": "Games",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "ttt",
+        "qualified_name": "ttt",
+        "aliases": [],
+        "usage": "ttt [opponent]",
+        "signature": "[opponent]",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": null,
+            "required": false,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "ttt",
+        "qualified_name": "ttt",
+        "mention": "/ttt",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": "Optional: The user you want to challenge",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "user",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/ttt",
+        "Games",
+        "Play a game of Tic-Tac-Toe using buttons.",
+        "ttt"
+      ],
+      "aliases": []
+    },
+    {
       "id": "twitter",
       "name": "twitter",
       "qualified_name": "twitter",
@@ -17798,6 +18535,73 @@
         "User Utility",
         "Utilities",
         "userinfo"
+      ],
+      "aliases": []
+    },
+    {
+      "id": "wikipedia",
+      "name": "wikipedia",
+      "qualified_name": "wikipedia",
+      "display_name": "wikipedia",
+      "description": "Search Wikipedia.",
+      "category": "Tools",
+      "cog": "Tools",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "wikipedia",
+        "qualified_name": "wikipedia",
+        "aliases": [],
+        "usage": "wikipedia <query...>",
+        "signature": "<query>",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "wikipedia",
+        "qualified_name": "wikipedia",
+        "mention": "/wikipedia",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query>",
+            "description": "What you want to search Wikipedia for.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/wikipedia",
+        "Search Wikipedia.",
+        "Tools",
+        "wikipedia"
       ],
       "aliases": []
     }
@@ -18841,6 +19645,73 @@
         "User Utility",
         "Utilities",
         "binary"
+      ],
+      "aliases": []
+    },
+    "bj": {
+      "id": "bj",
+      "name": "bj",
+      "qualified_name": "bj",
+      "display_name": "bj",
+      "description": "Play Blackjack with another user.",
+      "category": "Games",
+      "cog": "Games",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "bj",
+        "qualified_name": "bj",
+        "aliases": [],
+        "usage": "bj [opponent]",
+        "signature": "[opponent]",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": null,
+            "required": false,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "bj",
+        "qualified_name": "bj",
+        "mention": "/bj",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": "User to challenge",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "user",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/bj",
+        "Games",
+        "Play Blackjack with another user.",
+        "bj"
       ],
       "aliases": []
     },
@@ -20108,7 +20979,7 @@
           {
             "name": "text",
             "display": "<text>",
-            "description": "The text to render.",
+            "description": "The text to render. Prefix with font=small or [slant] to change style.",
             "required": true,
             "default": null,
             "kind": "slash_option",
@@ -23389,6 +24260,73 @@
         "say message"
       ]
     },
+    "search": {
+      "id": "search",
+      "name": "search",
+      "qualified_name": "search",
+      "display_name": "search",
+      "description": "Search the web.",
+      "category": "Tools",
+      "cog": "Tools",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "search",
+        "qualified_name": "search",
+        "aliases": [],
+        "usage": "search <query...>",
+        "signature": "<query>",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 10.0,
+          "bucket": null,
+          "label": "1/10s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "search",
+        "qualified_name": "search",
+        "mention": "/search",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query>",
+            "description": "What you want to search for.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/search",
+        "Search the web.",
+        "Tools",
+        "search"
+      ],
+      "aliases": []
+    },
     "server": {
       "id": "server",
       "name": "server",
@@ -24322,6 +25260,73 @@
       ],
       "aliases": []
     },
+    "ttt": {
+      "id": "ttt",
+      "name": "ttt",
+      "qualified_name": "ttt",
+      "display_name": "ttt",
+      "description": "Play a game of Tic-Tac-Toe using buttons.",
+      "category": "Games",
+      "cog": "Games",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "ttt",
+        "qualified_name": "ttt",
+        "aliases": [],
+        "usage": "ttt [opponent]",
+        "signature": "[opponent]",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": null,
+            "required": false,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "ttt",
+        "qualified_name": "ttt",
+        "mention": "/ttt",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": "Optional: The user you want to challenge",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "user",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/ttt",
+        "Games",
+        "Play a game of Tic-Tac-Toe using buttons.",
+        "ttt"
+      ],
+      "aliases": []
+    },
     "twitter": {
       "id": "twitter",
       "name": "twitter",
@@ -24847,6 +25852,73 @@
         "User Utility",
         "Utilities",
         "userinfo"
+      ],
+      "aliases": []
+    },
+    "wikipedia": {
+      "id": "wikipedia",
+      "name": "wikipedia",
+      "qualified_name": "wikipedia",
+      "display_name": "wikipedia",
+      "description": "Search Wikipedia.",
+      "category": "Tools",
+      "cog": "Tools",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "wikipedia",
+        "qualified_name": "wikipedia",
+        "aliases": [],
+        "usage": "wikipedia <query...>",
+        "signature": "<query>",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "wikipedia",
+        "qualified_name": "wikipedia",
+        "mention": "/wikipedia",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query>",
+            "description": "What you want to search Wikipedia for.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/wikipedia",
+        "Search Wikipedia.",
+        "Tools",
+        "wikipedia"
       ],
       "aliases": []
     }
@@ -25890,6 +26962,73 @@
         "User Utility",
         "Utilities",
         "binary"
+      ],
+      "aliases": []
+    },
+    "bj": {
+      "id": "bj",
+      "name": "bj",
+      "qualified_name": "bj",
+      "display_name": "bj",
+      "description": "Play Blackjack with another user.",
+      "category": "Games",
+      "cog": "Games",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "bj",
+        "qualified_name": "bj",
+        "aliases": [],
+        "usage": "bj [opponent]",
+        "signature": "[opponent]",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": null,
+            "required": false,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "bj",
+        "qualified_name": "bj",
+        "mention": "/bj",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": "User to challenge",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "user",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/bj",
+        "Games",
+        "Play Blackjack with another user.",
+        "bj"
       ],
       "aliases": []
     },
@@ -27157,7 +28296,7 @@
           {
             "name": "text",
             "display": "<text>",
-            "description": "The text to render.",
+            "description": "The text to render. Prefix with font=small or [slant] to change style.",
             "required": true,
             "default": null,
             "kind": "slash_option",
@@ -30438,6 +31577,73 @@
         "say message"
       ]
     },
+    "search": {
+      "id": "search",
+      "name": "search",
+      "qualified_name": "search",
+      "display_name": "search",
+      "description": "Search the web.",
+      "category": "Tools",
+      "cog": "Tools",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "search",
+        "qualified_name": "search",
+        "aliases": [],
+        "usage": "search <query...>",
+        "signature": "<query>",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 10.0,
+          "bucket": null,
+          "label": "1/10s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "search",
+        "qualified_name": "search",
+        "mention": "/search",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query>",
+            "description": "What you want to search for.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/search",
+        "Search the web.",
+        "Tools",
+        "search"
+      ],
+      "aliases": []
+    },
     "server": {
       "id": "server",
       "name": "server",
@@ -31371,6 +32577,73 @@
       ],
       "aliases": []
     },
+    "ttt": {
+      "id": "ttt",
+      "name": "ttt",
+      "qualified_name": "ttt",
+      "display_name": "ttt",
+      "description": "Play a game of Tic-Tac-Toe using buttons.",
+      "category": "Games",
+      "cog": "Games",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "ttt",
+        "qualified_name": "ttt",
+        "aliases": [],
+        "usage": "ttt [opponent]",
+        "signature": "[opponent]",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": null,
+            "required": false,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "ttt",
+        "qualified_name": "ttt",
+        "mention": "/ttt",
+        "parameters": [
+          {
+            "name": "opponent",
+            "display": "[opponent]",
+            "description": "Optional: The user you want to challenge",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "user",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/ttt",
+        "Games",
+        "Play a game of Tic-Tac-Toe using buttons.",
+        "ttt"
+      ],
+      "aliases": []
+    },
     "twitter": {
       "id": "twitter",
       "name": "twitter",
@@ -31896,6 +33169,73 @@
         "User Utility",
         "Utilities",
         "userinfo"
+      ],
+      "aliases": []
+    },
+    "wikipedia": {
+      "id": "wikipedia",
+      "name": "wikipedia",
+      "qualified_name": "wikipedia",
+      "display_name": "wikipedia",
+      "description": "Search Wikipedia.",
+      "category": "Tools",
+      "cog": "Tools",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "wikipedia",
+        "qualified_name": "wikipedia",
+        "aliases": [],
+        "usage": "wikipedia <query...>",
+        "signature": "<query>",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "wikipedia",
+        "qualified_name": "wikipedia",
+        "mention": "/wikipedia",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query>",
+            "description": "What you want to search Wikipedia for.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/wikipedia",
+        "Search Wikipedia.",
+        "Tools",
+        "wikipedia"
       ],
       "aliases": []
     }
