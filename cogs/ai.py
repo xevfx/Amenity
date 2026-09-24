@@ -531,9 +531,9 @@ class AI(commands.Cog):
             await ctx.send("Please provide a prompt.")
             return
 
-        selected_key = model.strip()
+        selected_key = model.value if isinstance(model, app_commands.Choice) else model.strip()
         if selected_key not in AI_MODELS:
-            await ctx.send("Unknown model. Use the autocomplete list from `/ai`.")
+            await ctx.send("Unknown model. Choose a model from the `/ai` suggestions.")
             return
 
         await ctx.defer()
@@ -705,8 +705,7 @@ class AI(commands.Cog):
         current_lower = current.strip().lower()
         choices: list[app_commands.Choice[str]] = []
         for value, description in MODEL_CHOICES:
-            haystack = f"{value} {description}".lower()
-            if current_lower and current_lower not in haystack:
+            if current_lower and current_lower not in f"{value} {description}".lower():
                 continue
             choices.append(app_commands.Choice(name=description[:100], value=value))
             if len(choices) >= 25:

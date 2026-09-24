@@ -13,6 +13,7 @@ from discord.ext import commands
 from api.emojis import Emoji
 from api.http import close_http_session, create_http_session, fetch_json
 from api.log import log_exception
+from core.cache import cache
 
 if TYPE_CHECKING:
     from core.amenity import Amenity
@@ -29,8 +30,23 @@ class Github(commands.Cog):
     async def cog_unload(self) -> None:
         await close_http_session(self.aiohttp)
 
-    async def _fetch_json(self, url: str) -> tuple[dict | None, int | None]:
-        data, status = await fetch_json(self.aiohttp, url)
+    async def _fetch_json(
+        self,
+        url: str,
+        *,
+        ttl: float = 30,
+        headers: dict[str, str] | None = None,
+    ) -> tuple[dict | None, int | None]:
+        async def fetch() -> tuple[dict | None, int | None]:
+            data, status = await fetch_json(self.aiohttp, url, headers=headers)
+            return (data if isinstance(data, dict) else None), status
+
+        data, status = await cache.get_or_set_async(
+            f"github:api:{url}",
+            fetch,
+            ttl=ttl,
+            cache_if=lambda result: result[1] == 200 and result[0] is not None,
+        )
         if isinstance(data, dict):
             return data, status
         return None, status
@@ -71,7 +87,7 @@ class Github(commands.Cog):
             await ctx.send("Please provide a GitHub username.")
             return
 
-        data, status = await self._fetch_json(f"https://api.github.com/users/{quote_plus(query)}")
+        data, status = await self._fetch_json(f"https://api.github.com/users/{quote_plus(query)}", ttl=120)
         if not data or status != 200:
             await ctx.send("User not found!")
             return
@@ -105,7 +121,7 @@ class Github(commands.Cog):
             api_url = (
                 f"https://api.github.com/search/repositories?q={quote_plus(query)}&sort=stars&order=desc&per_page=10"
             )
-            data, status = await self._fetch_json(api_url)
+            data, status = await self._fetch_json(api_url, ttl=30)
             if not data or status != 200:
                 await ctx.send("Failed to fetch repository info from GitHub.")
                 return
@@ -232,7 +248,7 @@ class Github(commands.Cog):
         api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}"
         headers = {"User-Agent": "Discord-Bot-PR-Fetcher"}
 
-        data, status = await fetch_json(self.aiohttp, api_url, headers=headers)
+        data, status = await self._fetch_json(api_url, ttl=60, headers=headers)
         if status == 404:
             embed = discord.Embed(
                 title=f"{Emoji.CROSS.value} PR Not Found",

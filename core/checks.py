@@ -7,6 +7,7 @@ import string
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from threading import RLock
 
 from discord.ext import commands
 
@@ -18,6 +19,9 @@ _initialized = False
 _blacklisted_users: set[int] = set()
 _disabled_commands: set[str] = set()
 _premium_users: dict[int, int] = {}
+_cache_lock = RLock()
+_database_lock = RLock()
+_cache_refresh_lock = RLock()
 
 
 @dataclass(slots=True)
@@ -94,87 +98,92 @@ def _connect_keys() -> sqlite3.Connection:
 
 
 def init_db() -> None:
-    with _connect() as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS blacklisted_users (
-                user_id INTEGER PRIMARY KEY,
-                reason TEXT,
-                created_at INTEGER NOT NULL
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS disabled_commands (
-                command_name TEXT PRIMARY KEY,
-                created_at INTEGER NOT NULL
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS premium_users (
-                user_id INTEGER PRIMARY KEY,
-                expires_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL
-            )
-            """
-        )
-        columns = {row["name"] for row in conn.execute("PRAGMA table_info(premium_users)").fetchall()}
-        if "expires_at" not in columns:
-            conn.execute("ALTER TABLE premium_users ADD COLUMN expires_at INTEGER")
+    with _database_lock:
+        with _connect() as conn:
             conn.execute(
                 """
-                UPDATE premium_users
-                SET expires_at = updated_at + (COALESCE(balance, 0) * 30 * 24 * 60 * 60)
-                WHERE expires_at IS NULL
+                CREATE TABLE IF NOT EXISTS blacklisted_users (
+                    user_id INTEGER PRIMARY KEY,
+                    reason TEXT,
+                    created_at INTEGER NOT NULL
+                )
                 """
             )
-        conn.execute("DELETE FROM premium_users WHERE expires_at IS NULL OR expires_at <= ?", (_now(),))
-
-    with _connect_keys() as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS premium_keys (
-                key TEXT PRIMARY KEY,
-                premium_duration INTEGER NOT NULL,
-                key_expires_at INTEGER NOT NULL,
-                created_at INTEGER NOT NULL,
-                used_by INTEGER,
-                used_at INTEGER,
-                revoked_at INTEGER
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS disabled_commands (
+                    command_name TEXT PRIMARY KEY,
+                    created_at INTEGER NOT NULL
+                )
+                """
             )
-            """
-        )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS premium_users (
+                    user_id INTEGER PRIMARY KEY,
+                    expires_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                )
+                """
+            )
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(premium_users)").fetchall()}
+            if "expires_at" not in columns:
+                conn.execute("ALTER TABLE premium_users ADD COLUMN expires_at INTEGER")
+                conn.execute(
+                    """
+                    UPDATE premium_users
+                    SET expires_at = updated_at + (COALESCE(balance, 0) * 30 * 24 * 60 * 60)
+                    WHERE expires_at IS NULL
+                    """
+                )
+            conn.execute("DELETE FROM premium_users WHERE expires_at IS NULL OR expires_at <= ?", (_now(),))
+
+        with _connect_keys() as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS premium_keys (
+                    key TEXT PRIMARY KEY,
+                    premium_duration INTEGER NOT NULL,
+                    key_expires_at INTEGER NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    used_by INTEGER,
+                    used_at INTEGER,
+                    revoked_at INTEGER
+                )
+                """
+            )
+
+
+def _refresh_cache_locked() -> None:
+    global _blacklisted_users, _disabled_commands, _initialized, _premium_users
+
+    with _database_lock:
+        init_db()
+        with _connect() as conn:
+            blacklisted_users = {
+                int(row["user_id"]) for row in conn.execute("SELECT user_id FROM blacklisted_users").fetchall()
+            }
+            disabled_commands = {
+                str(row["command_name"])
+                for row in conn.execute("SELECT command_name FROM disabled_commands").fetchall()
+            }
+            premium_users = {
+                int(row["user_id"]): int(row["expires_at"])
+                for row in conn.execute(
+                    "SELECT user_id, expires_at FROM premium_users WHERE expires_at > ?", (_now(),)
+                ).fetchall()
+            }
+
+        with _cache_lock:
+            _blacklisted_users = blacklisted_users
+            _disabled_commands = disabled_commands
+            _premium_users = premium_users
+            _initialized = True
 
 
 def refresh_cache() -> None:
-    global _initialized
-
-    init_db()
-    with _connect() as conn:
-        _blacklisted_users.clear()
-        _blacklisted_users.update(
-            int(row["user_id"]) for row in conn.execute("SELECT user_id FROM blacklisted_users").fetchall()
-        )
-
-        _disabled_commands.clear()
-        _disabled_commands.update(
-            str(row["command_name"])
-            for row in conn.execute("SELECT command_name FROM disabled_commands").fetchall()
-        )
-
-        _premium_users.clear()
-        _premium_users.update(
-            {
-                int(row["user_id"]): int(row["expires_at"])
-                for row in conn.execute("SELECT user_id, expires_at FROM premium_users WHERE expires_at > ?", (_now(),))
-                .fetchall()
-            }
-        )
-
-    _initialized = True
+    with _cache_refresh_lock:
+        _refresh_cache_locked()
 
 
 async def initialize_checks() -> None:
@@ -182,32 +191,40 @@ async def initialize_checks() -> None:
 
 
 def _ensure_cache() -> None:
-    if not _initialized:
-        refresh_cache()
+    with _cache_lock:
+        initialized = _initialized
+    if initialized:
+        return
+    with _cache_refresh_lock:
+        with _cache_lock:
+            if _initialized:
+                return
+        _refresh_cache_locked()
 
 
 def is_user_blacklisted(user_id: int) -> bool:
     _ensure_cache()
-    return int(user_id) in _blacklisted_users
+    with _cache_lock:
+        return int(user_id) in _blacklisted_users
 
 
 def is_command_disabled(command_name: str) -> bool:
     _ensure_cache()
-    return _normalize_command_name(command_name) in _disabled_commands
+    with _cache_lock:
+        return _normalize_command_name(command_name) in _disabled_commands
 
 
 def get_premium_expires_at(user_id: int) -> int | None:
     _ensure_cache()
-    user_id = int(user_id)
-    expires_at = _premium_users.get(user_id)
-    if expires_at is None:
-        return None
-    if expires_at <= _now():
-        # Keep command checks memory-only. The hourly cleanup task removes the
-        # expired row from SQLite without blocking the gateway event loop.
-        _premium_users.pop(user_id, None)
-        return None
-    return expires_at
+    with _cache_lock:
+        user_id = int(user_id)
+        expires_at = _premium_users.get(user_id)
+        if expires_at is None:
+            return None
+        if expires_at <= _now():
+            _premium_users.pop(user_id, None)
+            return None
+        return expires_at
 
 
 def has_premium(user_id: int) -> bool:
@@ -215,106 +232,130 @@ def has_premium(user_id: int) -> bool:
 
 
 def blacklist_user(user_id: int, reason: str | None = None) -> None:
-    with _connect() as conn:
-        conn.execute(
-            """
-            INSERT INTO blacklisted_users (user_id, reason, created_at)
-            VALUES (?, ?, ?)
-            ON CONFLICT(user_id) DO UPDATE SET reason = excluded.reason
-            """,
-            (int(user_id), reason, _now()),
-        )
-    _blacklisted_users.add(int(user_id))
+    user_id = int(user_id)
+    with _database_lock:
+        with _connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO blacklisted_users (user_id, reason, created_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET reason = excluded.reason
+                """,
+                (user_id, reason, _now()),
+            )
+        with _cache_lock:
+            _blacklisted_users.add(user_id)
 
 
 def unblacklist_user(user_id: int) -> bool:
-    with _connect() as conn:
-        cursor = conn.execute("DELETE FROM blacklisted_users WHERE user_id = ?", (int(user_id),))
-    _blacklisted_users.discard(int(user_id))
+    user_id = int(user_id)
+    with _database_lock:
+        with _connect() as conn:
+            cursor = conn.execute("DELETE FROM blacklisted_users WHERE user_id = ?", (user_id,))
+        with _cache_lock:
+            _blacklisted_users.discard(user_id)
     return cursor.rowcount > 0
 
 
 def disable_command(command_name: str) -> str:
     command_name = _normalize_command_name(command_name)
-    with _connect() as conn:
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO disabled_commands (command_name, created_at)
-            VALUES (?, ?)
-            """,
-            (command_name, _now()),
-        )
-    _disabled_commands.add(command_name)
+    with _database_lock:
+        with _connect() as conn:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO disabled_commands (command_name, created_at)
+                VALUES (?, ?)
+                """,
+                (command_name, _now()),
+            )
+        with _cache_lock:
+            _disabled_commands.add(command_name)
     return command_name
 
 
 def enable_command(command_name: str) -> bool:
     command_name = _normalize_command_name(command_name)
-    with _connect() as conn:
-        cursor = conn.execute("DELETE FROM disabled_commands WHERE command_name = ?", (command_name,))
-    _disabled_commands.discard(command_name)
+    with _database_lock:
+        with _connect() as conn:
+            cursor = conn.execute("DELETE FROM disabled_commands WHERE command_name = ?", (command_name,))
+        with _cache_lock:
+            _disabled_commands.discard(command_name)
     return cursor.rowcount > 0
 
 
 def add_premium(user_id: int, duration: str | int) -> int:
     duration_seconds = parse_duration(duration) if isinstance(duration, str) else max(int(duration), 1)
     user_id = int(user_id)
-    now = _now()
-    current_expires_at = get_premium_expires_at(user_id) or now
-    expires_at = max(current_expires_at, now) + duration_seconds
-    with _connect() as conn:
-        conn.execute(
-            """
-            INSERT INTO premium_users (user_id, expires_at, updated_at)
-            VALUES (?, ?, ?)
-            ON CONFLICT(user_id) DO UPDATE SET
-                expires_at = excluded.expires_at,
-                updated_at = excluded.updated_at
-            """,
-            (user_id, expires_at, now),
-        )
-    _premium_users[user_id] = expires_at
-    return expires_at
+    _ensure_cache()
+    with _database_lock:
+        now = _now()
+        with _cache_lock:
+            current_expires_at = _premium_users.get(user_id) or now
+        expires_at = max(current_expires_at, now) + duration_seconds
+        with _connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO premium_users (user_id, expires_at, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    expires_at = excluded.expires_at,
+                    updated_at = excluded.updated_at
+                """,
+                (user_id, expires_at, now),
+            )
+        with _cache_lock:
+            _premium_users[user_id] = expires_at
+        return expires_at
 
 
 def remove_premium(user_id: int, duration: str | int) -> int | None:
     duration_seconds = parse_duration(duration) if isinstance(duration, str) else max(int(duration), 1)
     user_id = int(user_id)
-    current_expires_at = get_premium_expires_at(user_id)
-    if current_expires_at is None:
-        return None
+    _ensure_cache()
+    with _database_lock:
+        with _cache_lock:
+            current_expires_at = _premium_users.get(user_id)
+        if current_expires_at is None:
+            return None
 
-    expires_at = current_expires_at - duration_seconds
-    now = _now()
-    if expires_at <= now:
-        revoke_premium(user_id)
-        return None
+        expires_at = current_expires_at - duration_seconds
+        now = _now()
+        if expires_at <= now:
+            with _connect() as conn:
+                conn.execute("DELETE FROM premium_users WHERE user_id = ?", (user_id,))
+            with _cache_lock:
+                _premium_users.pop(user_id, None)
+            return None
 
-    with _connect() as conn:
-        conn.execute(
-            "UPDATE premium_users SET expires_at = ?, updated_at = ? WHERE user_id = ?",
-            (expires_at, now, user_id),
-        )
-    _premium_users[user_id] = expires_at
-    return expires_at
+        with _connect() as conn:
+            conn.execute(
+                "UPDATE premium_users SET expires_at = ?, updated_at = ? WHERE user_id = ?",
+                (expires_at, now, user_id),
+            )
+        with _cache_lock:
+            _premium_users[user_id] = expires_at
+        return expires_at
 
 
 def revoke_premium(user_id: int) -> bool:
     user_id = int(user_id)
-    with _connect() as conn:
-        cursor = conn.execute("DELETE FROM premium_users WHERE user_id = ?", (user_id,))
-    _premium_users.pop(user_id, None)
+    with _database_lock:
+        with _connect() as conn:
+            cursor = conn.execute("DELETE FROM premium_users WHERE user_id = ?", (user_id,))
+        with _cache_lock:
+            _premium_users.pop(user_id, None)
     return cursor.rowcount > 0
 
 
 def cleanup_expired_premium() -> int:
     now = _now()
-    with _connect() as conn:
-        rows = conn.execute("SELECT user_id FROM premium_users WHERE expires_at <= ?", (now,)).fetchall()
-        conn.execute("DELETE FROM premium_users WHERE expires_at <= ?", (now,))
-
-    for row in rows:
-        _premium_users.pop(int(row["user_id"]), None)
+    with _database_lock:
+        with _connect() as conn:
+            rows = conn.execute("SELECT user_id FROM premium_users WHERE expires_at <= ?", (now,)).fetchall()
+            conn.execute("DELETE FROM premium_users WHERE expires_at <= ?", (now,))
+        with _cache_lock:
+            for row in rows:
+                _premium_users.pop(int(row["user_id"]), None)
     return len(rows)
 
 

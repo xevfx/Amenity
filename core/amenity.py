@@ -15,10 +15,12 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from api.log import (
+    close_webhook_sessions,
     log_app_command_error,
     log_command_error,
     log_command_usage,
 )
+from core.cache import cache
 from core.checks import (
     CommandDisabled,
     PremiumRequired,
@@ -33,6 +35,8 @@ from core.installed_users import (
     flush_installed_users as flush_pending_installed_users,
 )
 from core.installed_users import init_installed_users_db, track_installed_user
+from core.resource_monitor import ResourceMonitor
+from core.workers import prewarm_cpu_executor, shutdown_cpu_executor
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +52,35 @@ EVENT_LOOP_STALL_SECONDS = 10
 # which is exactly where the gateway loop stalled in production.  A fixed,
 # pre-warmed pool moves that work to setup, before the gateway is connected.
 BLOCKING_WORKER_COUNT = 4
+FETCHED_USER_CACHE_TTL = 60
 
 USER_ONLY_INSTALL_MESSAGE = (
     "Amenity is a user-only app and cannot be installed to servers. "
     "Please install it to your Discord account instead."
 )
+
+
+def _application_command_name(data: object) -> str:
+    if not isinstance(data, dict):
+        return "unknown app command"
+
+    command_names = [str(data.get("name", "unknown"))]
+    options = data.get("options", [])
+    while isinstance(options, list):
+        subcommand = next(
+            (
+                option
+                for option in options
+                if isinstance(option, dict) and option.get("type") in (1, 2)
+            ),
+            None,
+        )
+        if subcommand is None:
+            break
+        command_names.append(str(subcommand.get("name", "unknown")))
+        options = subcommand.get("options", [])
+    return "/" + " ".join(command_names)
+
 
 os.environ["JISHAKU_HIDE"] = "True"
 os.environ["JISHAKU_NO_UNDERSCORE"] = "True"
@@ -85,6 +113,24 @@ class Amenity(commands.Bot):
             thread_name_prefix="amenity-worker",
         )
         self._blocking_executor_ready = False
+        self._resource_monitor = ResourceMonitor(Path(__file__).resolve().parents[1])
+
+    async def invoke(self, context: commands.Context) -> None:
+        command = context.command
+        if command is None:
+            await super().invoke(context)
+            return
+
+        with self._resource_monitor.track_command(f"prefix: {command.qualified_name}"):
+            await super().invoke(context)
+
+    async def fetch_user_cached(self, user_id: int) -> discord.User:
+        user_id = int(user_id)
+        return await cache.get_or_set_async(
+            f"discord:user:{user_id}",
+            lambda: self.fetch_user(user_id),
+            ttl=FETCHED_USER_CACHE_TTL,
+        )  # type: ignore[return-value]
 
     async def on_connect(self) -> None:
         """Called when bot connects to Discord gateway."""
@@ -96,6 +142,7 @@ class Amenity(commands.Bot):
     async def setup_hook(self) -> None:
         self.tree.on_error = self.on_app_command_error
         await self._prepare_blocking_executor()
+        await prewarm_cpu_executor()
         self._start_event_loop_watchdog()
         await initialize_checks()
         await asyncio.to_thread(init_installed_users_db)
@@ -133,6 +180,9 @@ class Amenity(commands.Bot):
             failed = ", ".join(failed_extensions)
             raise RuntimeError(f"Failed to load required extension(s): {failed}")
 
+        self._instrument_app_command_dispatch()
+        self._resource_monitor.start(asyncio.get_running_loop())
+
         # guild_id: int = os.getenv("GUILD_ID")
         # if guild_id:
         #     guild = discord.Object(id=int(guild_id))
@@ -144,10 +194,23 @@ class Amenity(commands.Bot):
     async def close(self) -> None:
         self.check_premium_expiry.cancel()
         self.flush_installed_users.cancel()
+        await self._resource_monitor.stop()
         await self._stop_event_loop_watchdog()
         await asyncio.to_thread(flush_pending_installed_users)
+        shutdown_cpu_executor(wait=False)
         self._blocking_executor.shutdown(wait=False, cancel_futures=True)
         await super().close()
+        await close_webhook_sessions()
+
+    def _instrument_app_command_dispatch(self) -> None:
+        original_dispatch = self.tree._call
+
+        async def monitored_dispatch(interaction: discord.Interaction) -> None:
+            command_name = _application_command_name(interaction.data)
+            with self._resource_monitor.track_command(f"slash: {command_name}"):
+                await original_dispatch(interaction)
+
+        self.tree._call = monitored_dispatch  # type: ignore[method-assign]
 
     @staticmethod
     def _wait_for_worker_pool(barrier: threading.Barrier) -> None:

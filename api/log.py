@@ -1,12 +1,32 @@
 import asyncio
 import os
 import traceback
+import weakref
 from datetime import datetime
 
 import aiohttp
 import discord
 from discord import Webhook, app_commands
 from discord.ext import commands
+
+_webhook_sessions: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, aiohttp.ClientSession] = (
+    weakref.WeakKeyDictionary()
+)
+
+
+def _get_webhook_session() -> aiohttp.ClientSession:
+    loop = asyncio.get_running_loop()
+    session = _webhook_sessions.get(loop)
+    if session is None or session.closed:
+        session = aiohttp.ClientSession()
+        _webhook_sessions[loop] = session
+    return session
+
+
+async def close_webhook_sessions() -> None:
+    session = _webhook_sessions.pop(asyncio.get_running_loop(), None)
+    if session is not None and not session.closed:
+        await session.close()
 
 
 def _truncate_text(text: str, limit: int) -> str:
@@ -37,9 +57,8 @@ async def _send_exception_webhook(exception: Exception, hook: str | None = None)
             inline=False,
         )
 
-        async with aiohttp.ClientSession() as session:
-            webhook = Webhook.from_url(hook, session=session)
-            await webhook.send(embed=embed)
+        webhook = Webhook.from_url(hook, session=_get_webhook_session())
+        await webhook.send(embed=embed)
     except Exception:
         return
 
@@ -71,9 +90,8 @@ async def UsageWebhook(embed: discord.Embed, hook: str | None = None) -> bool:
         return False
 
     try:
-        async with aiohttp.ClientSession() as session:
-            webhook = Webhook.from_url(hook, session=session)
-            await webhook.send(embed=embed)
+        webhook = Webhook.from_url(hook, session=_get_webhook_session())
+        await webhook.send(embed=embed)
         return True
 
     except Exception as e:
@@ -100,14 +118,29 @@ async def ErrorWebhook(embed: discord.Embed, hook: str | None = None) -> bool:
         return False
 
     try:
-        async with aiohttp.ClientSession() as session:
-            webhook = Webhook.from_url(hook, session=session)
-            await webhook.send(embed=embed)
+        webhook = Webhook.from_url(hook, session=_get_webhook_session())
+        await webhook.send(embed=embed)
         return True
 
     except Exception as e:
         log_exception(e)
         return False
+
+
+async def log_resource_alert(
+    title: str,
+    description: str,
+    *,
+    hook: str | None = None,
+) -> bool:
+    """Send a resource alert to the configured error webhook."""
+    embed = discord.Embed(
+        title=_truncate_text(title, 256),
+        description=_truncate_text(description, 4000),
+        color=discord.Color.red(),
+        timestamp=datetime.now(),
+    )
+    return await ErrorWebhook(embed, hook)
 
 
 async def log_command_usage(ctx: commands.Context) -> None:
@@ -117,6 +150,10 @@ async def log_command_usage(ctx: commands.Context) -> None:
     Args:
         ctx: Discord context object
     """
+    hook = os.getenv("USAGE_HOOK")
+    if not hook:
+        return
+
     try:
         embed = discord.Embed(color=discord.Color.magenta(), timestamp=datetime.now())
         if ctx.author.avatar:
@@ -139,7 +176,7 @@ async def log_command_usage(ctx: commands.Context) -> None:
             inline=True,
         )
 
-        await UsageWebhook(embed)
+        await UsageWebhook(embed, hook)
 
     except Exception as e:
         log_exception(e)

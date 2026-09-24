@@ -11,6 +11,7 @@ from discord.ext import commands
 from api.buttons import confirm_action
 from api.commands_export import export_commands
 from api.paginator import EmbedPaginator, PaginatorHelper
+from api.users import fetch_user_cached
 from core.amenity import Amenity
 from core.cache import cache
 from core.checks import (
@@ -114,15 +115,8 @@ class Owner(commands.Cog):
             return "No active premium."
         return f"Premium expires <t:{expires_at}:R> (`{expires_at}`)."
 
-    async def _format_installed_user(self, user: InstalledUser, index: int) -> str:
-        cached_user = self.bot.get_user(user.user_id)
-        if cached_user is None:
-            try:
-                cached_user = await self.bot.fetch_user(user.user_id)
-            except discord.HTTPException:
-                cached_user = None
-
-        label = cached_user.mention if cached_user is not None else f"`{user.user_id}`"
+    def _format_installed_user(self, user: InstalledUser, index: int) -> str:
+        label = f"<@{user.user_id}>"
         username = user.username or "unknown"
         display_name = user.display_name or username
         return (
@@ -130,11 +124,8 @@ class Owner(commands.Cog):
             f"Name: `{display_name}` / `{username}` | Commands: `{user.command_count}` | Last: <t:{user.last_seen}:R>"
         )
 
-    async def _format_installed_users(self, users: list[InstalledUser]) -> list[str]:
-        lines: list[str] = []
-        for index, user in enumerate(users, start=1):
-            lines.append(await self._format_installed_user(user, index))
-        return lines
+    def _format_installed_users(self, users: list[InstalledUser]) -> list[str]:
+        return [self._format_installed_user(user, index) for index, user in enumerate(users, start=1)]
 
     def _format_broadcast_status(self, result: BroadcastResult, *, complete: bool = False) -> str:
         heading = "Broadcast complete." if complete else "Broadcast in progress..."
@@ -159,7 +150,7 @@ class Owner(commands.Cog):
             user = self.bot.get_user(tracked_user.user_id)
             if user is None:
                 try:
-                    user = await self.bot.fetch_user(tracked_user.user_id)
+                    user = await fetch_user_cached(self.bot, tracked_user.user_id)
                 except discord.NotFound:
                     result.unavailable += 1
                 except discord.HTTPException:
@@ -347,7 +338,7 @@ class Owner(commands.Cog):
             await self._send_owner_reply(ctx, "No command users have been tracked yet.")
             return
 
-        lines = await self._format_installed_users(installed_users)
+        lines = self._format_installed_users(installed_users)
         embeds = PaginatorHelper.create_adaptive_embeds(
             lines,
             "Tracked Command Users",

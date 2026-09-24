@@ -1,4 +1,3 @@
-import asyncio
 import io
 import random
 import tempfile
@@ -17,6 +16,8 @@ from api.emojis import Emoji
 from api.http import JsonData, close_http_session, create_http_session, fetch_json
 from api.log import log_exception
 from core.amenity import Amenity
+from core.cache import cache
+from core.workers import run_cpu
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MEME_ASSETS_DIR = PROJECT_ROOT / "assets" / "memes"
@@ -86,7 +87,12 @@ class Fun(commands.Cog):
             return
 
         url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{quote(query)}"
-        data, status = await self._fetch_json(url)
+        data, status = await cache.get_or_set_async(
+            f"dictionary:{query.casefold()}",
+            lambda: self._fetch_json(url),
+            ttl=21_600,
+            cache_if=lambda result: result[1] == 200 and isinstance(result[0], list),
+        )
         if not data or status != 200 or not isinstance(data, list):
             await ctx.send(f"No definitions found for `{query}`.")
             return
@@ -397,7 +403,7 @@ class Fun(commands.Cog):
                     return
                 avatar_bytes = await resp.read()
 
-            generated = await asyncio.to_thread(_generate_rip, avatar_bytes, str(output), target.display_name)
+            generated = await run_cpu(_generate_rip, avatar_bytes, str(output), target.display_name)
             if not generated:
                 await ctx.send("Failed to generate the image.")
                 return
@@ -439,7 +445,7 @@ class Fun(commands.Cog):
         await ctx.defer()
 
         try:
-            if not await asyncio.to_thread(_generate_waiting, str(output), text):
+            if not await run_cpu(_generate_waiting, str(output), text):
                 await ctx.send("Failed to generate the image.")
                 return
 
@@ -480,7 +486,7 @@ class Fun(commands.Cog):
         await ctx.defer()
 
         try:
-            if not await asyncio.to_thread(_generate_whiteboard, str(output), text):
+            if not await run_cpu(_generate_whiteboard, str(output), text):
                 await ctx.send("Failed to generate the image.")
                 return
 
@@ -582,7 +588,7 @@ def _generate_whiteboard(output_path: str, text: str) -> bool:
             draw.text((text_x, text_y - bbox[1]), line, fill=(32, 32, 32), font=font)
             text_y += line_h + line_spacing
 
-        base.save(output_path, "PNG")
+        base.save(output_path, "PNG", compress_level=1)
         return True
     except Exception:
         return False
@@ -609,7 +615,7 @@ def _generate_waiting(output_path: str, text: str) -> bool:
 
         draw.text((text_x, text_y), text, fill="white", font=font)
 
-        base.save(output_path, "PNG")
+        base.save(output_path, "PNG", compress_level=1)
         return True
     except Exception:
         return False
@@ -643,7 +649,7 @@ def _generate_rip(avatar_bytes: bytes, output_path: str, name: str) -> bool:
 
         draw.text((text_x, text_y), name, fill="black", font=font)
 
-        base.save(output_path, "PNG")
+        base.save(output_path, "PNG", compress_level=1)
         return True
     except Exception:
         return False
