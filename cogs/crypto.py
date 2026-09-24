@@ -1,3 +1,4 @@
+import asyncio
 import os
 from contextlib import suppress
 from datetime import datetime
@@ -25,6 +26,17 @@ _BSCSCAN_API_KEY = os.getenv("BSCSCAN_API_KEY", "")
 _SOL_PRICE_CACHE_KEY = "sol:usd_price"
 _COIN_LIST_CACHE_KEY = "coingecko:coin_list"
 _PRICE_DETAILS_CACHE_PREFIX = "price:multi:"
+_COIN_ALIASES = {
+    "btc": "bitcoin",
+    "eth": "ethereum",
+    "ltc": "litecoin",
+    "sol": "solana",
+    "bnb": "binancecoin",
+    "doge": "dogecoin",
+    "xrp": "ripple",
+    "ada": "cardano",
+    "dot": "polkadot",
+}
 _BSC_RPC_URL = os.getenv("BSC_RPC_URL", "https://bsc-dataseed.binance.org/")
 _BSC_USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955"
 _ERC20_BALANCE_OF_SELECTOR = "70a08231"
@@ -100,6 +112,8 @@ class Crypto(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.aiohttp = create_http_session()
+        self._coin_lookup_source: list[dict] | None = None
+        self._coin_lookups: tuple[dict[str, str], dict[str, str], dict[str, str]] | None = None
 
     async def cog_load(self) -> None:
         self.addy_db_path = os.path.abspath(
@@ -133,6 +147,22 @@ class Crypto(commands.Cog):
         if isinstance(data, dict):
             return data, status
         return None, status
+
+    async def _fetch_json_status_cached(
+        self,
+        url: str,
+        *,
+        ttl: float = 60,
+    ) -> tuple[dict | None, int | None]:
+        async def fetch() -> tuple[dict | None, int | None]:
+            return await self._fetch_json_status(url)
+
+        return await cache.get_or_set_async(
+            f"crypto:json:{url}",
+            fetch,
+            ttl=ttl,
+            cache_if=lambda result: result[1] == 200 and result[0] is not None,
+        )  # type: ignore[return-value]
 
     def _is_evm_address(self, address: str) -> bool:
         if not address.startswith("0x") or len(address) != 42:
@@ -188,145 +218,142 @@ class Crypto(commands.Cog):
         return data.get("result")
 
     async def _get_coin_list(self) -> list[dict]:
-        # Avoid caching an empty list result from CoinGecko. If the cached
-        # value is an empty list it likely indicates a previous fetch failure
-        # and we should attempt to call the API again instead of treating the
-        # empty list as authoritative (which causes lookups to always fail).
-        cache_key = _COIN_LIST_CACHE_KEY
-        cached = cache.get(cache_key)
-        if isinstance(cached, list) and cached:
-            return cached
-
         url = "https://api.coingecko.com/api/v3/coins/list"
-        data = await self._fetch_json(url)
-        if isinstance(data, list) and data:
-            cache.set(cache_key, data, ttl=21_600)
-            return data
-        # On failure, return an empty list but do not cache it so next call
-        # will try the API again.
-        return []
+
+        async def fetch() -> list[dict]:
+            data = await self._fetch_json(url)
+            return data if isinstance(data, list) and data else []
+
+        return await cache.get_or_set_async(
+            _COIN_LIST_CACHE_KEY,
+            fetch,
+            ttl=21_600,
+            cache_if=bool,
+        )  # type: ignore[return-value]
 
     async def _get_coin_id(self, coin: str) -> str | None:
         query = coin.lower().strip()
         if not query:
             return None
 
-        aliases = {
-            "btc": "bitcoin",
-            "eth": "ethereum",
-            "ltc": "litecoin",
-            "sol": "solana",
-            "bnb": "binancecoin",
-            "doge": "dogecoin",
-            "xrp": "ripple",
-            "ada": "cardano",
-            "dot": "polkadot",
-        }
-        if query in aliases:
-            return aliases[query]
+        alias = _COIN_ALIASES.get(query)
+        if alias is not None:
+            return alias
 
         coins = await self._get_coin_list()
         if not coins:
+            self._coin_lookup_source = None
+            self._coin_lookups = None
             return query
 
-        for entry in coins:
-            if entry.get("id") == query:
-                return entry.get("id")
+        if coins is not self._coin_lookup_source:
+            by_id: dict[str, str] = {}
+            by_name: dict[str, str] = {}
+            by_symbol: dict[str, str] = {}
+            for entry in coins:
+                coin_id = entry.get("id")
+                if not isinstance(coin_id, str) or not coin_id:
+                    continue
 
-        for entry in coins:
-            name = str(entry.get("name") or "").lower()
-            if name == query:
-                return entry.get("id")
+                by_id.setdefault(coin_id, coin_id)
+                name = str(entry.get("name") or "").lower()
+                symbol = str(entry.get("symbol") or "").lower()
+                if name:
+                    by_name.setdefault(name, coin_id)
+                if symbol:
+                    by_symbol.setdefault(symbol, coin_id)
 
-        for entry in coins:
-            symbol = str(entry.get("symbol") or "").lower()
-            if symbol == query:
-                return entry.get("id")
+            self._coin_lookups = (by_id, by_name, by_symbol)
+            self._coin_lookup_source = coins
 
-        return query
+        assert self._coin_lookups is not None
+        by_id, by_name, by_symbol = self._coin_lookups
+        return by_id.get(query) or by_name.get(query) or by_symbol.get(query) or query
 
     async def _get_price_details(self, coin_id: str) -> dict | None:
         cache_key = f"{_PRICE_DETAILS_CACHE_PREFIX}{coin_id}"
-        cached = cache.get(cache_key)
-        if isinstance(cached, dict):
-            return cached
-
         url = (
             "https://api.coingecko.com/api/v3/simple/price"
             f"?ids={coin_id}&vs_currencies=usd,eur,inr,gbp&include_24hr_change=true"
         )
-        data = await self._fetch_json(url)
-        if not data or not isinstance(data.get(coin_id), dict):
-            return None
 
-        price_data = data[coin_id]
-        cache.set(cache_key, price_data, ttl=60)
-        return price_data
+        async def fetch() -> dict | None:
+            data = await self._fetch_json(url)
+            if not data or not isinstance(data.get(coin_id), dict):
+                return None
+            return data[coin_id]
+
+        return await cache.get_or_set_async(
+            cache_key,
+            fetch,
+            ttl=60,
+            cache_if=lambda value: isinstance(value, dict),
+        )  # type: ignore[return-value]
 
     async def _get_ltc_price_usd(self) -> float | None:
-        cached = cache.get(_PRICE_CACHE_KEY)
-        if isinstance(cached, (int, float)):
-            return float(cached)
+        async def fetch() -> float | None:
+            coingecko_url = "https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=usd"
+            data, _ = await self._fetch_json_status_cached(coingecko_url)
+            price = None
+            if data and isinstance(data.get("litecoin"), dict):
+                price = data["litecoin"].get("usd")
 
-        coingecko_url = "https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=usd"
-        data = await self._fetch_json(coingecko_url)
-        price = None
-        if data and isinstance(data.get("litecoin"), dict):
-            price = data["litecoin"].get("usd")
+            if price is None:
+                binance_url = "https://api.binance.com/api/v3/ticker/price?symbol=LTCUSDT"
+                data, _ = await self._fetch_json_status_cached(binance_url)
+                if data and "price" in data:
+                    with suppress(ValueError, TypeError):
+                        price = float(data["price"])
 
-        if price is None:
-            binance_url = "https://api.binance.com/api/v3/ticker/price?symbol=LTCUSDT"
-            data = await self._fetch_json(binance_url)
-            if data and "price" in data:
-                with suppress(ValueError, TypeError):
-                    price = float(data["price"])
+            return float(price) if price is not None else None
 
-        if price is None:
-            return None
-
-        cache.set(_PRICE_CACHE_KEY, float(price), ttl=60)
-        return float(price)
+        return await cache.get_or_set_async(
+            _PRICE_CACHE_KEY,
+            fetch,
+            ttl=60,
+            cache_if=lambda value: isinstance(value, (int, float)),
+        )  # type: ignore[return-value]
 
     async def _get_btc_price_usd(self) -> float | None:
-        cached = cache.get(_BTC_PRICE_CACHE_KEY)
-        if isinstance(cached, (int, float)):
-            return float(cached)
+        async def fetch() -> float | None:
+            coingecko_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+            data, _ = await self._fetch_json_status_cached(coingecko_url)
+            price = None
+            if data and isinstance(data.get("bitcoin"), dict):
+                price = data["bitcoin"].get("usd")
 
-        coingecko_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
-        data = await self._fetch_json(coingecko_url)
-        price = None
-        if data and isinstance(data.get("bitcoin"), dict):
-            price = data["bitcoin"].get("usd")
+            if price is None:
+                binance_url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
+                data, _ = await self._fetch_json_status_cached(binance_url)
+                if data and "price" in data:
+                    with suppress(ValueError, TypeError):
+                        price = float(data["price"])
 
-        if price is None:
-            binance_url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
-            data = await self._fetch_json(binance_url)
-            if data and "price" in data:
-                with suppress(ValueError, TypeError):
-                    price = float(data["price"])
+            return float(price) if price is not None else None
 
-        if price is None:
-            return None
-
-        cache.set(_BTC_PRICE_CACHE_KEY, float(price), ttl=60)
-        return float(price)
+        return await cache.get_or_set_async(
+            _BTC_PRICE_CACHE_KEY,
+            fetch,
+            ttl=60,
+            cache_if=lambda value: isinstance(value, (int, float)),
+        )  # type: ignore[return-value]
 
     async def _get_price_usd(self, coin_id: str, cache_key: str) -> float | None:
-        cached = cache.get(cache_key)
-        if isinstance(cached, (int, float)):
-            return float(cached)
-
-        coingecko_url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
-        data = await self._fetch_json(coingecko_url)
-        price = None
-        if data and isinstance(data.get(coin_id), dict):
-            price = data[coin_id].get("usd")
-
-        if price is None:
+        async def fetch() -> float | None:
+            coingecko_url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
+            data, _ = await self._fetch_json_status_cached(coingecko_url)
+            if data and isinstance(data.get(coin_id), dict):
+                price = data[coin_id].get("usd")
+                if price is not None:
+                    return float(price)
             return None
 
-        cache.set(cache_key, float(price), ttl=60)
-        return float(price)
+        return await cache.get_or_set_async(
+            cache_key,
+            fetch,
+            ttl=60,
+            cache_if=lambda value: isinstance(value, (int, float)),
+        )  # type: ignore[return-value]
 
     async def _send_embed(
         self,
@@ -1028,8 +1055,10 @@ class Crypto(commands.Cog):
             return
 
         try:
-            receipt = await self._bsc_rpc_call("eth_getTransactionReceipt", [tx_hash])
-            tx = await self._bsc_rpc_call("eth_getTransactionByHash", [tx_hash])
+            receipt, tx = await asyncio.gather(
+                self._bsc_rpc_call("eth_getTransactionReceipt", [tx_hash]),
+                self._bsc_rpc_call("eth_getTransactionByHash", [tx_hash]),
+            )
         except Exception as exc:
             log_exception(exc)
             await ctx.send("An error occurred while fetching the transaction.")
@@ -1057,8 +1086,6 @@ class Crypto(commands.Cog):
         if transfer_log is None:
             await ctx.send(f"No USDT transfer found in transaction `{tx_hash}`.")
             return
-
-        price_usd = await self._get_price_usd("tether", "usdt:usd_price")
 
         topics = transfer_log.get("topics") or []
         from_addr = self._address_from_topic(str(topics[1])) or "unknown"
@@ -1088,17 +1115,28 @@ class Crypto(commands.Cog):
         with suppress(ValueError, TypeError):
             block_number = int(str(block_number_hex), 16)
 
+        rpc_calls = [
+            self._bsc_rpc_call("eth_blockNumber", []),
+            self._get_price_usd("tether", "usdt:usd_price"),
+        ]
+        if block_number_hex:
+            rpc_calls.append(self._bsc_rpc_call("eth_getBlockByNumber", [block_number_hex, False]))
+        try:
+            rpc_results = await asyncio.gather(*rpc_calls)
+        except Exception as exc:
+            log_exception(exc)
+            await ctx.send("An error occurred while fetching transaction details.")
+            return
+
+        latest_block, price_usd = rpc_results[:2]
         confirmations = "0"
-        latest_block = await self._bsc_rpc_call("eth_blockNumber", [])
         with suppress(ValueError, TypeError):
             confirmations = str(max(int(str(latest_block), 16) - block_number + 1, 0))
 
         time_stamp = None
-        if block_number_hex:
-            block = await self._bsc_rpc_call("eth_getBlockByNumber", [block_number_hex, False])
-            if isinstance(block, dict):
-                with suppress(ValueError, TypeError):
-                    time_stamp = int(str(block.get("timestamp", "0x0")), 16)
+        if len(rpc_results) > 2 and isinstance(rpc_results[2], dict):
+            with suppress(ValueError, TypeError):
+                time_stamp = int(str(rpc_results[2].get("timestamp", "0x0")), 16)
 
         embed = discord.Embed(
             title=f"{Emoji.CRYPTO.value} USDT (BEP-20) Transaction",
@@ -1234,7 +1272,7 @@ class Crypto(commands.Cog):
         try:
             if from_is_fiat and to_is_fiat:
                 url = f"https://api.frankfurter.app/latest?amount={amount}&from={fromm.upper()}&to={to.upper()}"
-                data, status = await self._fetch_json_status(url)
+                data, status = await self._fetch_json_status_cached(url, ttl=1_800)
                 rates = data.get("rates", {}) if isinstance(data, dict) else {}
                 result = rates.get(to.upper())
                 if result is not None:
@@ -1258,7 +1296,7 @@ class Crypto(commands.Cog):
                     return
 
                 url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies={to}"
-                data, status = await self._fetch_json_status(url)
+                data, status = await self._fetch_json_status_cached(url)
                 if status == 429:
                     await ctx.send("⚠️ Rate limited. Please try again later.")
                     return
@@ -1283,7 +1321,7 @@ class Crypto(commands.Cog):
                     return
 
                 url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies={fromm}"
-                data, status = await self._fetch_json_status(url)
+                data, status = await self._fetch_json_status_cached(url)
                 if status == 429:
                     await ctx.send("⚠️ Rate limited. Please try again later.")
                     return
@@ -1306,8 +1344,10 @@ class Crypto(commands.Cog):
                 return
 
             if not from_is_fiat and not to_is_fiat:
-                from_coin_id = await self._get_coin_id(fromm)
-                to_coin_id = await self._get_coin_id(to)
+                from_coin_id, to_coin_id = await asyncio.gather(
+                    self._get_coin_id(fromm),
+                    self._get_coin_id(to),
+                )
 
                 if not from_coin_id:
                     await ctx.send(f"Could not find crypto: `{fromm}`")
@@ -1317,7 +1357,7 @@ class Crypto(commands.Cog):
                     return
 
                 url = f"https://api.coingecko.com/api/v3/simple/price?ids={from_coin_id},{to_coin_id}&vs_currencies=usd"
-                data, status = await self._fetch_json_status(url)
+                data, status = await self._fetch_json_status_cached(url)
                 if status == 429:
                     await ctx.send("⚠️ Rate limited. Please try again later.")
                     return
@@ -1413,6 +1453,7 @@ class Crypto(commands.Cog):
     @app_commands.choices(network=CRYPTO_NETWORK_CHOICES)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def addy_set(self, ctx: commands.Context, network: str, *, addy: str) -> None:
+        network = network.value if isinstance(network, app_commands.Choice) else network
         network = network.strip().lower()
         network_data = CRYPTO_NETWORK_BY_VALUE.get(network)
         if not network_data:
@@ -1454,6 +1495,7 @@ class Crypto(commands.Cog):
     @app_commands.choices(network=CRYPTO_NETWORK_CHOICES)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def addy_get(self, ctx: commands.Context, network: str) -> None:
+        network = network.value if isinstance(network, app_commands.Choice) else network
         network = network.strip().lower()
         network_data = CRYPTO_NETWORK_BY_VALUE.get(network)
         if not network_data:

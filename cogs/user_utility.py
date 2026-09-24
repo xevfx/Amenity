@@ -1,4 +1,3 @@
-import asyncio
 import os
 import re
 import tempfile
@@ -18,7 +17,9 @@ from api.crypto_networks import CRYPTO_NETWORK_BY_VALUE, CRYPTO_NETWORK_CHOICES,
 from api.emojis import Emoji
 from api.http import close_http_session, create_http_session
 from api.log import log_exception
+from api.users import fetch_user_cached
 from core.amenity import Amenity
+from core.workers import run_cpu
 
 QR_GRADIENT = ("#0B0B0D", "#1A1F2E")
 QR_BACK_COLOR = "white"
@@ -301,7 +302,7 @@ class UserUtility(commands.Cog):
         target = user or ctx.author
 
         try:
-            fetched_user = await self.bot.fetch_user(target.id)
+            fetched_user = await fetch_user_cached(self.bot, target.id)
         except discord.HTTPException:
             fetched_user = None
 
@@ -345,7 +346,7 @@ class UserUtility(commands.Cog):
     async def banner(self, ctx: commands.Context, user: discord.User | None = None) -> None:
         target = user or ctx.author
         try:
-            fetched = await self.bot.fetch_user(target.id)
+            fetched = await fetch_user_cached(self.bot, target.id)
         except discord.HTTPException:
             fetched = None
 
@@ -406,6 +407,29 @@ class UserUtility(commands.Cog):
     def _qr_path(self, ctx: commands.Context, prefix: str) -> str:
         return _temp_png_path(f"{prefix}qr_{ctx.author.id}_")
 
+    async def _generate_qr_for_command(self, ctx: commands.Context, data: str, filename: str) -> bool:
+        try:
+            generated = await run_cpu(generate_qr, data, filename, fill_gradient=QR_GRADIENT)
+        except TimeoutError:
+            _safe_unlink(filename)
+            await ctx.send("QR generation is busy. Please try again shortly.", ephemeral=True)
+            return False
+        except BaseException:
+            _safe_unlink(filename)
+            raise
+
+        if generated:
+            return True
+
+        _safe_unlink(filename)
+        await ctx.send(
+            embed=discord.Embed(
+                description="Failed to generate QR code.",
+                color=discord.Color.red(),
+            )
+        )
+        return False
+
     @qr_group.command(name="text", description="Create a QR with custom text", aliases=["txt"])
     @app_commands.describe(txt="The text to encode in the QR code (max 200 characters).")
     async def qr_text(self, ctx: commands.Context, *, txt: str) -> None:
@@ -421,13 +445,7 @@ class UserUtility(commands.Cog):
             return
 
         filename = self._qr_path(ctx, "text")
-        if not await asyncio.to_thread(generate_qr, txt, filename, fill_gradient=QR_GRADIENT):
-            await ctx.send(
-                embed=discord.Embed(
-                    description="Failed to generate QR code.",
-                    color=discord.Color.red(),
-                )
-            )
+        if not await self._generate_qr_for_command(ctx, txt, filename):
             return
 
         await self._send_qr(
@@ -441,6 +459,7 @@ class UserUtility(commands.Cog):
     @app_commands.describe(network="The crypto network", addy="The address to encode in the QR code.")
     @app_commands.choices(network=CRYPTO_NETWORK_CHOICES)
     async def qr_crypto(self, ctx: commands.Context, network: str, *, addy: str) -> None:
+        network = network.value if isinstance(network, app_commands.Choice) else network
         network = network.strip().lower()
         network_data = CRYPTO_NETWORK_BY_VALUE.get(network)
         if not network_data:
@@ -466,13 +485,7 @@ class UserUtility(commands.Cog):
 
         filename = self._qr_path(ctx, network)
         qr_payload = crypto_qr_payload(network_data, addy_value)
-        if not await asyncio.to_thread(generate_qr, qr_payload, filename, fill_gradient=QR_GRADIENT):
-            await ctx.send(
-                embed=discord.Embed(
-                    description="Failed to generate QR code.",
-                    color=discord.Color.red(),
-                )
-            )
+        if not await self._generate_qr_for_command(ctx, qr_payload, filename):
             return
 
         await self._send_qr(
@@ -535,13 +548,7 @@ class UserUtility(commands.Cog):
             url += f"&am={amount}&cu=INR"
 
         filename = self._qr_path(ctx, "upi")
-        if not await asyncio.to_thread(generate_qr, url, filename, fill_gradient=QR_GRADIENT):
-            await ctx.send(
-                embed=discord.Embed(
-                    description="Failed to generate QR code.",
-                    color=discord.Color.red(),
-                )
-            )
+        if not await self._generate_qr_for_command(ctx, url, filename):
             return
 
         await self._send_qr(
@@ -577,13 +584,7 @@ class UserUtility(commands.Cog):
             url = f"https://www.paypal.me/{ppid_value}"
 
         filename = self._qr_path(ctx, "paypal")
-        if not await asyncio.to_thread(generate_qr, url, filename, fill_gradient=QR_GRADIENT):
-            await ctx.send(
-                embed=discord.Embed(
-                    description="Failed to generate QR code.",
-                    color=discord.Color.red(),
-                )
-            )
+        if not await self._generate_qr_for_command(ctx, url, filename):
             return
 
         await self._send_qr(
@@ -598,13 +599,7 @@ class UserUtility(commands.Cog):
     async def qr_url(self, ctx: commands.Context, *, url: str) -> None:
 
         filename = self._qr_path(ctx, "url")
-        if not await asyncio.to_thread(generate_qr, url, filename, fill_gradient=QR_GRADIENT):
-            await ctx.send(
-                embed=discord.Embed(
-                    description="Failed to generate QR code.",
-                    color=discord.Color.red(),
-                )
-            )
+        if not await self._generate_qr_for_command(ctx, url, filename):
             return
 
         await self._send_qr(
@@ -629,13 +624,7 @@ class UserUtility(commands.Cog):
         qr_data = f'{{"eSewa_id":"{number_value}","name":"{fullname_value}"}}'
 
         filename = self._qr_path(ctx, "esewa")
-        if not await asyncio.to_thread(generate_qr, qr_data, filename, fill_gradient=QR_GRADIENT):
-            await ctx.send(
-                embed=discord.Embed(
-                    description="Failed to generate QR code.",
-                    color=discord.Color.red(),
-                )
-            )
+        if not await self._generate_qr_for_command(ctx, qr_data, filename):
             return
 
         await self._send_qr(
@@ -795,7 +784,7 @@ class UserUtility(commands.Cog):
                 return
 
             await ctx.defer()
-            result = await asyncio.to_thread(simple_eval, expression)
+            result = await run_cpu(simple_eval, expression)
             embed = discord.Embed(title="Math Calculation", color=discord.Color.purple())
             embed.add_field(name="Expression", value=_code_block(expression), inline=False)
             embed.add_field(name="Result", value=_code_block(str(result)), inline=False)

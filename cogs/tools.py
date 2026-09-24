@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
+import errno
 import hashlib
 import hmac
 import io
@@ -12,9 +13,20 @@ import re
 import struct
 import tempfile
 import time
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
 from urllib.parse import SplitResult, parse_qsl, quote_plus, urlencode, urlsplit, urlunsplit
 
 import aiohttp
@@ -31,10 +43,13 @@ except ImportError:  # pragma: no cover - exercised only when the optional runti
 from api.http import close_http_session, create_http_session
 from api.log import log_exception
 from api.paginator import EmbedPaginator, PaginatorHelper
+from api.users import fetch_user_cached
+from core.cache import cache
 from core.checks import premium_required
+from core.workers import run_cpu
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
 
     from core.amenity import Amenity
 
@@ -58,11 +73,15 @@ MAX_SAY_EMBED_DESCRIPTION = 4096
 MAX_SEARCH_QUERY = 400
 MAX_SEARCH_RESULTS = 1
 MAX_SEARCH_SUMMARY = 300
+TAVILY_SEARCH_CACHE_TTL = 30
+WIKIPEDIA_SEARCH_CACHE_TTL = 120
 WIKIPEDIA_SEARCH_URL = "https://en.wikipedia.org/w/api.php"
 WIKIPEDIA_USER_AGENT = "AmenityBot/1.0 (https://github.com/xevfx/Amenity; bot@amenity)"
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
 TAVILY_USAGE_URL = "https://api.tavily.com/usage"
 TAVILY_USAGE_PATH = Path(__file__).resolve().parent.parent / "data" / "tavily_usage.json"
+TAVILY_USAGE_LOCK_PATH = TAVILY_USAGE_PATH.with_suffix(".lock")
+TAVILY_USAGE_LOCK_TIMEOUT = 5.0
 TAVILY_KEY_ENV_VARS = ("TAVILY_API_KEY", "TAVILY_KEY")
 TRACKING_PARAMS = {
     "_branch_match_id",
@@ -513,7 +532,7 @@ def add_stroke_to_avatar(
 ) -> bool:
     """Crop avatar to a circle with a white border on a transparent background."""
     try:
-        SCALE = 4
+        SCALE = 2
         img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
 
         size = max(img.width, img.height)
@@ -537,7 +556,7 @@ def add_stroke_to_avatar(
         big.paste(square_big, (ss_stroke, ss_stroke), mask)
 
         result = big.resize((canvas_size, canvas_size), Image.LANCZOS)
-        result.save(output_path, "PNG")
+        result.save(output_path, "PNG", compress_level=1)
         return True
     except Exception as exc:
         log_exception(exc)
@@ -553,7 +572,7 @@ def rotate_avatar(
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
         rotated = img.rotate(angle, expand=True, resample=Image.LANCZOS)
-        rotated.save(output_path, "PNG")
+        rotated.save(output_path, "PNG", compress_level=1)
         return True
     except Exception as exc:
         log_exception(exc)
@@ -571,11 +590,60 @@ def invert_image(
         rgb = Image.merge("RGB", (r, g, b))
         inverted = ImageOps.invert(rgb)
         inverted.putalpha(a)
-        inverted.save(output_path, "PNG")
+        inverted.save(output_path, "PNG", compress_level=1)
         return True
     except Exception as exc:
         log_exception(exc)
         return False
+
+
+@contextmanager
+def _tavily_usage_process_lock() -> Iterator[None]:
+    TAVILY_USAGE_LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with TAVILY_USAGE_LOCK_PATH.open("a+") as handle:
+        backend: str | None = None
+        deadline = time.monotonic() + TAVILY_USAGE_LOCK_TIMEOUT
+        if fcntl is not None:
+            while True:
+                try:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    backend = "fcntl"
+                    break
+                except OSError as exc:
+                    if exc.errno not in {errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK}:
+                        raise
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Timed out waiting for the Tavily usage file lock") from exc
+                    time.sleep(0.05)
+        elif msvcrt is not None:
+            handle.seek(0)
+            if not handle.read(1):
+                handle.seek(0)
+                handle.write("0")
+                handle.flush()
+            while True:
+                handle.seek(0)
+                try:
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    backend = "msvcrt"
+                    break
+                except OSError as exc:
+                    if exc.errno not in {errno.EACCES, errno.EAGAIN, errno.EDEADLK} and getattr(
+                        exc, "winerror", None
+                    ) != 33:
+                        raise
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Timed out waiting for the Tavily usage file lock") from exc
+                    time.sleep(0.05)
+
+        try:
+            yield
+        finally:
+            if backend == "fcntl":
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            elif backend == "msvcrt":
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 class Tools(commands.Cog):
@@ -585,7 +653,6 @@ class Tools(commands.Cog):
     def __init__(self, bot: Amenity) -> None:
         self.bot = bot
         self.aiohttp = create_http_session()
-        self._tavily_usage_lock = asyncio.Lock()
         self.html_preview_menu = app_commands.ContextMenu(
             name="Preview HTML",
             callback=self.preview_html_file,
@@ -685,11 +752,61 @@ class Tools(commands.Cog):
         return data if isinstance(data, dict) else None
 
     @staticmethod
-    def _write_tavily_usage(data: dict[str, object]) -> None:
+    def _write_tavily_usage_unlocked(data: dict[str, object]) -> None:
         TAVILY_USAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        temporary_path = TAVILY_USAGE_PATH.with_suffix(".tmp")
-        temporary_path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        temporary_path.replace(TAVILY_USAGE_PATH)
+        temporary_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=TAVILY_USAGE_PATH.parent,
+                prefix=f".{TAVILY_USAGE_PATH.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as handle:
+                temporary_path = Path(handle.name)
+                handle.write(json.dumps(data, indent=2, sort_keys=True) + "\n")
+            os.replace(temporary_path, TAVILY_USAGE_PATH)
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+
+    @staticmethod
+    def _write_tavily_usage(data: dict[str, object]) -> None:
+        with _tavily_usage_process_lock():
+            Tools._write_tavily_usage_unlocked(data)
+
+    @staticmethod
+    def _record_tavily_credits_sync(credits: int) -> dict[str, object]:
+        with _tavily_usage_process_lock():
+            now = datetime.now(UTC)
+            snapshot = Tools._read_tavily_usage() or {}
+            if snapshot.get("period") != now.strftime("%Y-%m"):
+                snapshot = {}
+
+            used = snapshot.get("used", 0)
+            limit = snapshot.get("limit", 1000)
+            search_usage = snapshot.get("search_usage", 0)
+            used = used if isinstance(used, int | float) else 0
+            limit = limit if isinstance(limit, int | float) else 1000
+            search_usage = search_usage if isinstance(search_usage, int | float) else 0
+            snapshot.update(
+                {
+                    "provider": "tavily",
+                    "source": "local_estimate",
+                    "updated_at": now.isoformat(),
+                    "period": now.strftime("%Y-%m"),
+                    "plan": snapshot.get("plan", "Researcher"),
+                    "used": used + credits,
+                    "limit": limit,
+                    "remaining": max(0, limit - used - credits),
+                    "search_usage": search_usage + credits,
+                    "paygo_usage": snapshot.get("paygo_usage", 0),
+                    "paygo_limit": snapshot.get("paygo_limit", 0),
+                }
+            )
+            Tools._write_tavily_usage_unlocked(snapshot)
+            return snapshot
 
     async def _refresh_tavily_usage(self, api_key: str) -> tuple[dict[str, object] | None, int | None]:
         headers = {"Authorization": f"Bearer {api_key}"}
@@ -725,40 +842,19 @@ class Tools(commands.Cog):
             "paygo_usage": account_data.get("paygo_usage", 0),
             "paygo_limit": account_data.get("paygo_limit", 0),
         }
-        async with self._tavily_usage_lock:
-            await asyncio.to_thread(self._write_tavily_usage, snapshot)
+        await asyncio.to_thread(self._write_tavily_usage, snapshot)
         return snapshot, 200
 
     async def _record_tavily_credits(self, credits: int) -> dict[str, object]:
-        async with self._tavily_usage_lock:
-            now = datetime.now(UTC)
-            snapshot = await asyncio.to_thread(self._read_tavily_usage) or {}
-            if snapshot.get("period") != now.strftime("%Y-%m"):
-                snapshot = {}
+        return await asyncio.to_thread(self._record_tavily_credits_sync, credits)
 
-            used = snapshot.get("used", 0)
-            limit = snapshot.get("limit", 1000)
-            search_usage = snapshot.get("search_usage", 0)
-            used = used if isinstance(used, int | float) else 0
-            limit = limit if isinstance(limit, int | float) else 1000
-            search_usage = search_usage if isinstance(search_usage, int | float) else 0
-            snapshot.update(
-                {
-                    "provider": "tavily",
-                    "source": "local_estimate",
-                    "updated_at": now.isoformat(),
-                    "period": now.strftime("%Y-%m"),
-                    "plan": snapshot.get("plan", "Researcher"),
-                    "used": used + credits,
-                    "limit": limit,
-                    "remaining": max(0, limit - used - credits),
-                    "search_usage": search_usage + credits,
-                    "paygo_usage": snapshot.get("paygo_usage", 0),
-                    "paygo_limit": snapshot.get("paygo_limit", 0),
-                }
-            )
-            await asyncio.to_thread(self._write_tavily_usage, snapshot)
-            return snapshot
+    async def _sync_tavily_usage(self, api_key: str, credits: int) -> None:
+        try:
+            _, usage_status = await self._refresh_tavily_usage(api_key)
+            if usage_status != 200:
+                await self._record_tavily_credits(credits)
+        except (TimeoutError, OSError) as exc:
+            log_exception(exc)
 
     async def _search_web(self, query: str, api_key: str) -> tuple[list[dict[str, object]], int, int]:
         headers = {"Authorization": f"Bearer {api_key}"}
@@ -787,7 +883,43 @@ class Tools(commands.Cog):
             clean_results[0] = {**clean_results[0], "_answer": answer.strip()}
         return clean_results, 200, credits
 
+    async def _search_web_cached(
+        self,
+        query: str,
+        api_key: str,
+    ) -> tuple[list[dict[str, object]], int, int, bool]:
+        normalized_query = " ".join(query.casefold().split())
+        cache_key = f"tavily:search:{hashlib.sha256(normalized_query.encode()).hexdigest()}"
+        fetched = False
+
+        async def fetch() -> tuple[list[dict[str, object]], int, int]:
+            nonlocal fetched
+            fetched = True
+            return await self._search_web(query, api_key)
+
+        results, status, credits = await cache.get_or_set_async(
+            cache_key,
+            fetch,
+            ttl=TAVILY_SEARCH_CACHE_TTL,
+            cache_if=lambda result: result[1] == 200,
+        )
+        return results, status, credits, not fetched
+
     async def _search_wikipedia(self, query: str) -> tuple[list[dict[str, object]], dict | None]:
+        normalized_query = " ".join(query.casefold().split())
+        cache_key = f"wikipedia:search:{hashlib.sha256(normalized_query.encode()).hexdigest()}"
+
+        async def fetch() -> tuple[list[dict[str, object]], dict | None]:
+            return await self._fetch_wikipedia(query)
+
+        return await cache.get_or_set_async(
+            cache_key,
+            fetch,
+            ttl=WIKIPEDIA_SEARCH_CACHE_TTL,
+            cache_if=lambda result: bool(result[0]),
+        )
+
+    async def _fetch_wikipedia(self, query: str) -> tuple[list[dict[str, object]], dict | None]:
         params = {
             "action": "query",
             "list": "search",
@@ -957,44 +1089,19 @@ class Tools(commands.Cog):
     @app_commands.describe(
         user="The user whose profile picture to add the stroke to.",
     )
+    @app_commands.rename(user="user")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def image_add_stroke(
         self,
         ctx: commands.Context,
         user: discord.User | None = None,
     ) -> None:
-        target = user or ctx.author
-        avatar_url = target.display_avatar.with_format("png").with_size(512)
-        output = _temp_png_path(f"stroke_{target.id}_")
-
-        await ctx.defer()
-
-        try:
-            async with self.aiohttp.get(str(avatar_url)) as resp:
-                if resp.status != 200:
-                    await ctx.send("Failed to fetch the avatar.")
-                    return
-                avatar_bytes = await resp.read()
-
-            if not await asyncio.to_thread(add_stroke_to_avatar, avatar_bytes, str(output)):
-                await ctx.send("Failed to process the image.")
-                return
-
-            embed = discord.Embed(
-                title=f"Stroked Avatar: {target}",
-                color=discord.Color.onyx_embed()
-            )
-            embed.set_image(url=f"attachment://{output.name}")
-            embed.set_footer(
-                text=f"Requested by {ctx.author}",
-                icon_url=ctx.author.display_avatar.url,
-            )
-            await ctx.send(embed=embed, file=discord.File(str(output), filename=output.name))
-        except Exception as exc:
-            log_exception(exc)
-            await ctx.send("An error occurred while processing the image.")
-        finally:
-            output.unlink(missing_ok=True)
+        await self._process_avatar(
+            ctx, user,
+            add_stroke_to_avatar,
+            "stroke",
+            "Stroked Avatar",
+        )
 
     async def _process_avatar(
         self,
@@ -1017,7 +1124,7 @@ class Tools(commands.Cog):
                     return
                 avatar_bytes = await resp.read()
 
-            if not await asyncio.to_thread(process_fn, avatar_bytes, str(output)):
+            if not await run_cpu(process_fn, avatar_bytes, str(output)):
                 await ctx.send("Failed to process the image.")
                 return
 
@@ -1138,7 +1245,7 @@ class Tools(commands.Cog):
         try:
             image_bytes = await image.read()
 
-            if not await asyncio.to_thread(invert_image, image_bytes, str(output)):
+            if not await run_cpu(invert_image, image_bytes, str(output)):
                 await ctx.send("Failed to process the image.")
                 return
 
@@ -1185,7 +1292,7 @@ class Tools(commands.Cog):
         await ctx.defer()
 
         try:
-            results, status, credits = await self._search_web(query, api_key)
+            results, status, credits, cache_hit = await self._search_web_cached(query, api_key)
         except (TimeoutError, aiohttp.ClientError) as exc:
             log_exception(exc)
             await ctx.send("Web search is temporarily unavailable. Please try again.")
@@ -1204,10 +1311,6 @@ class Tools(commands.Cog):
         if status != 200:
             await ctx.send("Web search is temporarily unavailable. Please try again.")
             return
-
-        _, usage_status = await self._refresh_tavily_usage(api_key)
-        if usage_status != 200:
-            await self._record_tavily_credits(credits)
 
         embed = discord.Embed(
             title="Web Search",
@@ -1241,7 +1344,12 @@ class Tools(commands.Cog):
             return
 
         embed.set_footer(text="Search results provided by Tavily")
-        await ctx.send(embed=embed)
+        usage_task = None if cache_hit else asyncio.create_task(self._sync_tavily_usage(api_key, credits))
+        try:
+            await ctx.send(embed=embed)
+        finally:
+            if usage_task is not None:
+                await usage_task
 
     @commands.hybrid_command(name="wikipedia", description="Search Wikipedia.")
     @app_commands.describe(query="What you want to search Wikipedia for.")
@@ -1352,6 +1460,7 @@ class Tools(commands.Cog):
         *,
         text: str,
     ) -> None:
+        method = method.value if isinstance(method, app_commands.Choice) else method
         try:
             result = _encrypt_text(method, text, key)
         except Exception as exc:
@@ -1391,6 +1500,7 @@ class Tools(commands.Cog):
         *,
         text: str,
     ) -> None:
+        method = method.value if isinstance(method, app_commands.Choice) else method
         try:
             result = _decrypt_text(method, text, key)
         except Exception:
@@ -1477,7 +1587,14 @@ class Tools(commands.Cog):
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def query_link(self, ctx: commands.Context, engine: str, *, query: str) -> None:
+    async def query_link(
+        self,
+        ctx: commands.Context,
+        engine: str,
+        *,
+        query: str,
+    ) -> None:
+        engine = engine.value if isinstance(engine, app_commands.Choice) else engine
         query = query.strip()
         if not query:
             await ctx.send("Please provide a query.")
@@ -1527,16 +1644,33 @@ class Tools(commands.Cog):
         await ctx.defer(ephemeral=bool(ctx.interaction))
 
         now = discord.utils.utcnow()
-        matched_lines: list[str] = []
-        failed = 0
+        resolved_users: dict[int, discord.User | None] = {}
+        missing_user_ids: list[int] = []
         for user_id in user_ids:
             user = self.bot.get_user(user_id)
             if user is None:
+                missing_user_ids.append(user_id)
+            else:
+                resolved_users[user_id] = user
+
+        fetch_semaphore = asyncio.Semaphore(5)
+
+        async def fetch_user(user_id: int) -> discord.User | None:
+            async with fetch_semaphore:
                 try:
-                    user = await self.bot.fetch_user(user_id)
+                    return await fetch_user_cached(self.bot, user_id)
                 except discord.HTTPException:
-                    failed += 1
-                    continue
+                    return None
+
+        fetched_users = await asyncio.gather(*(fetch_user(user_id) for user_id in missing_user_ids))
+        resolved_users.update(zip(missing_user_ids, fetched_users, strict=True))
+
+        failed = sum(user is None for user in resolved_users.values())
+        matched_lines: list[str] = []
+        for user_id in user_ids:
+            user = resolved_users[user_id]
+            if user is None:
+                continue
 
             account_age_days = (now - user.created_at).days
             has_no_avatar = user.avatar is None
@@ -1639,13 +1773,16 @@ class Tools(commands.Cog):
 
         await ctx.defer()
         try:
-            result = await asyncio.to_thread(
+            result = await run_cpu(
                 pyfiglet.figlet_format,
                 text,
                 font=font,
                 width=FIGLET_WIDTH,
             )
             result = result.rstrip()
+        except TimeoutError:
+            await ctx.send("Figlet is busy right now. Please try again shortly.")
+            return
         except pyfiglet.FontNotFound:
             await ctx.send("That figlet font is not available.")
             return

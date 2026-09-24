@@ -14,6 +14,7 @@ from api.emojis import Emoji
 from api.log import log_command_error
 from api.paginator import EmbedPaginator, PaginatorHelper
 from api.parser import StringToTime
+from api.users import fetch_user_cached
 from core.amenity import Amenity
 from core.cache import cache
 
@@ -163,7 +164,7 @@ class Reminder(commands.Cog):
             user = self.bot.get_user(user_id)
             if user is None:
                 try:
-                    user = await self.bot.fetch_user(user_id)
+                    user = await fetch_user_cached(self.bot, user_id)
                 except discord.HTTPException:
                     user = None
             if user is not None:

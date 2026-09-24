@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import subprocess
 
 from colorama import Fore
 from dotenv import load_dotenv
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 async def main() -> None:
     async with Amenity:
-        os.system("clear")
+        subprocess.run("clear")
         TOKEN = os.getenv("TOKEN")
         if not TOKEN:
             logger.error("TOKEN not found in environment variables.")

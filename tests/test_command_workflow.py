@@ -196,9 +196,7 @@ def discover_commands() -> list[CommandRecord]:
         tree = ast.parse(source.read_text(), filename=str(source))
         public_names: dict[str, str] = {}
         direct_commands: dict[str, str] = {}
-        function_nodes = [
-            node for node in ast.walk(tree) if isinstance(node, ast.AsyncFunctionDef | ast.FunctionDef)
-        ]
+        function_nodes = [node for node in ast.walk(tree) if isinstance(node, ast.AsyncFunctionDef | ast.FunctionDef)]
 
         for node in function_nodes:
             for decorator in node.decorator_list:
@@ -338,7 +336,8 @@ async def test_offline_command_behavior_and_metrics() -> None:
             await cog.cog_unload()
 
     async def github_user(cog: Github, ctx: FakeContext) -> None:
-        async def fake_fetch(url: str) -> tuple[dict[str, Any], int]:
+        async def fake_fetch(url: str, *, ttl: float = 30) -> tuple[dict[str, Any], int]:
+            del url, ttl
             return {
                 "login": "octocat",
                 "name": "Octocat",
@@ -356,7 +355,8 @@ async def test_offline_command_behavior_and_metrics() -> None:
         await cog.github_user.callback(cog, ctx, user="octocat")
 
     async def github_repo(cog: Github, ctx: FakeContext) -> None:
-        async def fake_fetch(url: str) -> tuple[dict[str, Any], int]:
+        async def fake_fetch(url: str, *, ttl: float = 30) -> tuple[dict[str, Any], int]:
+            del url, ttl
             return {
                 "items": [
                     {
