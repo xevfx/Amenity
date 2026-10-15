@@ -99,30 +99,49 @@ def flush_installed_users() -> int:
     if not pending_users:
         return 0
 
-    with _connect() as conn:
-        conn.executemany(
-            """
-            INSERT INTO installed_users (user_id, username, display_name, first_seen, last_seen, command_count)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(user_id) DO UPDATE SET
-                username = excluded.username,
-                display_name = excluded.display_name,
-                first_seen = MIN(installed_users.first_seen, excluded.first_seen),
-                last_seen = MAX(installed_users.last_seen, excluded.last_seen),
-                command_count = installed_users.command_count + excluded.command_count
-            """,
-            [
-                (
-                    user.user_id,
-                    user.username,
-                    user.display_name,
-                    user.first_seen,
-                    user.last_seen,
-                    user.command_count,
-                )
-                for user in pending_users
-            ],
+    rows = [
+        (
+            user.user_id,
+            user.username,
+            user.display_name,
+            user.first_seen,
+            user.last_seen,
+            user.command_count,
         )
+        for user in pending_users
+    ]
+    try:
+        with _connect() as conn:
+            conn.executemany(
+                """
+                INSERT INTO installed_users (user_id, username, display_name, first_seen, last_seen, command_count)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    username = excluded.username,
+                    display_name = excluded.display_name,
+                    first_seen = MIN(installed_users.first_seen, excluded.first_seen),
+                    last_seen = MAX(installed_users.last_seen, excluded.last_seen),
+                    command_count = installed_users.command_count + excluded.command_count
+                """,
+                rows,
+            )
+    except Exception:
+        # The buffer was already drained: merge it back so the next flush
+        # retries instead of silently dropping a 30-minute window of counts.
+        with _pending_users_lock:
+            for user in pending_users:
+                existing = _pending_users.get(user.user_id)
+                if existing is None:
+                    _pending_users[user.user_id] = user
+                    continue
+                existing.command_count += user.command_count
+                existing.first_seen = min(existing.first_seen, user.first_seen)
+                existing.last_seen = max(existing.last_seen, user.last_seen)
+                if user.username:
+                    existing.username = user.username
+                if user.display_name:
+                    existing.display_name = user.display_name
+        raise
     return len(pending_users)
 
 

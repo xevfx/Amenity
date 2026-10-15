@@ -3,18 +3,17 @@ name: Command Tests
 on:
   push:
     branches:
+      - main
+      - performance
       - codex
       - "codex/**"
   pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   command-workflow:
-    if: >-
-      (github.event_name == 'pull_request' &&
-        (github.head_ref == 'codex' || startsWith(github.head_ref, 'codex/'))) ||
-      (github.event_name != 'pull_request' &&
-        (github.ref_name == 'codex' || startsWith(github.ref_name, 'codex/')))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

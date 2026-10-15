@@ -134,8 +134,16 @@ class Reminder(commands.Cog):
         return [dict(row) for row in rows]
 
     def _delete_reminder_by_id(self, reminder_id: int) -> None:
+        self._delete_reminder_ids([reminder_id])
+
+    def _delete_reminder_ids(self, reminder_ids: list[int]) -> None:
+        if not reminder_ids:
+            return
         with self._connect() as conn:
-            conn.execute("DELETE FROM reminders WHERE id = ?", (reminder_id,))
+            conn.executemany(
+                "DELETE FROM reminders WHERE id = ?",
+                [(reminder_id,) for reminder_id in reminder_ids],
+            )
 
     def _delete_user_reminder(self, user_id: int, name: str) -> int:
         with self._connect() as conn:
@@ -157,6 +165,8 @@ class Reminder(commands.Cog):
         return cursor.rowcount
 
     async def _send_due_reminders(self, rows: Iterable[dict]) -> None:
+        sent_ids: list[int] = []
+        notified_users: set[int] = set()
         for row in rows:
             user_id = int(row["user_id"])
             name = row["name"]
@@ -176,7 +186,11 @@ class Reminder(commands.Cog):
                             timestamp=discord.utils.utcnow(),
                         )
                     )
-            await asyncio.to_thread(self._delete_reminder_by_id, reminder_id)
+            sent_ids.append(reminder_id)
+            notified_users.add(user_id)
+        # One thread hop and one connection for the whole batch (N+1 before).
+        await asyncio.to_thread(self._delete_reminder_ids, sent_ids)
+        for user_id in notified_users:
             self._invalidate_user_cache(user_id)
 
     @tasks.loop(seconds=30)
@@ -307,10 +321,12 @@ class Reminder(commands.Cog):
                 view=view,
                 ephemeral=True,
             )
+            with suppress(discord.HTTPException):
+                view.message = await ctx.interaction.original_response()
             return
 
         view = EmbedPaginator(embeds, author_id=ctx.author.id)
-        await ctx.send(embed=embeds[0], view=view)
+        view.message = await ctx.send(embed=embeds[0], view=view)
 
     async def remind_me_about(
         self,

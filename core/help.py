@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import inspect
+import re
+import types
+import typing
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -286,7 +289,7 @@ async def _build_command_embed(
 class HelpIndex:
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        self._last_command_count = 0
+        self._last_command_names: tuple[str, ...] = ()
 
     async def is_owner(self, user: discord.abc.User) -> bool:
         return await self.bot.is_owner(user)
@@ -348,7 +351,7 @@ class HelpIndex:
                 )
             )
         cache.set(HELP_CACHE_KEY, items, ttl=HELP_CACHE_TTL)
-        self._last_command_count = len(items)
+        self._last_command_names = tuple(info.name for info in items)
 
     def get_cached(self) -> list[HelpCommandInfo]:
         cached = cache.get(HELP_CACHE_KEY)
@@ -358,7 +361,8 @@ class HelpIndex:
 
     async def refresh_cache_if_needed(self) -> None:
         cached = self.get_cached()
-        if not cached or len(list(self.bot.walk_commands())) != self._last_command_count:
+        current_names = tuple(cmd.qualified_name for cmd in self.bot.walk_commands())
+        if not cached or current_names != self._last_command_names:
             await self.build_cache()
 
 
@@ -784,42 +788,82 @@ class HelpCloseButton(discord.ui.Button):
         self.help_view.stop()
 
 
+_PARAM_TYPE_NAMES = {
+    "str": "text",
+    "int": "number",
+    "float": "decimal number",
+    "bool": "true/false",
+    "discord.Member": "member",
+    "discord.User": "user",
+    "discord.TextChannel": "text channel",
+    "discord.VoiceChannel": "voice channel",
+    "discord.Role": "role",
+    "commands.Greedy": "multiple values",
+    "typing.Union": "multiple types",
+    "typing.Optional": "optional",
+    "discord.abc.GuildChannel": "channel",
+}
+
+_NONE_NAMES = {"None", "NoneType", "type(None)"}
+
+
+def _describe_single_type(tp: object) -> str:
+    if isinstance(tp, commands.Greedy) or tp is commands.Greedy:
+        return "multiple values"
+    if typing.get_origin(tp) is list or (isinstance(tp, type) and issubclass(tp, list)):
+        return "list of items"
+    module = getattr(tp, "__module__", "") or ""
+    qualname = getattr(tp, "__qualname__", None) or getattr(tp, "__name__", None)
+    if qualname:
+        key = f"{module}.{qualname}" if module and module not in ("builtins", "typing") else qualname
+        if key in _PARAM_TYPE_NAMES:
+            return _PARAM_TYPE_NAMES[key]
+    return "text"
+
+
+def _describe_str_annotation(text: str) -> str:
+    text = text.strip()
+    optional_match = re.fullmatch(r"(?:typing\.)?Optional\[(.+)\]", text)
+    if optional_match:
+        return _describe_str_annotation(optional_match.group(1))
+    if text.startswith(("Union[", "typing.Union[")):
+        parts = [part.strip() for part in text[text.index("[") + 1 : -1].split(",")]
+    elif "|" in text:
+        parts = [part.strip() for part in text.split("|")]
+    else:
+        parts = [text]
+    meaningful = [part for part in parts if part not in _NONE_NAMES]
+    if len(meaningful) > 1:
+        return "multiple types"
+    single = meaningful[0] if meaningful else "text"
+    if single.startswith(("Greedy[", "commands.Greedy")):
+        return "multiple values"
+    if single in _PARAM_TYPE_NAMES:
+        return _PARAM_TYPE_NAMES[single]
+    if re.fullmatch(r"(?:typing\.)?[Ll]ist\[.+\]", single):
+        return "list of items"
+    return "text"
+
+
 def _describe_param(param: inspect.Parameter) -> str:
-    mapping = {
-        "str": "text",
-        "int": "number",
-        "float": "decimal number",
-        "bool": "true/false",
-        "discord.Member": "member",
-        "discord.User": "user",
-        "discord.TextChannel": "text channel",
-        "discord.VoiceChannel": "voice channel",
-        "discord.Role": "role",
-        "commands.Greedy": "multiple values",
-        "typing.Union": "multiple types",
-        "typing.Optional": "optional",
-        "discord.abc.GuildChannel": "channel",
-    }
     annotation = param.annotation
     if annotation == param.empty:
         return "text"
-    annotation_str = str(annotation)
-    if "Optional" in annotation_str or ("Union" in annotation_str and "None" in annotation_str):
-        if "Optional[" in annotation_str:
-            inner_type = annotation_str.split("Optional[")[1].split("]")[0]
-        else:
-            types = annotation_str.split("Union[")[1].split("]")[0].split(",")
-            inner_type = [t.strip() for t in types if "None" not in t][0]
-        for py_type, friendly in mapping.items():
-            if py_type in inner_type:
-                return friendly
+    if annotation is None or annotation is type(None):
         return "text"
-    for py_type, friendly in mapping.items():
-        if py_type in annotation_str:
-            return friendly
-    if "List" in annotation_str or "list" in annotation_str:
-        return "list of items"
-    return "text"
+    if isinstance(annotation, str):
+        # Modules using `from __future__ import annotations` leave these unevaluated.
+        return _describe_str_annotation(annotation)
+    if isinstance(annotation, commands.Greedy) or annotation is commands.Greedy:
+        return "multiple values"
+    if typing.get_origin(annotation) in (typing.Union, types.UnionType):
+        meaningful = [arg for arg in typing.get_args(annotation) if arg is not type(None)]
+        if len(meaningful) == 1:
+            return _describe_single_type(meaningful[0])
+        if not meaningful:
+            return "text"
+        return "multiple types"
+    return _describe_single_type(annotation)
 
 
 class AmenityHelpCommand(commands.HelpCommand):

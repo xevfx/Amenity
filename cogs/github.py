@@ -238,10 +238,7 @@ class Github(commands.Cog):
                 description="Please provide a valid GitHub PR link format.\nExample: `https://github.com/discordjs/discord.js/pull/1234`",
                 color=discord.Color.red(),
             )
-            if ctx.interaction:
-                await ctx.send(embed=err_embed)
-            else:
-                await ctx.send(embed=err_embed)
+            await ctx.send(embed=err_embed)
             return
 
         owner, repo, pr_number = match.groups()

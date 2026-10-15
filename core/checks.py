@@ -438,29 +438,41 @@ def redeem_premium_key(user_id: int, key: str) -> int:
     key = key.strip().upper()
     now = _now()
     with _connect_keys() as conn:
-        row = conn.execute(
+        # Claim the key atomically: concurrent redemptions serialize on the
+        # writer lock and only one UPDATE can match the still-unused row.
+        cursor = conn.execute(
             """
-            SELECT key, premium_duration, key_expires_at, created_at, used_by, used_at, revoked_at
-            FROM premium_keys
-            WHERE key = ?
+            UPDATE premium_keys
+            SET used_by = ?, used_at = ?
+            WHERE key = ? AND used_at IS NULL AND revoked_at IS NULL AND key_expires_at > ?
             """,
-            (key,),
-        ).fetchone()
-        if row is None:
-            raise ValueError("Premium key was not found.")
-        premium_key = _premium_key_from_row(row)
-        if premium_key.revoked_at is not None:
-            raise ValueError("Premium key has been revoked.")
-        if premium_key.used_at is not None:
-            raise ValueError("Premium key has already been used.")
-        if premium_key.key_expires_at <= now:
+            (user_id, now, key, now),
+        )
+        if cursor.rowcount == 0:
+            row = conn.execute(
+                """
+                SELECT key, premium_duration, key_expires_at, created_at, used_by, used_at, revoked_at
+                FROM premium_keys
+                WHERE key = ?
+                """,
+                (key,),
+            ).fetchone()
+            if row is None:
+                raise ValueError("Premium key was not found.")
+            premium_key = _premium_key_from_row(row)
+            if premium_key.revoked_at is not None:
+                raise ValueError("Premium key has been revoked.")
+            if premium_key.used_at is not None:
+                raise ValueError("Premium key has already been used.")
             raise ValueError("Premium key has expired.")
 
-        expires_at = add_premium(user_id, premium_key.premium_duration)
-        conn.execute(
-            "UPDATE premium_keys SET used_by = ?, used_at = ? WHERE key = ?",
-            (user_id, now, key),
-        )
+        row = conn.execute(
+            "SELECT premium_duration FROM premium_keys WHERE key = ?",
+            (key,),
+        ).fetchone()
+        premium_duration = int(row["premium_duration"])
+
+        expires_at = add_premium(user_id, premium_duration)
     return expires_at
 
 

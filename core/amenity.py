@@ -17,6 +17,7 @@ from discord.ext import commands, tasks
 from api.log import (
     close_webhook_sessions,
     log_app_command_error,
+    log_app_command_usage,
     log_command_error,
     log_command_usage,
 )
@@ -456,8 +457,8 @@ class Amenity(commands.Bot):
         interaction: discord.Interaction,
         command: app_commands.Command,
     ) -> None:
-        del command
         track_installed_user(interaction.user)
+        await log_app_command_usage(interaction, command)
 
     async def on_app_command_error(
         self,

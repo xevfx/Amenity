@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from contextlib import suppress
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -394,11 +395,13 @@ class AI(commands.Cog):
 
         view = EmbedPaginator(pages, author_id=author_id)
         if isinstance(destination, commands.Context):
-            await destination.send(embed=pages[0], view=view)
+            view.message = await destination.send(embed=pages[0], view=view)
         elif destination.response.is_done():
-            await destination.followup.send(embed=pages[0], view=view, ephemeral=ephemeral)
+            view.message = await destination.followup.send(embed=pages[0], view=view, ephemeral=ephemeral)
         else:
             await destination.response.send_message(embed=pages[0], view=view, ephemeral=ephemeral)
+            with suppress(discord.HTTPException):
+                view.message = await destination.original_response()
 
     def _build_summary_prompt(self, text: str) -> str:
         return (

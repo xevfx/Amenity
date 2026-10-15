@@ -1,7 +1,9 @@
 import asyncio
 import logging
 import os
+import shutil
 import subprocess
+from contextlib import suppress
 
 from colorama import Fore
 from dotenv import load_dotenv
@@ -17,9 +19,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _clear_screen() -> None:
+    if os.name != "posix" or shutil.which("clear") is None:
+        return
+    with suppress(OSError):
+        subprocess.run("clear", check=False)
+
+
 async def main() -> None:
     async with Amenity:
-        subprocess.run("clear")
+        _clear_screen()
         TOKEN = os.getenv("TOKEN")
         if not TOKEN:
             logger.error("TOKEN not found in environment variables.")

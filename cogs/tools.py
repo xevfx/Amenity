@@ -1715,9 +1715,13 @@ class Tools(commands.Cog):
 
         view = EmbedPaginator(embeds, author_id=ctx.author.id) if len(embeds) > 1 else None
         if ctx.interaction:
-            await ctx.send(embed=embeds[0], view=view, ephemeral=True)
+            message = await ctx.send(embed=embeds[0], view=view, ephemeral=True)
+            if view is not None:
+                view.message = message
             return
-        await ctx.send(embed=embeds[0], view=view)
+        message = await ctx.send(embed=embeds[0], view=view)
+        if view is not None:
+            view.message = message
 
     @commands.hybrid_command(name="replace", description="Replace text inside a message.")
     @app_commands.describe(

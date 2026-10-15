@@ -10,7 +10,7 @@ import qrcode
 from discord import app_commands
 from discord.ext import commands
 from googletrans import LANGUAGES, Translator
-from PIL import Image, ImageColor, ImageDraw, ImageFilter
+from PIL import Image, ImageColor, ImageDraw, ImageFilter, ImageOps
 from simpleeval import simple_eval
 
 from api.crypto_networks import CRYPTO_NETWORK_BY_VALUE, CRYPTO_NETWORK_CHOICES, crypto_qr_payload
@@ -27,6 +27,9 @@ QR_GLOW_COLOR = "#1e88e5"
 EMBED_DESCRIPTION_LIMIT = 4096
 EMBED_FIELD_VALUE_LIMIT = 1024
 CODE_BLOCK_OVERHEAD = 8
+
+# Reverse language-name lookup, built once instead of per translate call.
+_REVERSE_LANGUAGES = {name.lower(): code for code, name in LANGUAGES.items()}
 
 
 def _truncate(value: str, limit: int) -> str:
@@ -85,28 +88,16 @@ def _apply_gradient(
     direction: str,
 ) -> Image.Image:
     width, height = base_img.size
-    color1 = ImageColor.getrgb(gradient_colors[0])
-    color2 = ImageColor.getrgb(gradient_colors[1])
 
+    # Build the gradient in C via a 1px ramp instead of one draw.line per pixel.
+    ramp = Image.linear_gradient("L")
     if direction == "horizontal":
-        gradient = Image.new("RGB", (width, 1))
-        draw = ImageDraw.Draw(gradient)
-        for x in range(width):
-            ratio = x / max(width - 1, 1)
-            r = int(color1[0] + (color2[0] - color1[0]) * ratio)
-            g = int(color1[1] + (color2[1] - color1[1]) * ratio)
-            b = int(color1[2] + (color2[2] - color1[2]) * ratio)
-            draw.line((x, 0, x, 1), fill=(r, g, b))
-        gradient = gradient.resize((width, height))
+        # The ramp varies top-to-bottom; rotate so it varies left-to-right.
+        ramp = ramp.transpose(Image.Transpose.ROTATE_90).resize((width, 1))
     else:
-        gradient = Image.new("RGB", (1, height))
-        draw = ImageDraw.Draw(gradient)
-        for y in range(height):
-            ratio = y / max(height - 1, 1)
-            r = int(color1[0] + (color2[0] - color1[0]) * ratio)
-            g = int(color1[1] + (color2[1] - color1[1]) * ratio)
-            b = int(color1[2] + (color2[2] - color1[2]) * ratio)
-            draw.line((0, y, 1, y), fill=(r, g, b))
+        ramp = ramp.resize((1, height))
+    gradient = ImageOps.colorize(ramp, gradient_colors[0], gradient_colors[1]).convert("RGB")
+    if gradient.size != (width, height):
         gradient = gradient.resize((width, height))
 
     mask = base_img.convert("L")
@@ -154,8 +145,7 @@ def _resolve_language(value: str) -> tuple[str, str] | None:
     normalized = normalized.replace("_", "-")
     if normalized in LANGUAGES:
         return normalized, LANGUAGES[normalized]
-    reverse = {name.lower(): code for code, name in LANGUAGES.items()}
-    code = reverse.get(normalized)
+    code = _REVERSE_LANGUAGES.get(normalized)
     if code:
         return code, LANGUAGES[code]
     return None
