@@ -449,6 +449,11 @@ class Amenity(commands.Bot):
         raise exception
 
     async def on_command_completion(self, context: commands.Context) -> None:
+        # Interaction-sourced invocations (slash-used hybrids) also dispatch
+        # `command_completion`; `on_app_command_completion` owns their
+        # tracking and usage log, so stay silent here (exactly-once).
+        if context.interaction is not None:
+            return
         track_installed_user(context.author)
         await log_command_usage(context)
 
