@@ -347,7 +347,7 @@ class Owner(commands.Cog):
             color=discord.Color.blue(),
         )
         view = EmbedPaginator(embeds, author_id=ctx.author.id)
-        await ctx.reply(embed=embeds[0], view=view, mention_author=False)
+        view.message = await ctx.reply(embed=embeds[0], view=view, mention_author=False)
 
     @commands.command(
         name="dm-users",

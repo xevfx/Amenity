@@ -1,4 +1,5 @@
 import math
+from contextlib import suppress
 
 import discord
 
@@ -16,6 +17,7 @@ class EmbedPaginator(discord.ui.View):
         self.current_page = 0
         self.author_id = author_id
         self.max_pages = len(embeds)
+        self.message: discord.Message | None = None
 
         # Update button states
         self.update_buttons()
@@ -104,6 +106,9 @@ class EmbedPaginator(discord.ui.View):
         """Disable all buttons when the view times out"""
         for item in self.children:
             item.disabled = True
+        if self.message is not None:
+            with suppress(discord.HTTPException):
+                await self.message.edit(view=self)
 
 
 class PaginatorHelper:

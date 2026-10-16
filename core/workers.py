@@ -6,6 +6,7 @@ import weakref
 from asyncio import AbstractEventLoop, Semaphore
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import suppress
 from threading import RLock
 from typing import TypeVar
 
@@ -68,11 +69,9 @@ async def run_cpu[**P, T](function: Callable[P, T], /, *args: P.args, **kwargs: 
         raise
 
     def release_slot(_: Future[T]) -> None:
-        try:
-            loop.call_soon_threadsafe(slots.release)
-        except RuntimeError:
+        with suppress(RuntimeError):
             # The event loop is already closed; its semaphore is no longer in use.
-            pass
+            loop.call_soon_threadsafe(slots.release)
 
     future.add_done_callback(release_slot)
     wrapped = asyncio.wrap_future(future, loop=loop)

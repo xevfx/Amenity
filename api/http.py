@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
@@ -11,6 +12,8 @@ if TYPE_CHECKING:
 JsonData = dict[str, Any] | list[Any]
 
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=15)
+
+logger = logging.getLogger(__name__)
 
 
 def create_http_session(*, timeout: aiohttp.ClientTimeout | None = None) -> aiohttp.ClientSession:
@@ -43,5 +46,5 @@ async def fetch_json(
     except asyncio.CancelledError:
         raise
     except Exception:
-        # log_exception(exc)
+        logger.exception("Unexpected error fetching %s", url)
         return None, None

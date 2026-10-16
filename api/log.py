@@ -13,6 +13,11 @@ _webhook_sessions: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, aiohttp.
     weakref.WeakKeyDictionary()
 )
 
+# Strong references to in-flight logging tasks.  Bare loop.create_task()
+# results are only weakly referenced by the event loop, so a task that is
+# still queued can be garbage-collected before it runs.
+_pending_log_tasks: set[asyncio.Task[None]] = set()
+
 
 def _get_webhook_session() -> aiohttp.ClientSession:
     loop = asyncio.get_running_loop()
@@ -68,7 +73,9 @@ def log_exception(exception: Exception) -> None:
         loop = asyncio.get_running_loop()
     except RuntimeError:
         return
-    loop.create_task(_send_exception_webhook(exception))
+    task = loop.create_task(_send_exception_webhook(exception))
+    _pending_log_tasks.add(task)
+    task.add_done_callback(_pending_log_tasks.discard)
 
 
 async def UsageWebhook(embed: discord.Embed, hook: str | None = None) -> bool:

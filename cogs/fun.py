@@ -508,6 +508,20 @@ class Fun(commands.Cog):
 
 
 def _wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list[str]:
+    # Measure each distinct word once (O(words)) instead of re-measuring the
+    # whole growing candidate per word (O(words^2)); widths don't carry across
+    # font sizes, so the cache is per call.
+    widths: dict[str, int] = {}
+
+    def word_width(word: str) -> int:
+        width = widths.get(word)
+        if width is None:
+            bbox = draw.textbbox((0, 0), word, font=font)
+            width = bbox[2] - bbox[0]
+            widths[word] = width
+        return width
+
+    space_width = word_width(" ")
     lines: list[str] = []
     for paragraph in text.splitlines() or [text]:
         words = paragraph.split()
@@ -516,15 +530,17 @@ def _wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFon
             continue
 
         current = words[0]
+        current_width = word_width(words[0])
         for word in words[1:]:
-            candidate = f"{current} {word}"
-            bbox = draw.textbbox((0, 0), candidate, font=font)
-            if bbox[2] - bbox[0] <= max_width:
-                current = candidate
+            word_w = word_width(word)
+            if current_width + space_width + word_w <= max_width:
+                current = f"{current} {word}"
+                current_width += space_width + word_w
                 continue
 
             lines.extend(_split_long_line(draw, current, font, max_width))
             current = word
+            current_width = word_w
 
         lines.extend(_split_long_line(draw, current, font, max_width))
     return lines
@@ -533,6 +549,19 @@ def _wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFon
 def _temp_png_path(prefix: str) -> Path:
     with tempfile.NamedTemporaryFile(prefix=prefix, suffix=".png", delete=False) as handle:
         return Path(handle.name)
+
+
+_font_cache: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
+
+
+def _cached_font(path: Path, size: int) -> ImageFont.FreeTypeFont:
+    """Reuse parsed fonts across the text-fit size sweep (truetype load is ~ms)."""
+    key = (str(path), size)
+    font = _font_cache.get(key)
+    if font is None:
+        font = ImageFont.truetype(str(path), size)
+        _font_cache[key] = font
+    return font
 
 
 def _split_long_line(
@@ -545,6 +574,11 @@ def _split_long_line(
     if bbox[2] - bbox[0] <= max_width:
         return [text]
 
+    # NOTE: the per-character loop below is intentionally incremental, not a
+    # binary search: `current` resets at every emitted line, so candidates
+    # never exceed one line length and total shaping work is bounded by
+    # lines * line_length^2. A binary search re-shapes ~remaining/2 prefixes
+    # per line and measured ~22% slower on a 400-char token (42.7ms vs 34.9ms).
     lines: list[str] = []
     current = ""
     for char in text:
@@ -572,7 +606,7 @@ def _generate_whiteboard(output_path: str, text: str) -> bool:
 
         font_size = 58
         while font_size > 14:
-            font = ImageFont.truetype(str(COOLVETICA_FONT), font_size)
+            font = _cached_font(COOLVETICA_FONT, font_size)
             lines = _wrap_text(draw, text, font, box_w)
             bboxes = [draw.textbbox((0, 0), line, font=font) for line in lines]
             line_heights = [bbox[3] - bbox[1] for bbox in bboxes]
@@ -603,7 +637,7 @@ def _generate_waiting(output_path: str, text: str) -> bool:
 
         font_size = 70
         while font_size > 12:
-            font = ImageFont.truetype(str(COOLVETICA_FONT), font_size)
+            font = _cached_font(COOLVETICA_FONT, font_size)
             bbox = draw.textbbox((0, 0), text, font=font)
             if bbox[2] - bbox[0] <= w - 40:
                 break

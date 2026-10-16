@@ -290,16 +290,24 @@ class Crypto(commands.Cog):
             cache_if=lambda value: isinstance(value, dict),
         )  # type: ignore[return-value]
 
-    async def _get_ltc_price_usd(self) -> float | None:
+    async def _get_simple_price_usd(
+        self,
+        coin_id: str,
+        cache_key: str,
+        *,
+        binance_symbol: str | None = None,
+    ) -> float | None:
+        """Shared CoinGecko-first, Binance-fallback price fetch (was 99% duplicated)."""
+
         async def fetch() -> float | None:
-            coingecko_url = "https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=usd"
+            coingecko_url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
             data, _ = await self._fetch_json_status_cached(coingecko_url)
             price = None
-            if data and isinstance(data.get("litecoin"), dict):
-                price = data["litecoin"].get("usd")
+            if data and isinstance(data.get(coin_id), dict):
+                price = data[coin_id].get("usd")
 
-            if price is None:
-                binance_url = "https://api.binance.com/api/v3/ticker/price?symbol=LTCUSDT"
+            if price is None and binance_symbol is not None:
+                binance_url = f"https://api.binance.com/api/v3/ticker/price?symbol={binance_symbol}"
                 data, _ = await self._fetch_json_status_cached(binance_url)
                 if data and "price" in data:
                     with suppress(ValueError, TypeError):
@@ -308,35 +316,17 @@ class Crypto(commands.Cog):
             return float(price) if price is not None else None
 
         return await cache.get_or_set_async(
-            _PRICE_CACHE_KEY,
+            cache_key,
             fetch,
             ttl=60,
             cache_if=lambda value: isinstance(value, (int, float)),
         )  # type: ignore[return-value]
+
+    async def _get_ltc_price_usd(self) -> float | None:
+        return await self._get_simple_price_usd("litecoin", _PRICE_CACHE_KEY, binance_symbol="LTCUSDT")
 
     async def _get_btc_price_usd(self) -> float | None:
-        async def fetch() -> float | None:
-            coingecko_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
-            data, _ = await self._fetch_json_status_cached(coingecko_url)
-            price = None
-            if data and isinstance(data.get("bitcoin"), dict):
-                price = data["bitcoin"].get("usd")
-
-            if price is None:
-                binance_url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
-                data, _ = await self._fetch_json_status_cached(binance_url)
-                if data and "price" in data:
-                    with suppress(ValueError, TypeError):
-                        price = float(data["price"])
-
-            return float(price) if price is not None else None
-
-        return await cache.get_or_set_async(
-            _BTC_PRICE_CACHE_KEY,
-            fetch,
-            ttl=60,
-            cache_if=lambda value: isinstance(value, (int, float)),
-        )  # type: ignore[return-value]
+        return await self._get_simple_price_usd("bitcoin", _BTC_PRICE_CACHE_KEY, binance_symbol="BTCUSDT")
 
     async def _get_price_usd(self, coin_id: str, cache_key: str) -> float | None:
         async def fetch() -> float | None:

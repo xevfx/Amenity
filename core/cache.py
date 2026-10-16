@@ -49,7 +49,7 @@ class TimeCache[T]:
             now = time.monotonic()
             self._prune_expired_locked(now)
             self._next_prune_at = now + _CACHE_PRUNE_INTERVAL_SECONDS
-            return self._store
+            return dict(self._store)
 
     def _prune_expired_locked(self, now: float) -> None:
         expired_keys = [key for key, (_, expires_at) in self._store.items() if expires_at <= now]
