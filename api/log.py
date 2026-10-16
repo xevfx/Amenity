@@ -134,6 +134,45 @@ async def ErrorWebhook(embed: discord.Embed, hook: str | None = None) -> bool:
         return False
 
 
+async def FeedbackWebhook(
+    embed: discord.Embed,
+    hook: str | None = None,
+    *,
+    file: discord.File | None = None,
+) -> bool:
+    """
+    Sends a user suggestion or report embed to a Discord channel via a webhook.
+
+    Args:
+        embed (discord.Embed): The embed object to send.
+        hook (str | None): Webhook URL. Must be passed explicitly; this sender
+            has no environment-variable default.
+        file (discord.File | None): Optional attachment sent alongside the embed.
+
+    Returns:
+        bool: True if the message was sent successfully, False otherwise.
+    """
+    if not isinstance(embed, discord.Embed):
+        return False
+
+    if not hook:
+        return False
+
+    try:
+        webhook = Webhook.from_url(hook, session=_get_webhook_session())
+        # Note: an explicitly passed file=None is treated as a broken attachment
+        # list by Webhook.send, so only pass the argument when there is a file.
+        if file is not None:
+            await webhook.send(embed=embed, file=file)
+        else:
+            await webhook.send(embed=embed)
+        return True
+
+    except Exception as e:
+        log_exception(e)
+        return False
+
+
 async def log_resource_alert(
     title: str,
     description: str,

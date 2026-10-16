@@ -30,6 +30,7 @@ GROUP_ORDER = {
     "Reminders": 6,
     "Templates": 7,
     "Utilities": 8,
+    "Feedback": 9,
     "other": 99,
 }
 GROUP_DESCRIPTIONS = {
@@ -42,6 +43,7 @@ GROUP_DESCRIPTIONS = {
     "Templates": "Create and manage reusable message templates.",
     "Tools": "Image, text, and other general-purpose tools.",
     "Utilities": "Useful commands for users, members, and servers.",
+    "Feedback": "Send suggestions and bug reports to the bot developers.",
     "Owner": "Bot management commands for the owner.",
     "other": "Commands that do not belong to another group.",
 }
@@ -55,6 +57,7 @@ GROUP_EMOJIS = {
     "Templates": Emoji.FILE.value,
     "Tools": Emoji.UTILITIES.value,
     "Utilities": Emoji.UTILITIES.value,
+    "Feedback": Emoji.HASHTAG.value,
     "other": Emoji.COMMAND.value,
 }
 COG_EMOJIS = {
@@ -68,6 +71,7 @@ COG_EMOJIS = {
     "Template": Emoji.FILE.value,
     "Tools": Emoji.UTILITIES.value,
     "UserUtility": Emoji.AT.value,
+    "Feedback": Emoji.HASHTAG.value,
 }
 
 

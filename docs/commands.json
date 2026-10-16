@@ -1,13 +1,13 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-24T10:21:20.569195+00:00",
+  "generated_at": "2026-10-16T08:18:44.125774+00:00",
   "prefix": "",
   "counts": {
-    "commands": 103,
-    "categories": 9,
-    "prefix": 102,
-    "slash": 103,
-    "hybrid": 102
+    "commands": 105,
+    "categories": 10,
+    "prefix": 104,
+    "slash": 105,
+    "hybrid": 104
   },
   "categories": [
     {
@@ -2047,6 +2047,358 @@
         }
       ],
       "count": 16
+    },
+    {
+      "name": "Feedback",
+      "commands": [
+        {
+          "id": "report",
+          "name": "report",
+          "qualified_name": "report",
+          "display_name": "report",
+          "description": "Forward a bug report to the bot developers through the feedback webhook.",
+          "category": "Feedback",
+          "cog": "Feedback",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "report",
+            "qualified_name": "report",
+            "aliases": [],
+            "usage": "report <image> <message...>",
+            "signature": "[image (upload a file)] <message>",
+            "parameters": [
+              {
+                "name": "image",
+                "display": "<image>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Optional"
+              },
+              {
+                "name": "message",
+                "display": "<message...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 60.0,
+              "bucket": null,
+              "label": "1/60s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "report",
+            "qualified_name": "report",
+            "mention": "/report",
+            "parameters": [
+              {
+                "name": "message",
+                "display": "<message>",
+                "description": "What went wrong? Describe the issue.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              },
+              {
+                "name": "image",
+                "display": "[image]",
+                "description": "Optional image or screenshot to attach.",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "attachment",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/report",
+            "Feedback",
+            "Forward a bug report to the bot developers through the feedback webhook.",
+            "report"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "suggestion",
+          "name": "suggestion",
+          "qualified_name": "suggestion",
+          "display_name": "suggestion",
+          "description": "Forward a suggestion to the bot developers through the feedback webhook.",
+          "category": "Feedback",
+          "cog": "Feedback",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "suggestion",
+            "qualified_name": "suggestion",
+            "aliases": [],
+            "usage": "suggestion <image> <message...>",
+            "signature": "[image (upload a file)] <message>",
+            "parameters": [
+              {
+                "name": "image",
+                "display": "<image>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Optional"
+              },
+              {
+                "name": "message",
+                "display": "<message...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 60.0,
+              "bucket": null,
+              "label": "1/60s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "suggestion",
+            "qualified_name": "suggestion",
+            "mention": "/suggestion",
+            "parameters": [
+              {
+                "name": "message",
+                "display": "<message>",
+                "description": "What would you like to suggest?",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              },
+              {
+                "name": "image",
+                "display": "[image]",
+                "description": "Optional image or screenshot to attach.",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "attachment",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/suggestion",
+            "Feedback",
+            "Forward a suggestion to the bot developers through the feedback webhook.",
+            "suggestion"
+          ],
+          "aliases": []
+        }
+      ],
+      "top_level_commands": [
+        {
+          "id": "report",
+          "name": "report",
+          "qualified_name": "report",
+          "display_name": "report",
+          "description": "Forward a bug report to the bot developers through the feedback webhook.",
+          "category": "Feedback",
+          "cog": "Feedback",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "report",
+            "qualified_name": "report",
+            "aliases": [],
+            "usage": "report <image> <message...>",
+            "signature": "[image (upload a file)] <message>",
+            "parameters": [
+              {
+                "name": "image",
+                "display": "<image>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Optional"
+              },
+              {
+                "name": "message",
+                "display": "<message...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 60.0,
+              "bucket": null,
+              "label": "1/60s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "report",
+            "qualified_name": "report",
+            "mention": "/report",
+            "parameters": [
+              {
+                "name": "message",
+                "display": "<message>",
+                "description": "What went wrong? Describe the issue.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              },
+              {
+                "name": "image",
+                "display": "[image]",
+                "description": "Optional image or screenshot to attach.",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "attachment",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/report",
+            "Feedback",
+            "Forward a bug report to the bot developers through the feedback webhook.",
+            "report"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "suggestion",
+          "name": "suggestion",
+          "qualified_name": "suggestion",
+          "display_name": "suggestion",
+          "description": "Forward a suggestion to the bot developers through the feedback webhook.",
+          "category": "Feedback",
+          "cog": "Feedback",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "suggestion",
+            "qualified_name": "suggestion",
+            "aliases": [],
+            "usage": "suggestion <image> <message...>",
+            "signature": "[image (upload a file)] <message>",
+            "parameters": [
+              {
+                "name": "image",
+                "display": "<image>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Optional"
+              },
+              {
+                "name": "message",
+                "display": "<message...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 60.0,
+              "bucket": null,
+              "label": "1/60s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "suggestion",
+            "qualified_name": "suggestion",
+            "mention": "/suggestion",
+            "parameters": [
+              {
+                "name": "message",
+                "display": "<message>",
+                "description": "What would you like to suggest?",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              },
+              {
+                "name": "image",
+                "display": "[image]",
+                "description": "Optional image or screenshot to attach.",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "attachment",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/suggestion",
+            "Feedback",
+            "Forward a suggestion to the bot developers through the feedback webhook.",
+            "suggestion"
+          ],
+          "aliases": []
+        }
+      ],
+      "count": 2
     },
     {
       "name": "Fun",
@@ -16591,6 +16943,92 @@
       "aliases": []
     },
     {
+      "id": "report",
+      "name": "report",
+      "qualified_name": "report",
+      "display_name": "report",
+      "description": "Forward a bug report to the bot developers through the feedback webhook.",
+      "category": "Feedback",
+      "cog": "Feedback",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "report",
+        "qualified_name": "report",
+        "aliases": [],
+        "usage": "report <image> <message...>",
+        "signature": "[image (upload a file)] <message>",
+        "parameters": [
+          {
+            "name": "image",
+            "display": "<image>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          },
+          {
+            "name": "message",
+            "display": "<message...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 60.0,
+          "bucket": null,
+          "label": "1/60s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "report",
+        "qualified_name": "report",
+        "mention": "/report",
+        "parameters": [
+          {
+            "name": "message",
+            "display": "<message>",
+            "description": "What went wrong? Describe the issue.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          },
+          {
+            "name": "image",
+            "display": "[image]",
+            "description": "Optional image or screenshot to attach.",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "attachment",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/report",
+        "Feedback",
+        "Forward a bug report to the bot developers through the feedback webhook.",
+        "report"
+      ],
+      "aliases": []
+    },
+    {
       "id": "role",
       "name": "role",
       "qualified_name": "role",
@@ -17100,6 +17538,92 @@
         "info",
         "server / info",
         "server info"
+      ],
+      "aliases": []
+    },
+    {
+      "id": "suggestion",
+      "name": "suggestion",
+      "qualified_name": "suggestion",
+      "display_name": "suggestion",
+      "description": "Forward a suggestion to the bot developers through the feedback webhook.",
+      "category": "Feedback",
+      "cog": "Feedback",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "suggestion",
+        "qualified_name": "suggestion",
+        "aliases": [],
+        "usage": "suggestion <image> <message...>",
+        "signature": "[image (upload a file)] <message>",
+        "parameters": [
+          {
+            "name": "image",
+            "display": "<image>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          },
+          {
+            "name": "message",
+            "display": "<message...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 60.0,
+          "bucket": null,
+          "label": "1/60s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "suggestion",
+        "qualified_name": "suggestion",
+        "mention": "/suggestion",
+        "parameters": [
+          {
+            "name": "message",
+            "display": "<message>",
+            "description": "What would you like to suggest?",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          },
+          {
+            "name": "image",
+            "display": "[image]",
+            "description": "Optional image or screenshot to attach.",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "attachment",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/suggestion",
+        "Feedback",
+        "Forward a suggestion to the bot developers through the feedback webhook.",
+        "suggestion"
       ],
       "aliases": []
     },
@@ -23907,6 +24431,92 @@
       ],
       "aliases": []
     },
+    "report": {
+      "id": "report",
+      "name": "report",
+      "qualified_name": "report",
+      "display_name": "report",
+      "description": "Forward a bug report to the bot developers through the feedback webhook.",
+      "category": "Feedback",
+      "cog": "Feedback",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "report",
+        "qualified_name": "report",
+        "aliases": [],
+        "usage": "report <image> <message...>",
+        "signature": "[image (upload a file)] <message>",
+        "parameters": [
+          {
+            "name": "image",
+            "display": "<image>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          },
+          {
+            "name": "message",
+            "display": "<message...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 60.0,
+          "bucket": null,
+          "label": "1/60s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "report",
+        "qualified_name": "report",
+        "mention": "/report",
+        "parameters": [
+          {
+            "name": "message",
+            "display": "<message>",
+            "description": "What went wrong? Describe the issue.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          },
+          {
+            "name": "image",
+            "display": "[image]",
+            "description": "Optional image or screenshot to attach.",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "attachment",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/report",
+        "Feedback",
+        "Forward a bug report to the bot developers through the feedback webhook.",
+        "report"
+      ],
+      "aliases": []
+    },
     "role": {
       "id": "role",
       "name": "role",
@@ -24417,6 +25027,92 @@
         "info",
         "server / info",
         "server info"
+      ],
+      "aliases": []
+    },
+    "suggestion": {
+      "id": "suggestion",
+      "name": "suggestion",
+      "qualified_name": "suggestion",
+      "display_name": "suggestion",
+      "description": "Forward a suggestion to the bot developers through the feedback webhook.",
+      "category": "Feedback",
+      "cog": "Feedback",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "suggestion",
+        "qualified_name": "suggestion",
+        "aliases": [],
+        "usage": "suggestion <image> <message...>",
+        "signature": "[image (upload a file)] <message>",
+        "parameters": [
+          {
+            "name": "image",
+            "display": "<image>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          },
+          {
+            "name": "message",
+            "display": "<message...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 60.0,
+          "bucket": null,
+          "label": "1/60s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "suggestion",
+        "qualified_name": "suggestion",
+        "mention": "/suggestion",
+        "parameters": [
+          {
+            "name": "message",
+            "display": "<message>",
+            "description": "What would you like to suggest?",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          },
+          {
+            "name": "image",
+            "display": "[image]",
+            "description": "Optional image or screenshot to attach.",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "attachment",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/suggestion",
+        "Feedback",
+        "Forward a suggestion to the bot developers through the feedback webhook.",
+        "suggestion"
       ],
       "aliases": []
     },
@@ -31224,6 +31920,92 @@
       ],
       "aliases": []
     },
+    "report": {
+      "id": "report",
+      "name": "report",
+      "qualified_name": "report",
+      "display_name": "report",
+      "description": "Forward a bug report to the bot developers through the feedback webhook.",
+      "category": "Feedback",
+      "cog": "Feedback",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "report",
+        "qualified_name": "report",
+        "aliases": [],
+        "usage": "report <image> <message...>",
+        "signature": "[image (upload a file)] <message>",
+        "parameters": [
+          {
+            "name": "image",
+            "display": "<image>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          },
+          {
+            "name": "message",
+            "display": "<message...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 60.0,
+          "bucket": null,
+          "label": "1/60s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "report",
+        "qualified_name": "report",
+        "mention": "/report",
+        "parameters": [
+          {
+            "name": "message",
+            "display": "<message>",
+            "description": "What went wrong? Describe the issue.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          },
+          {
+            "name": "image",
+            "display": "[image]",
+            "description": "Optional image or screenshot to attach.",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "attachment",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/report",
+        "Feedback",
+        "Forward a bug report to the bot developers through the feedback webhook.",
+        "report"
+      ],
+      "aliases": []
+    },
     "role": {
       "id": "role",
       "name": "role",
@@ -31734,6 +32516,92 @@
         "info",
         "server / info",
         "server info"
+      ],
+      "aliases": []
+    },
+    "suggestion": {
+      "id": "suggestion",
+      "name": "suggestion",
+      "qualified_name": "suggestion",
+      "display_name": "suggestion",
+      "description": "Forward a suggestion to the bot developers through the feedback webhook.",
+      "category": "Feedback",
+      "cog": "Feedback",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "suggestion",
+        "qualified_name": "suggestion",
+        "aliases": [],
+        "usage": "suggestion <image> <message...>",
+        "signature": "[image (upload a file)] <message>",
+        "parameters": [
+          {
+            "name": "image",
+            "display": "<image>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "positional_or_keyword",
+            "type": "Optional"
+          },
+          {
+            "name": "message",
+            "display": "<message...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 60.0,
+          "bucket": null,
+          "label": "1/60s"
+        },
+        "max_concurrency": null
+      },
+      "slash": {
+        "name": "suggestion",
+        "qualified_name": "suggestion",
+        "mention": "/suggestion",
+        "parameters": [
+          {
+            "name": "message",
+            "display": "<message>",
+            "description": "What would you like to suggest?",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          },
+          {
+            "name": "image",
+            "display": "[image]",
+            "description": "Optional image or screenshot to attach.",
+            "required": false,
+            "default": null,
+            "kind": "slash_option",
+            "type": "attachment",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/suggestion",
+        "Feedback",
+        "Forward a suggestion to the bot developers through the feedback webhook.",
+        "suggestion"
       ],
       "aliases": []
     },

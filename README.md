@@ -69,6 +69,8 @@ The bot reads settings from `.env` with `python-dotenv`.
 | `GUILD_ID` | No | Optional development guild ID. The current code syncs commands globally by default. |
 | `USAGE_HOOK` | No | Discord webhook URL for command usage logs. |
 | `ERROR_HOOK` | No | Discord webhook URL for command error logs. |
+| `SUGGESTION_HOOK` | No | Discord webhook URL where `/suggestion` messages are sent. |
+| `REPORT_HOOK` | No | Discord webhook URL where `/report` messages are sent. |
 | `GH_TOKEN` or `GITHUB_TOKEN` | No | GitHub token for GitHub-related commands. |
 | `GROQ_API_KEY` / `GROQ` | No | Groq API key or alias used by AI commands. |
 | `GOOGLE_API_KEY` / `GOOGLE` | No | Google API key or alias used by AI commands. |
@@ -155,6 +157,7 @@ main.py     Application entry point.
 - Message commands do not respond: enable Message Content Intent in the Discord Developer Portal.
 - Import errors: activate the virtual environment and rerun `pip install -r requirements.txt`.
 - Webhook logs are missing: check that `USAGE_HOOK` and `ERROR_HOOK` are valid Discord webhook URLs.
+- Suggestion/report feedback is missing: check that `SUGGESTION_HOOK`/`REPORT_HOOK` are set to valid Discord webhook URLs.
 
 ## License
 

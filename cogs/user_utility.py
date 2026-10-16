@@ -1,10 +1,13 @@
+import asyncio
+import io
 import os
 import re
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
+import aiohttp
 import discord
 import qrcode
 from discord import app_commands
@@ -15,10 +18,12 @@ from simpleeval import simple_eval
 
 from api.crypto_networks import CRYPTO_NETWORK_BY_VALUE, CRYPTO_NETWORK_CHOICES, crypto_qr_payload
 from api.emojis import Emoji
-from api.http import close_http_session, create_http_session
+from api.http import close_http_session, create_http_session, fetch_json
 from api.log import log_exception
+from api.paginator import EmbedPaginator
 from api.users import fetch_user_cached
 from core.amenity import Amenity
+from core.cache import cache
 from core.workers import run_cpu
 
 QR_GRADIENT = ("#0B0B0D", "#1A1F2E")
@@ -27,6 +32,65 @@ QR_GLOW_COLOR = "#1e88e5"
 EMBED_DESCRIPTION_LIMIT = 4096
 EMBED_FIELD_VALUE_LIMIT = 1024
 CODE_BLOCK_OVERHEAD = 8
+
+BLIKK_CATALOG_URL = "https://blikk-deco.vercel.app/api/catalog"
+MAX_DECO_SEARCH_QUERY = 80
+# Discord allows at most 10 files per message and each result carries one
+# static preview file, so results are capped at 10.
+MAX_DECO_RESULTS = 10
+DISCORD_SHOP_URL = "https://discord.com/shop#itemSkuId={sku}"
+DECO_SEARCH_CACHE_TTL = 3600  # 1 hour
+DECO_PREVIEW_CACHE_TTL = 3600  # 1 hour
+MAX_DECO_PREVIEW_BYTES = 10 * 1024 * 1024
+
+
+def _format_minor_amount(minor: object) -> str:
+    if isinstance(minor, int | float) and not isinstance(minor, bool):
+        return f"{minor / 100:.2f}"
+    return "?"
+
+
+def _extract_first_frame(data: bytes) -> bytes | None:
+    """Decode only the first frame of an (A)PNG as a light static preview."""
+    try:
+        with Image.open(io.BytesIO(data)) as img:
+            frame = img.convert("RGBA")
+            out = io.BytesIO()
+            frame.save(out, format="PNG")
+            return out.getvalue()
+    except Exception:
+        return None
+
+
+def _build_deco_embed(item: dict, index: int, total: int) -> discord.Embed:
+    sku = item.get("sku")
+    store_link = DISCORD_SHOP_URL.format(sku=sku)
+    currency = "€"
+    before = _format_minor_amount(item.get("originalMinor"))
+    after = _format_minor_amount(item.get("retailMinor"))
+    discount = item.get("discountPercent")
+
+    embed = discord.Embed(
+        title=str(item.get("name") or "Unknown decoration"),
+        url=store_link,
+        color=discord.Color.blue(),
+    )
+    embed.set_author(name=f"Result {index}/{total}", url=store_link)
+    embed.add_field(
+        name="Price",
+        value=f"~~{currency}{before}~~ **{currency}{after}**"
+        + (f" (−{discount}%)" if isinstance(discount, int | float) and not isinstance(discount, bool) else ""),
+        inline=False,
+    )
+
+    # The API image doubles as the remote fallback when no static preview
+    # could be produced; previews uploaded with the message take precedence.
+    image_url = item.get("image")
+    if isinstance(image_url, str) and image_url:
+        embed.set_image(url=image_url)
+
+    return embed
+
 
 # Reverse language-name lookup, built once instead of per translate call.
 _REVERSE_LANGUAGES = {name.lower(): code for code, name in LANGUAGES.items()}
@@ -907,7 +971,6 @@ class UserUtility(commands.Cog):
             # await ctx.send("An error occurred during translation")
             await ctx.send(str(e))
 
-
     @commands.hybrid_command(name="deco", description="Get a user avatar decoration.")
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -921,9 +984,142 @@ class UserUtility(commands.Cog):
         if not decoration:
             await ctx.send(f"{target} does not have an avatar decoration.")
             return
-        await ctx.send(f"{Emoji.INVITE.value} [Link of decoration](https://discord.com/shop#itemSkuId={target.avatar_decoration_sku_id})\n"
-                       f"[Download {Emoji.DOWNLOAD}]({target.avatar_decoration.url})")
+        await ctx.send(
+            f"{Emoji.INVITE.value} [Link of decoration](https://discord.com/shop#itemSkuId={target.avatar_decoration_sku_id})\n"
+            f"[Download {Emoji.DOWNLOAD}]({target.avatar_decoration.url})"
+        )
 
+    async def _fetch_deco_results(self, query: str) -> tuple[list[dict] | None, int | None]:
+        """Fetch decoration results for a query, cached for an hour."""
+
+        async def _load() -> tuple[list[dict] | None, int | None]:
+            url = f"{BLIKK_CATALOG_URL}?q={quote(query)}"
+            data, status = await fetch_json(self.aiohttp, url)
+            if data is None:
+                return None, status
+            items = data.get("items") if isinstance(data, dict) else None
+            decorations = [item for item in items or [] if isinstance(item, dict) and item.get("kind") == "Decoration"]
+            return decorations, status
+
+        return await cache.get_or_set_async(
+            f"deco_search:{query.lower()}",
+            _load,
+            ttl=DECO_SEARCH_CACHE_TTL,
+            cache_if=lambda result: result[0] is not None,
+        )
+
+    async def _fetch_deco_preview(self, image_url: object, sku: object) -> bytes | None:
+        """Download a preset and return its first frame as a static PNG, cached for an hour."""
+        if not isinstance(image_url, str) or not image_url or not sku:
+            return None
+
+        async def _load() -> bytes | None:
+            try:
+                async with self.aiohttp.get(image_url) as response:
+                    if response.status != 200:
+                        return None
+                    data = await response.read()
+            except (TimeoutError, aiohttp.ClientError):
+                return None
+            if len(data) > MAX_DECO_PREVIEW_BYTES:
+                return None
+            try:
+                return await run_cpu(_extract_first_frame, data)
+            except Exception:
+                return None
+
+        preview = await cache.get_or_set_async(
+            f"deco_preview:{sku}",
+            _load,
+            ttl=DECO_PREVIEW_CACHE_TTL,
+            cache_if=lambda value: bool(value),
+        )
+        return preview if isinstance(preview, bytes) and preview else None
+
+    @commands.hybrid_command(name="deco-search", description="Search the Discord shop for avatar decorations.")
+    @app_commands.allowed_installs(guilds=False, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @app_commands.describe(query="The name (or part of it) of the decoration.")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.max_concurrency(50, commands.BucketType.default, wait=True)
+    async def deco_search(self, ctx: commands.Context, *, query: str) -> None:
+        """Search Discord shop avatar decorations with an animated preview."""
+        query = query.strip()
+        if not query:
+            await ctx.reply("Please provide a name to search for.", mention_author=False, ephemeral=True)
+            return
+        if len(query) > MAX_DECO_SEARCH_QUERY:
+            await ctx.reply(
+                f"Search queries must be {MAX_DECO_SEARCH_QUERY} characters or less.",
+                mention_author=False,
+                ephemeral=True,
+            )
+            return
+
+        # The upstream search is case-insensitive but treats runs of spaces
+        # literally, so collapse whitespace before searching.
+        query = " ".join(query.split())
+
+        await ctx.defer()
+
+        decorations, status = await self._fetch_deco_results(query)
+        if decorations is None:
+            if status is not None:
+                await ctx.send("The decoration catalog is currently unavailable. Please try again later.")
+            else:
+                await ctx.send("Could not reach the decoration catalog. Please try again later.")
+            return
+
+        decorations = decorations[:MAX_DECO_RESULTS]
+        if not decorations:
+            await ctx.reply(
+                f"No avatar decoration found for `{discord.utils.escape_markdown(query)}`.",
+                mention_author=False,
+            )
+            return
+
+        # If the query is an exact (case-insensitive) decoration name,
+        # show only that match(s) straight away instead of every result.
+        query_normalized = " ".join(query.lower().split())
+        exact_matches = [
+            item for item in decorations if " ".join(str(item.get("name") or "").split()).lower() == query_normalized
+        ]
+        if exact_matches:
+            decorations = exact_matches
+
+        total = len(decorations)
+        embeds = [_build_deco_embed(item, index, total) for index, item in enumerate(decorations, start=1)]
+        for embed in embeds:
+            embed.set_footer(
+                text=f"Requested by {ctx.author} • Prices in EUR",
+                icon_url=ctx.author.display_avatar.url,
+            )
+
+        # Attach a light static preview per result so embeds load instantly
+        # instead of pulling the full animated preset. All files ride along
+        # with the first message, so page turns need no further uploads.
+        previews = await asyncio.gather(
+            *(self._fetch_deco_preview(item.get("image"), item.get("sku")) for item in decorations),
+            return_exceptions=True,
+        )
+        files: list[discord.File] = []
+        for embed, item, preview in zip(embeds, decorations, previews, strict=True):
+            if not isinstance(preview, bytes) or not preview:
+                continue
+            sku = item.get("sku")
+            if not sku:
+                continue
+            filename = f"deco_{sku}.png"
+            files.append(discord.File(io.BytesIO(preview), filename=filename))
+            embed.set_image(url=f"attachment://{filename}")
+        send_kwargs: dict = {"files": files} if files else {}
+
+        if total == 1:
+            await ctx.reply(embed=embeds[0], mention_author=False, **send_kwargs)
+            return
+
+        view = EmbedPaginator(embeds, author_id=ctx.author.id)
+        view.message = await ctx.reply(embed=embeds[0], view=view, mention_author=False, **send_kwargs)
 
     @commands.hybrid_command(name="enlarge", description="Enlarge a custom emoji.")
     @app_commands.allowed_installs(guilds=False, users=True)
@@ -947,12 +1143,13 @@ class UserUtility(commands.Cog):
         embed = discord.Embed(
             description=f"Enlarged Emoji: [{emoji.name}]({url})",
             color=discord.Color.magenta(),
-            timestamp=datetime.now() # Used timezone-aware datetime to prevent discord.py deprecation warnings
+            timestamp=datetime.now(),  # Used timezone-aware datetime to prevent discord.py deprecation warnings
         )
         embed.set_image(url=url)
         embed.set_footer(text=f"Emoji ID: {emoji.id}")
 
         await ctx.send(embed=embed)
+
 
 async def setup(bot: Amenity) -> None:
     await bot.add_cog(UserUtility(bot))
