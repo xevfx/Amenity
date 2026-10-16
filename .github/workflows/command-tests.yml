@@ -2,11 +2,6 @@ name: Command Tests
 
 on:
   push:
-    branches:
-      - main
-      - performance
-      - codex
-      - "codex/**"
   pull_request:
     branches:
       - main
@@ -42,7 +37,7 @@ jobs:
         run: python -m compileall -q .
 
       - name: Command workflow tests
-        run: python -m pytest -q tests/test_command_workflow.py
+        run: python -m pytest -q tests/
 
       - name: Upload command metrics
         uses: actions/upload-artifact@v4
