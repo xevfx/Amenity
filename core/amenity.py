@@ -21,6 +21,13 @@ from api.log import (
     log_command_error,
     log_command_usage,
 )
+from core.app_commands import (
+    APP_COMMAND_IDS_CACHE_KEY,
+    APP_COMMAND_IDS_CACHE_TTL,
+    command_mention,
+    load_persisted_command_ids,
+    save_persisted_command_ids,
+)
 from core.cache import cache
 from core.checks import (
     CommandDisabled,
@@ -101,10 +108,11 @@ class Amenity(commands.Bot):
             intents=intents,
             case_insensitive=True,
             help_command=AmenityHelpCommand(),
-            owner_id=931347423773741097,
+            # owner_id=931347423773741097,
             strip_after_prefix=True,
             allowed_mentions=discord.AllowedMentions(everyone=False, users=True, roles=False, replied_user=True)
         )
+        self.app_command_ids: dict[str, int] = load_persisted_command_ids()
         self._event_loop_last_tick = time.monotonic()
         self._event_loop_watchdog_stop = threading.Event()
         self._event_loop_watchdog_thread: threading.Thread | None = None
@@ -115,6 +123,42 @@ class Amenity(commands.Bot):
         )
         self._blocking_executor_ready = False
         self._resource_monitor = ResourceMonitor(Path(__file__).resolve().parents[1])
+
+    @staticmethod
+    def _guild_object() -> discord.Object | None:
+        """Return the optional development guild configured through ``GUILD_ID``."""
+        guild_id = (os.getenv("GUILD_ID") or "").strip()
+        if guild_id.isdigit():
+            return discord.Object(id=int(guild_id))
+        return None
+
+    async def fetch_app_commands(self) -> dict[str, int]:
+        """Fetch registered application commands from Discord and keep them in memory."""
+        guild_object = self._guild_object()
+        scopes: list[tuple[str, discord.Object | None]] = [("global", None)]
+        if guild_object is not None:
+            scopes.append((f"guild {guild_object.id}", guild_object))
+
+        fetched: dict[str, int] = {}
+        for scope, guild in scopes:
+            try:
+                commands = await self.tree.fetch_commands(guild=guild)
+            except Exception as e:
+                logger.warning("Failed to fetch %s slash commands: %s", scope, e)
+                continue
+            fetched.update({cmd.name: cmd.id for cmd in commands})
+            logger.info("Fetched %d %s slash command(s).", len(commands), scope)
+
+        if fetched:
+            self.app_command_ids.update(fetched)
+            cache.set(APP_COMMAND_IDS_CACHE_KEY, self.app_command_ids, ttl=APP_COMMAND_IDS_CACHE_TTL)
+            save_persisted_command_ids(self.app_command_ids)
+            logger.info("Stored %d application command ID(s) in memory.", len(self.app_command_ids))
+
+        return self.app_command_ids
+
+    def get_app_command_mention(self, command_name: str, *, prefix: str = "/") -> str:
+        return command_mention(command_name, self.app_command_ids, prefix=prefix)
 
     async def invoke(self, context: commands.Context) -> None:
         command = context.command
@@ -184,13 +228,18 @@ class Amenity(commands.Bot):
         self._instrument_app_command_dispatch()
         self._resource_monitor.start(asyncio.get_running_loop())
 
-        # guild_id: int = os.getenv("GUILD_ID")
-        # if guild_id:
-        #     guild = discord.Object(id=int(guild_id))
-        #     self.tree.copy_global_to(guild=guild)
-        #     await self.tree.sync(guild=guild)
-        # else:
-        await self.tree.sync()
+        guild = self._guild_object()
+        try:
+            if guild is not None:
+                self.tree.copy_global_to(guild=guild)
+            synced = await self.tree.sync(guild=guild)
+            self.app_command_ids.update({cmd.name: cmd.id for cmd in synced})
+            scope = f"guild {guild.id}" if guild is not None else "global"
+            logger.info("Synced %d application command(s) (%s).", len(synced), scope)
+        except Exception as e:
+            logger.warning("Failed to sync application commands: %s", e)
+
+        await self.fetch_app_commands()
 
     async def close(self) -> None:
         self.check_premium_expiry.cancel()
@@ -332,6 +381,8 @@ class Amenity(commands.Bot):
         #     f"Logged in as {self.user} (ID: {self.user.id}) | install scope: {install_scope}"
         # )
         logger.info(f"[+] | LOGGED IN AS {self.user}")
+        if not self.app_command_ids:
+            await self.fetch_app_commands()
         # logger.info(f"[+] | WATCHING {self.users}")
 
     async def _find_guild_inviter(self, guild: discord.Guild) -> discord.User | discord.Member | None:
@@ -505,7 +556,3 @@ class Amenity(commands.Bot):
         await send_error("An unexpected error occurred. Please try again later.")
         await log_app_command_error(interaction, exception)
         raise exception
-
-    # async def invoke_help_command(self, ctx: commands.Context) -> None:
-    #     """Send help for the current command."""
-    #     await ctx.send_help(ctx.command)

@@ -40,9 +40,10 @@ try:
 except ImportError:  # pragma: no cover - exercised only when the optional runtime dependency is absent
     pyfiglet = None
 
+from api.emojis import Emoji
 from api.http import close_http_session, create_http_session
 from api.log import log_exception
-from api.paginator import EmbedPaginator, PaginatorHelper
+from api.paginator import EmbedPaginator
 from api.users import fetch_user_cached
 from core.cache import cache
 from core.checks import premium_required
@@ -1665,8 +1666,8 @@ class Tools(commands.Cog):
         fetched_users = await asyncio.gather(*(fetch_user(user_id) for user_id in missing_user_ids))
         resolved_users.update(zip(missing_user_ids, fetched_users, strict=True))
 
-        failed = sum(user is None for user in resolved_users.values())
-        matched_lines: list[str] = []
+        failed_ids = [user_id for user_id, user in resolved_users.items() if user is None]
+        matched_entries: list[str] = []
         for user_id in user_ids:
             user = resolved_users[user_id]
             if user is None:
@@ -1679,39 +1680,76 @@ class Tools(commands.Cog):
             if not is_young and not (no_avatar and has_no_avatar) and not (deco and has_deco):
                 continue
 
-            avatar_text = "no avatar" if has_no_avatar else "has avatar"
-            deco_text = "has deco" if has_deco else "no deco"
             created_ts = int(user.created_at.timestamp())
             reasons = []
             if is_young:
-                reasons.append(f"under {days}d")
+                reasons.append(f"<{days}d age ({account_age_days}d)")
             if no_avatar and has_no_avatar:
                 reasons.append("no avatar")
             if deco and has_deco:
-                reasons.append("has deco")
-            matched_lines.append(
-                f"{user.mention} (`{user.id}`) - {account_age_days}d old, {avatar_text}, {deco_text}, "
-                f"{', '.join(reasons)}, created <t:{created_ts}:R>"
+                reasons.append("avatar decoration")
+
+            reason_str = ", ".join(f"`{r}`" for r in reasons)
+            escaped_name = discord.utils.escape_markdown(user.name)
+            matched_entries.append(
+                f"**{escaped_name}** ({user.mention}) • `{user.id}`\n"
+                f"-# ⏰ Created <t:{created_ts}:R> (<t:{created_ts}:d>) • 🚩 Flags: {reason_str}"
             )
 
-        title = "Checked Users"
-        if not matched_lines:
-            matched_lines = ["No users matched the filters."]
+        filter_tags = [f"<{days}d age"]
+        if no_avatar:
+            filter_tags.append("No avatar")
+        if deco:
+            filter_tags.append("Avatar decoration")
+        filters_display = " • ".join(f"`{f}`" for f in filter_tags)
 
-        embeds = PaginatorHelper.create_adaptive_embeds(
-            matched_lines,
-            title=title,
-            items_per_page=10,
-            max_chars=3000,
-            color=discord.Color.onyx_embed(),
+        header = (
+            f"> **Filters:** {filters_display}\n"
+            f"> **Results:** Checked **{len(user_ids)}** total • **{len(matched_entries)}** flagged"
         )
-        for embed in embeds:
-            embed.add_field(name="Age filter", value=f"Under `{days}` days", inline=True)
-            embed.add_field(name="No avatar filter", value="Enabled" if no_avatar else "Disabled", inline=True)
-            embed.add_field(name="Deco filter", value="Enabled" if deco else "Disabled", inline=True)
-            embed.add_field(name="Checked", value=str(len(user_ids)), inline=True)
-            if failed:
-                embed.add_field(name="Could not fetch", value=str(failed), inline=True)
+        if failed_ids:
+            header += f" • **{len(failed_ids)}** unreachable"
+
+        items_per_page = 8
+        user_word = "user" if len(user_ids) == 1 else "users"
+
+        def build_page(page_entries: list[str], page_index: int, total_pages: int) -> discord.Embed:
+            if page_entries:
+                description = [header, "", "\n\n".join(page_entries)]
+            else:
+                description = [
+                    header,
+                    "",
+                    "✅ **No flagged accounts found.**",
+                    "All checked users passed the specified criteria.",
+                ]
+
+            if failed_ids and page_index == 0:
+                unreachable = ", ".join(f"`{uid}`" for uid in failed_ids[:10])
+                if len(failed_ids) > 10:
+                    unreachable += f" (+{len(failed_ids) - 10} more)"
+                description.extend(["", f"⚠️ **Could not fetch {len(failed_ids)} user(s):** {unreachable}"])
+
+            embed = discord.Embed(
+                title=f"{Emoji.SECURITY.value} Checked Users",
+                description="\n".join(description),
+                color=discord.Color.onyx_embed(),
+            )
+            if total_pages > 1:
+                footer = f"Page {page_index + 1}/{total_pages} • {len(matched_entries)} flagged • Amenity"
+            else:
+                footer = f"Checked {len(user_ids)} {user_word} • Amenity"
+            embed.set_footer(text=footer)
+            return embed
+
+        if matched_entries:
+            total_pages = (len(matched_entries) + items_per_page - 1) // items_per_page
+            embeds = [
+                build_page(matched_entries[start : start + items_per_page], page_index, total_pages)
+                for page_index, start in enumerate(range(0, len(matched_entries), items_per_page))
+            ]
+        else:
+            embeds = [build_page([], 0, 1)]
 
         view = EmbedPaginator(embeds, author_id=ctx.author.id) if len(embeds) > 1 else None
         if ctx.interaction:

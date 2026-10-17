@@ -184,32 +184,63 @@ class Github(commands.Cog):
                     self.repos = repos
                     self.index = 0
                     self.message: discord.Message | None = None
-                    self.previous_button = discord.ui.Button(label="Previous", style=discord.ButtonStyle.secondary)
-                    self.next_button = discord.ui.Button(label="Next", style=discord.ButtonStyle.secondary)
+                    self.first_button = discord.ui.Button(label="<<", style=discord.ButtonStyle.secondary)
+                    self.previous_button = discord.ui.Button(label="<", style=discord.ButtonStyle.secondary)
+                    self.page_indicator = discord.ui.Button(
+                        label=f"1/{len(repos)}",
+                        style=discord.ButtonStyle.secondary,
+                        disabled=True,
+                    )
+                    self.next_button = discord.ui.Button(label=">", style=discord.ButtonStyle.secondary)
+                    self.last_button = discord.ui.Button(label=">>", style=discord.ButtonStyle.secondary)
+                    self.first_button.callback = self.first_callback
                     self.previous_button.callback = self.previous_callback
                     self.next_button.callback = self.next_callback
-                    self.add_item(self.previous_button)
-                    self.add_item(self.next_button)
+                    self.last_button.callback = self.last_callback
+                    self.update_buttons()
+                    for button in (
+                        self.first_button,
+                        self.previous_button,
+                        self.page_indicator,
+                        self.next_button,
+                        self.last_button,
+                    ):
+                        self.add_item(button)
+
+                def update_buttons(self) -> None:
+                    at_start = self.index == 0
+                    at_end = self.index == len(self.repos) - 1
+                    self.first_button.disabled = at_start
+                    self.previous_button.disabled = at_start
+                    self.next_button.disabled = at_end
+                    self.last_button.disabled = at_end
+                    self.page_indicator.label = f"{self.index + 1}/{len(self.repos)}"
+
+                async def _show_current(self, interaction: discord.Interaction) -> None:
+                    self.update_buttons()
+                    embed = make_embed(self.repos[self.index])
+                    await interaction.response.edit_message(embed=embed, view=self)
+
+                async def first_callback(self, interaction: discord.Interaction) -> None:
+                    self.index = 0
+                    await self._show_current(interaction)
 
                 async def previous_callback(self, interaction: discord.Interaction) -> None:
-                    if self.index > 0:
-                        self.index -= 1
-                        embed = make_embed(self.repos[self.index])
-                        await interaction.response.edit_message(embed=embed, view=self)
-                    else:
-                        await interaction.response.defer()
+                    self.index = max(0, self.index - 1)
+                    await self._show_current(interaction)
 
                 async def next_callback(self, interaction: discord.Interaction) -> None:
-                    if self.index < len(self.repos) - 1:
-                        self.index += 1
-                        embed = make_embed(self.repos[self.index])
-                        await interaction.response.edit_message(embed=embed, view=self)
-                    else:
-                        await interaction.response.defer()
+                    self.index = min(len(self.repos) - 1, self.index + 1)
+                    await self._show_current(interaction)
+
+                async def last_callback(self, interaction: discord.Interaction) -> None:
+                    self.index = len(self.repos) - 1
+                    await self._show_current(interaction)
 
                 async def on_timeout(self) -> None:
-                    self.previous_button.disabled = True
-                    self.next_button.disabled = True
+                    for button in self.children:
+                        if isinstance(button, discord.ui.Button):
+                            button.disabled = True
                     if self.message:
                         with suppress(discord.HTTPException):
                             await self.message.edit(view=self)

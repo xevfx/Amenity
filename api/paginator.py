@@ -39,7 +39,7 @@ class EmbedPaginator(discord.ui.View):
             return False
         return True
 
-    @discord.ui.button(label="First", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="<<", style=discord.ButtonStyle.secondary)
     async def first_page(
         self,
         interaction: discord.Interaction,
@@ -50,7 +50,7 @@ class EmbedPaginator(discord.ui.View):
         self.update_buttons()
         await interaction.response.edit_message(embed=self.embeds[self.current_page], view=self)
 
-    @discord.ui.button(label="Prev", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="<", style=discord.ButtonStyle.secondary)
     async def previous_page(
         self,
         interaction: discord.Interaction,
@@ -70,7 +70,7 @@ class EmbedPaginator(discord.ui.View):
         """Page counter - disabled button for display"""
         pass
 
-    @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label=">", style=discord.ButtonStyle.secondary)
     async def next_page(
         self,
         interaction: discord.Interaction,
@@ -81,7 +81,7 @@ class EmbedPaginator(discord.ui.View):
         self.update_buttons()
         await interaction.response.edit_message(embed=self.embeds[self.current_page], view=self)
 
-    @discord.ui.button(label="Last", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label=">>", style=discord.ButtonStyle.secondary)
     async def last_page(
         self,
         interaction: discord.Interaction,
@@ -92,7 +92,7 @@ class EmbedPaginator(discord.ui.View):
         self.update_buttons()
         await interaction.response.edit_message(embed=self.embeds[self.current_page], view=self)
 
-    @discord.ui.button(label="Close", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Close", style=discord.ButtonStyle.danger)
     async def delete_message(
         self,
         interaction: discord.Interaction,
@@ -153,7 +153,7 @@ class PaginatorHelper:
     @staticmethod
     def create_adaptive_embeds(
         data: list[str],
-        title: str,
+        title: str = "Output",
         items_per_page: int = 10,
         max_chars: int = 1000,
         color: discord.Color = discord.Color.blue(),
@@ -197,12 +197,17 @@ class PaginatorHelper:
 
         embeds: list[discord.Embed] = []
         total_pages = len(pages)
-        total_items = len(data)
 
         for page_index, page_data in enumerate(pages, start=1):
-            embed = discord.Embed(title=title, color=color)
-            embed.description = "\n".join(page_data)
-            embed.set_footer(text=f"Page {page_index}/{total_pages} • Total: {total_items} items")
+            embed = discord.Embed(
+                title=f"{title} (Page {page_index}/{total_pages})" if total_pages > 1 else title,
+                description="\n".join(page_data),
+                color=color,
+            )
+            if total_pages > 1:
+                embed.set_footer(text=f"Page {page_index}/{total_pages} • Total items: {len(data)}")
+            else:
+                embed.set_footer(text=f"Total items: {len(data)}")
             embeds.append(embed)
 
         return embeds
