@@ -22,17 +22,18 @@ if TYPE_CHECKING:
 HELP_CACHE_KEY = "help:commands"
 HELP_CACHE_TTL = 300
 GROUP_ORDER = {
-    "utilities": 0,
-    "tools": 1,
-    "templates": 2,
-    "reminders": 3,
-    "github": 4,
-    "games": 5,
-    "fun": 6,
-    "crypto": 7,
-    "ai": 8,
-    "feedback": 9,
-    "other": 10,
+    "utility": 0,
+    "server": 1,
+    "tools": 2,
+    "templates": 3,
+    "reminders": 4,
+    "github": 5,
+    "games": 6,
+    "fun": 7,
+    "crypto": 8,
+    "ai": 9,
+    "feedback": 10,
+    "other": 11,
 }
 @dataclass(frozen=True)
 class GroupMeta:
@@ -44,8 +45,9 @@ class GroupMeta:
 
 
 GROUP_METADATA = {
-    "utilities": GroupMeta("Utilities", "General utility and lookup commands.", Emoji.UTILITIES.value),
-    "tools": GroupMeta("Tools", "Practical everyday helper tools.", Emoji.UTILITIES.value),
+    "utility": GroupMeta("Utility", "Information and everyday utility commands.", Emoji.UTILITIES.value),
+    "server": GroupMeta("Server", "Server, role, member, and channel information.", Emoji.HOUSE.value),
+    "tools": GroupMeta("Tools", "Helper tools for media, text, web, and security.", Emoji.UTILITIES.value),
     "templates": GroupMeta("Templates", "Save, manage, and send reusable templates.", Emoji.FILE.value),
     "reminders": GroupMeta("Reminders", "Never forget a task with personal reminders.", Emoji.TIME.value),
     "github": GroupMeta("GitHub", "Inspect repositories, users, and pull requests.", Emoji.GITHUB.value),
@@ -57,8 +59,8 @@ GROUP_METADATA = {
     "other": GroupMeta("Other", "Uncategorized and standalone commands.", Emoji.COMMAND.value),
 }
 COG_GROUPS = {
-    "UserUtility": "utilities",
-    "ServerUtility": "utilities",
+    "UserUtility": "utility",
+    "ServerUtility": "server",
     "Tools": "tools",
     "Template": "templates",
     "Reminder": "reminders",

@@ -7,8 +7,8 @@ from core.amenity import Amenity
 
 
 class ServerUtility(commands.Cog):
-    display_name = "Server Utility"
-    group_name = "Utilities"
+    display_name = "Server"
+    group_name = "Server"
 
     def __init__(self, bot: Amenity) -> None:
         self.bot = bot

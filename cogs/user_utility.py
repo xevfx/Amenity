@@ -1,20 +1,16 @@
 import asyncio
 import io
 import os
-import re
 import tempfile
-from datetime import datetime
 from pathlib import Path
-from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
+from urllib.parse import quote
 
 import aiohttp
 import discord
 import qrcode
 from discord import app_commands
 from discord.ext import commands
-from googletrans import LANGUAGES, Translator
 from PIL import Image, ImageColor, ImageDraw, ImageFilter, ImageOps
-from simpleeval import simple_eval
 
 from api.crypto_networks import CRYPTO_NETWORK_BY_VALUE, CRYPTO_NETWORK_CHOICES, crypto_qr_payload
 from api.emojis import Emoji
@@ -31,7 +27,6 @@ QR_BACK_COLOR = "white"
 QR_GLOW_COLOR = "#1e88e5"
 EMBED_DESCRIPTION_LIMIT = 4096
 EMBED_FIELD_VALUE_LIMIT = 1024
-CODE_BLOCK_OVERHEAD = 8
 
 BLIKK_CATALOG_URL = "https://blikk-deco.vercel.app/api/catalog"
 MAX_DECO_SEARCH_QUERY = 80
@@ -92,32 +87,12 @@ def _build_deco_embed(item: dict, index: int, total: int) -> discord.Embed:
     return embed
 
 
-# Reverse language-name lookup, built once instead of per translate call.
-_REVERSE_LANGUAGES = {name.lower(): code for code, name in LANGUAGES.items()}
-
-
 def _truncate(value: str, limit: int) -> str:
     if len(value) <= limit:
         return value
     if limit <= 1:
         return value[:limit]
     return f"{value[: limit - 1]}…"
-
-
-def _code_block(value: str, *, limit: int = EMBED_FIELD_VALUE_LIMIT) -> str:
-    truncated = _truncate(value.replace("```", "`\u200b``"), limit - CODE_BLOCK_OVERHEAD)
-    return f"```\n{truncated}\n```"
-
-
-def _remove_instagram_tracking(link: str) -> str:
-    has_scheme = bool(re.match(r"https?://", link, flags=re.IGNORECASE))
-    parseable_link = link if has_scheme else f"https://{link}"
-    parts = urlsplit(parseable_link)
-    query = urlencode(
-        [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key.lower() != "igsh"]
-    )
-    cleaned = urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
-    return cleaned if has_scheme else cleaned.removeprefix("https://")
 
 
 def _safe_unlink(path: str) -> None:
@@ -200,21 +175,6 @@ def _apply_glow(
     return combined
 
 
-def _resolve_language(value: str) -> tuple[str, str] | None:
-    if not value:
-        return None
-    normalized = value.strip().lower()
-    if not normalized:
-        return None
-    normalized = normalized.replace("_", "-")
-    if normalized in LANGUAGES:
-        return normalized, LANGUAGES[normalized]
-    code = _REVERSE_LANGUAGES.get(normalized)
-    if code:
-        return code, LANGUAGES[code]
-    return None
-
-
 def generate_qr(
     data: str,
     filename: str,
@@ -271,28 +231,15 @@ def generate_qr(
 
 
 class UserUtility(commands.Cog):
-    display_name = "User Utility"
-    group_name = "Utilities"
+    display_name = "Utility"
+    group_name = "Utility"
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.aiohttp = create_http_session()
-        self.translator = Translator()
-        self.translate_to_english_menu = app_commands.ContextMenu(
-            name="translate-to-english",
-            callback=self.translate_to_english,
-            type=discord.AppCommandType.message,
-            allowed_installs=app_commands.AppInstallationType(guild=False, user=True),
-            allowed_contexts=app_commands.AppCommandContext(guild=True, dm_channel=True, private_channel=True),
-        )
-        self.bot.tree.add_command(self.translate_to_english_menu)
 
     async def cog_unload(self) -> None:
         await close_http_session(self.aiohttp)
-        self.bot.tree.remove_command(
-            self.translate_to_english_menu.name,
-            type=self.translate_to_english_menu.type,
-        )
 
     def _format_user_badges(self, user: discord.User) -> str:
         badge_map = [
@@ -689,288 +636,6 @@ class UserUtility(commands.Cog):
             color=discord.Color.dark_green(),
         )
 
-    @commands.hybrid_command(name="thumbnail", description="Fetch the youtube video thumnail.")
-    @app_commands.allowed_installs(guilds=False, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @app_commands.describe(link="The YouTube video URL to fetch the thumbnail from.")
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    async def thumbnail(self, ctx: commands.Context, link: str) -> None:
-        """
-        Fetch the youtube video thumnail.
-        """
-        if len(link) > 100:
-            await ctx.reply(
-                embed=discord.Embed(
-                    description="Link too long.",
-                    color=discord.Color.red(),
-                ),
-                delete_after=5,
-                ephemeral=True,
-            )
-            return
-        try:
-            pattern = r"(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/))([\w-]{11})"
-            match = re.search(pattern, link)
-            if not match:
-                raise ValueError("Invalid YouTube URL.")
-            vid_id = match.group(1)
-            thumb_url = f"https://img.youtube.com/vi/{vid_id}/maxresdefault.jpg"
-            embed = discord.Embed(description=f"## [YouTube Thumbnail]({link})", color=discord.Color.red())
-            embed.set_image(url=thumb_url)
-            await ctx.reply(embed=embed, mention_author=False)
-        except Exception:
-            embed = discord.Embed(description=" ❕ Error Fetching Thumbnail", color=discord.Color.red())
-            await ctx.reply(embed=embed, mention_author=False, delete_after=5, ephemeral=True)
-
-    @commands.hybrid_command(
-        name="instagram",
-        description="Watch an Instagram reel without leaving Discord.",
-        aliases=["ig"],
-    )
-    @app_commands.allowed_installs(guilds=False, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @app_commands.describe(link="The Instagram reel URL to embed.")
-    async def igv(self, ctx: commands.Context, link: str) -> None:
-        """
-        Embed an Instagram reel or post.
-        """
-        pattern = r"(?:https?://)?(?:www\.)?instagram\.com/(?:reel|p)/([a-zA-Z0-9_-]+)/?"
-        match = re.search(pattern, link)
-        if not match:
-            await ctx.reply("Invalid Instagram URL.", mention_author=False, delete_after=5, ephemeral=True)
-            return
-
-        clean_link = _remove_instagram_tracking(link)
-        newlink = clean_link.replace("instagram.com", "kkinstagram.com")
-        await ctx.reply(f"[Video]({newlink})", mention_author=False)
-
-    @commands.hybrid_command(
-        name="twitter",
-        description="Watch an X.com post without leaving Discord.",
-        aliases=["tweet"],
-    )
-    @app_commands.allowed_installs(guilds=False, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @app_commands.describe(link="The tweet URL to embed.")
-    async def twitter(self, ctx: commands.Context, link: str) -> None:
-        """
-        Embed an X.com post.
-        """
-        pattern = r"(?:https?://)?(?:www\.)?x\.com/([a-zA-Z0-9_-]+)/status/(\d+)/?"
-        match = re.search(pattern, link)
-        if not match:
-            await ctx.reply("Invalid X.com URL.", mention_author=False, delete_after=5, ephemeral=True)
-            return
-
-        newlink = link.replace("x.com", "fixupx.com")
-        await ctx.reply(f"[Post]({newlink})", mention_author=False)
-
-    @commands.hybrid_command(name="tiktok", description="Watch a TikTok video without leaving Discord.", aliases=["tt"])
-    @app_commands.allowed_installs(guilds=False, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @app_commands.describe(link="The TikTok video URL to embed.")
-    async def tiktok(self, ctx: commands.Context, link: str) -> None:
-        """
-        Embed a TikTok video.
-        """
-        pattern = r"(?:https?://)?(?:www\.)?tiktok\.com/@([a-zA-Z0-9_-]+)/video/(\d+)/?"
-        match = re.search(pattern, link)
-        if not match:
-            await ctx.reply("Invalid TikTok URL.", mention_author=False, delete_after=5, ephemeral=True)
-            return
-
-        newlink = link.replace("tiktok.com", "tnktok.com")
-        await ctx.reply(f"[Video]({newlink})", mention_author=False)
-
-    @commands.hybrid_command(name="tinyurl", description="Shorten a URL using TinyURL")
-    @app_commands.allowed_installs(guilds=False, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @commands.cooldown(1, 15, commands.BucketType.user)
-    @commands.max_concurrency(20, commands.BucketType.default, wait=True)
-    async def shorten(self, ctx: commands.Context, url: str) -> None:
-        """
-        Shorten a URL using TinyURL
-        """
-        if len(url) > 150:
-            await ctx.reply(
-                embed=discord.Embed(
-                    description="URL too long. Please limit to 150 characters.",
-                    color=discord.Color.red(),
-                ),
-                delete_after=5,
-                ephemeral=True,
-            )
-            return
-        url = url.lower()
-        try:
-            api_url = f"https://tinyurl.com/api-create.php?url={url}"
-            async with self.aiohttp.get(api_url) as resp:
-                if resp.status != 200:
-                    await ctx.reply(
-                        "Failed to shorten the URL.",
-                        ephemeral=True,
-                        delete_after=5,
-                    )
-                    return
-                short_url = await resp.text()
-            embed = discord.Embed(title="Shortened URL", description=f"{short_url}", color=discord.Color.blue())
-            embed.add_field(name="Original", value=url.lower(), inline=False)
-            await ctx.reply(embed=embed, mention_author=False)
-        except Exception as e:
-            await ctx.reply("An error occurred.", ephemeral=True, delete_after=5)
-            log_exception(e)
-
-    @commands.hybrid_command(name="math", description="Perform a math calculation.")
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @app_commands.allowed_installs(guilds=False, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @commands.max_concurrency(10, commands.BucketType.default, wait=True)
-    @app_commands.describe(expression="The mathematical expression to evaluate.")
-    async def math(self, ctx: commands.Context, *, expression: str) -> None:
-        """Performs a mathematical calculation."""
-        # A very basic and somewhat unsafe way to do math.
-        # For a production bot, consider using a library like 'numexpr'
-        try:
-            # We will use a whitelist of allowed characters for security
-            allowed_chars = "0123456789+-*/(). "
-            if not all(char in allowed_chars for char in expression):
-                await ctx.send("Invalid characters in expression.")
-                return
-
-            await ctx.defer()
-            result = await run_cpu(simple_eval, expression)
-            embed = discord.Embed(title="Math Calculation", color=discord.Color.purple())
-            embed.add_field(name="Expression", value=_code_block(expression), inline=False)
-            embed.add_field(name="Result", value=_code_block(str(result)), inline=False)
-            await ctx.send(embed=embed)
-        except Exception:
-            await ctx.send("An error occurred")
-
-    @commands.hybrid_command(name="binary", description="Convert text to binary or binary to text.")
-    @app_commands.describe(message="The text or binary to convert.")
-    @app_commands.allowed_installs(guilds=False, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def binary(self, ctx: commands.Context, *, message: str) -> None:
-        """
-        Converts text to binary or binary to text.
-        The command automatically detects the input type.
-        """
-        # Check if the input is binary or text
-        if all(c in "01 " for c in message):
-            # Binary to Text
-            binary_values = message.split()
-            ascii_string = ""
-            for binary_value in binary_values:
-                an_integer = int(binary_value, 2)
-                ascii_character = chr(an_integer)
-                ascii_string += ascii_character
-
-            if len(ascii_string) > 2000:
-                await ctx.send("The output is too long to be sent in a message.")
-                return
-
-            embed = discord.Embed(title="Binary to Text Conversion", color=0xADD8E6)
-            embed.add_field(name=" Input (Binary)", value=_code_block(message), inline=False)
-            embed.add_field(name=" Output (Text)", value=_code_block(ascii_string), inline=False)
-            await ctx.send(embed=embed)
-
-        else:
-            binary_result = " ".join(format(ord(char), "08b") for char in message)
-
-            if len(binary_result) > 2000:
-                await ctx.send("The output is too long to be sent in a message.")
-                return
-
-            embed = discord.Embed(title="Text to Binary Conversion", color=discord.Color.blue())
-            embed.add_field(
-                name="Input (Text)",
-                value=_code_block(message),
-                inline=False,
-            )
-            embed.add_field(
-                name="Output (Binary)",
-                value=_code_block(binary_result),
-                inline=False,
-            )
-            await ctx.send(embed=embed)
-
-    async def translate_to_english(
-        self,
-        interaction: discord.Interaction,
-        message: discord.Message,
-    ) -> None:
-        text = message.content.strip()
-        if not text:
-            await interaction.response.send_message(
-                "This message has no text to translate.",
-                ephemeral=True,
-            )
-            return
-        try:
-            translated = await self.translator.translate(text, dest="en")
-            source_lang = LANGUAGES.get(translated.src, "Unknown")
-            embed = discord.Embed(
-                title="Translation to English",
-                color=discord.Color.gold(),
-            )
-            embed.add_field(
-                name=f"Original ({source_lang.title()})",
-                value=_code_block(text),
-                inline=False,
-            )
-            embed.add_field(
-                name="Translated (English)",
-                value=_code_block(translated.text),
-                inline=False,
-            )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-        except Exception:
-            await interaction.response.send_message(
-                "An error occurred during translation",
-                ephemeral=True,
-            )
-
-    @commands.hybrid_command(name="translate", description="Translate text to a target language.")
-    @app_commands.allowed_installs(guilds=False, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @app_commands.describe(
-        to="Target language (name or code, e.g., Spanish or es). Defaults to English.",
-        text="The text to translate.",
-    )
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.max_concurrency(50, commands.BucketType.default, wait=True)
-    async def translate(self, ctx: commands.Context, to: str = None, *, text: str) -> None:
-        """Translates the given text to the requested language."""
-        target = to or "en"
-        resolved = _resolve_language(target)
-        if resolved is None:
-            await ctx.send(f"Unknown language `{target}`. Use a language name or code (e.g., `Spanish` or `es`).")
-            return
-        dest_code, dest_name = resolved
-        try:
-            # The translator can sometimes be unreliable, so we wrap it in a try-except
-            translated = await self.translator.translate(text, dest=dest_code)
-            source_lang = LANGUAGES.get(translated.src, "Unknown")
-
-            embed = discord.Embed(
-                title=f"Translation to {dest_name.title()}",
-                color=discord.Color.gold(),
-            )
-            embed.add_field(
-                name=f"Original ({source_lang.title()})",
-                value=_code_block(text),
-                inline=False,
-            )
-            embed.add_field(
-                name=f"Translated ({dest_name.title()})",
-                value=_code_block(translated.text),
-                inline=False,
-            )
-            await ctx.send(embed=embed)
-        except Exception as e:
-            # await ctx.send("An error occurred during translation")
-            await ctx.send(str(e))
-
     @commands.hybrid_command(name="deco", description="Get a user avatar decoration.")
     @app_commands.allowed_installs(guilds=False, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -1120,35 +785,6 @@ class UserUtility(commands.Cog):
 
         view = EmbedPaginator(embeds, author_id=ctx.author.id)
         view.message = await ctx.reply(embed=embeds[0], view=view, mention_author=False, **send_kwargs)
-
-    @commands.hybrid_command(name="enlarge", description="Enlarge a custom emoji.")
-    @app_commands.allowed_installs(guilds=False, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @app_commands.describe(emoji="The custom emoji you want to enlarge.")
-    async def enlarge(self, ctx: commands.Context, emoji: discord.PartialEmoji) -> None:
-        """Enlarge a custom emoji to download it or see it in high resolution."""
-
-        # Native Unicode emojis (like 😂) don't have an ID or a Discord CDN URL
-        if emoji.id is None:
-            await ctx.send(
-                "⚠ Native Unicode emojis cannot be enlarged. Please provide a custom server emoji.",
-                ephemeral=True,
-            )
-            return
-
-        # Use the native .url attribute provided by discord.py (handles gif/png automatically)
-        # size=1024 fetches the highest quality image available
-        url = emoji.url
-
-        embed = discord.Embed(
-            description=f"Enlarged Emoji: [{emoji.name}]({url})",
-            color=discord.Color.magenta(),
-            timestamp=datetime.now(),  # Used timezone-aware datetime to prevent discord.py deprecation warnings
-        )
-        embed.set_image(url=url)
-        embed.set_footer(text=f"Emoji ID: {emoji.id}")
-
-        await ctx.send(embed=embed)
 
 
 async def setup(bot: Amenity) -> None:

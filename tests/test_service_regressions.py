@@ -197,3 +197,11 @@ async def test_tavily_search_does_not_cache_server_errors() -> None:
     assert first == ([], 503, 0, False)
     assert second == ([{"title": "retry"}], 200, 1, False)
     assert search.await_count == 2
+
+
+def test_code_block_truncates_to_embed_field_limit() -> None:
+    block = tools_module._code_block("x" * 5000)
+    inner = block.removeprefix("```\n").removesuffix("\n```")
+
+    assert len(inner) <= tools_module.EMBED_FIELD_VALUE_LIMIT - tools_module.CODE_BLOCK_OVERHEAD
+    assert inner.endswith("…")

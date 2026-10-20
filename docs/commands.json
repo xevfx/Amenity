@@ -1,13 +1,13 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-10-16T08:18:44.125774+00:00",
+  "generated_at": "2026-10-20T10:42:33.496665+00:00",
   "prefix": "",
   "counts": {
-    "commands": 105,
-    "categories": 10,
-    "prefix": 104,
-    "slash": 105,
-    "hybrid": 104
+    "commands": 106,
+    "categories": 11,
+    "prefix": 105,
+    "slash": 106,
+    "hybrid": 105
   },
   "categories": [
     {
@@ -5232,6 +5232,613 @@
       "count": 5
     },
     {
+      "name": "Server",
+      "commands": [
+        {
+          "id": "channel",
+          "name": "channel",
+          "qualified_name": "channel",
+          "display_name": "channel",
+          "description": "Channel utility commands",
+          "category": "Server",
+          "cog": "Server",
+          "parent": null,
+          "is_group": true,
+          "subcommands": [
+            "channel info"
+          ],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "channel",
+            "qualified_name": "channel",
+            "aliases": [],
+            "usage": "channel",
+            "signature": "",
+            "parameters": [],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "channel",
+            "qualified_name": "channel",
+            "mention": "/channel",
+            "parameters": [],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/channel",
+            "Channel utility commands",
+            "Server",
+            "channel"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "channel.info",
+          "name": "info",
+          "qualified_name": "channel info",
+          "display_name": "channel / info",
+          "description": "Get information about a specific channel.",
+          "category": "Server",
+          "cog": "Server",
+          "parent": "channel",
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "info",
+            "qualified_name": "channel info",
+            "aliases": [],
+            "usage": "channel info [channel]",
+            "signature": "[channel]",
+            "parameters": [
+              {
+                "name": "channel",
+                "display": "[channel]",
+                "description": null,
+                "required": false,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Union"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "info",
+            "qualified_name": "channel info",
+            "mention": "/channel info",
+            "parameters": [
+              {
+                "name": "channel",
+                "display": "[channel]",
+                "description": "The channel to fetch information for.",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "channel",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/channel info",
+            "Get information about a specific channel.",
+            "Server",
+            "channel / info",
+            "channel info",
+            "info"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "member",
+          "name": "member",
+          "qualified_name": "member",
+          "display_name": "member",
+          "description": "Member utility commands",
+          "category": "Server",
+          "cog": "Server",
+          "parent": null,
+          "is_group": true,
+          "subcommands": [
+            "member info"
+          ],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "member",
+            "qualified_name": "member",
+            "aliases": [],
+            "usage": "member",
+            "signature": "",
+            "parameters": [],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "member",
+            "qualified_name": "member",
+            "mention": "/member",
+            "parameters": [],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/member",
+            "Member utility commands",
+            "Server",
+            "member"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "member.info",
+          "name": "info",
+          "qualified_name": "member info",
+          "display_name": "member / info",
+          "description": "Get information about a specific member.",
+          "category": "Server",
+          "cog": "Server",
+          "parent": "member",
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "info",
+            "qualified_name": "member info",
+            "aliases": [],
+            "usage": "member info [user]",
+            "signature": "[user]",
+            "parameters": [
+              {
+                "name": "user",
+                "display": "[user]",
+                "description": null,
+                "required": false,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Member"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "info",
+            "qualified_name": "member info",
+            "mention": "/member info",
+            "parameters": [
+              {
+                "name": "user",
+                "display": "[user]",
+                "description": "The member to fetch information for.",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "user",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/member info",
+            "Get information about a specific member.",
+            "Server",
+            "info",
+            "member / info",
+            "member info"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "role",
+          "name": "role",
+          "qualified_name": "role",
+          "display_name": "role",
+          "description": "Role utility commands",
+          "category": "Server",
+          "cog": "Server",
+          "parent": null,
+          "is_group": true,
+          "subcommands": [
+            "role info"
+          ],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "role",
+            "qualified_name": "role",
+            "aliases": [],
+            "usage": "role",
+            "signature": "",
+            "parameters": [],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "role",
+            "qualified_name": "role",
+            "mention": "/role",
+            "parameters": [],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/role",
+            "Role utility commands",
+            "Server",
+            "role"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "role.info",
+          "name": "info",
+          "qualified_name": "role info",
+          "display_name": "role / info",
+          "description": "Get details of a specific role.",
+          "category": "Server",
+          "cog": "Server",
+          "parent": "role",
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "info",
+            "qualified_name": "role info",
+            "aliases": [],
+            "usage": "role info <role>",
+            "signature": "<role>",
+            "parameters": [
+              {
+                "name": "role",
+                "display": "<role>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "Role"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "info",
+            "qualified_name": "role info",
+            "mention": "/role info",
+            "parameters": [
+              {
+                "name": "role",
+                "display": "<role>",
+                "description": "The role to fetch information for.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "role",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/role info",
+            "Get details of a specific role.",
+            "Server",
+            "info",
+            "role / info",
+            "role info"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "server",
+          "name": "server",
+          "qualified_name": "server",
+          "display_name": "server",
+          "description": "Server utility commands",
+          "category": "Server",
+          "cog": "Server",
+          "parent": null,
+          "is_group": true,
+          "subcommands": [
+            "server info"
+          ],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "server",
+            "qualified_name": "server",
+            "aliases": [],
+            "usage": "server",
+            "signature": "",
+            "parameters": [],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "server",
+            "qualified_name": "server",
+            "mention": "/server",
+            "parameters": [],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/server",
+            "Server",
+            "Server utility commands",
+            "server"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "server.info",
+          "name": "info",
+          "qualified_name": "server info",
+          "display_name": "server / info",
+          "description": "Get information about the server.",
+          "category": "Server",
+          "cog": "Server",
+          "parent": "server",
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "info",
+            "qualified_name": "server info",
+            "aliases": [],
+            "usage": "server info",
+            "signature": "",
+            "parameters": [],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "info",
+            "qualified_name": "server info",
+            "mention": "/server info",
+            "parameters": [],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/server info",
+            "Get information about the server.",
+            "Server",
+            "info",
+            "server / info",
+            "server info"
+          ],
+          "aliases": []
+        }
+      ],
+      "top_level_commands": [
+        {
+          "id": "channel",
+          "name": "channel",
+          "qualified_name": "channel",
+          "display_name": "channel",
+          "description": "Channel utility commands",
+          "category": "Server",
+          "cog": "Server",
+          "parent": null,
+          "is_group": true,
+          "subcommands": [
+            "channel info"
+          ],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "channel",
+            "qualified_name": "channel",
+            "aliases": [],
+            "usage": "channel",
+            "signature": "",
+            "parameters": [],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "channel",
+            "qualified_name": "channel",
+            "mention": "/channel",
+            "parameters": [],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/channel",
+            "Channel utility commands",
+            "Server",
+            "channel"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "member",
+          "name": "member",
+          "qualified_name": "member",
+          "display_name": "member",
+          "description": "Member utility commands",
+          "category": "Server",
+          "cog": "Server",
+          "parent": null,
+          "is_group": true,
+          "subcommands": [
+            "member info"
+          ],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "member",
+            "qualified_name": "member",
+            "aliases": [],
+            "usage": "member",
+            "signature": "",
+            "parameters": [],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "member",
+            "qualified_name": "member",
+            "mention": "/member",
+            "parameters": [],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/member",
+            "Member utility commands",
+            "Server",
+            "member"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "role",
+          "name": "role",
+          "qualified_name": "role",
+          "display_name": "role",
+          "description": "Role utility commands",
+          "category": "Server",
+          "cog": "Server",
+          "parent": null,
+          "is_group": true,
+          "subcommands": [
+            "role info"
+          ],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "role",
+            "qualified_name": "role",
+            "aliases": [],
+            "usage": "role",
+            "signature": "",
+            "parameters": [],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "role",
+            "qualified_name": "role",
+            "mention": "/role",
+            "parameters": [],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/role",
+            "Role utility commands",
+            "Server",
+            "role"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "server",
+          "name": "server",
+          "qualified_name": "server",
+          "display_name": "server",
+          "description": "Server utility commands",
+          "category": "Server",
+          "cog": "Server",
+          "parent": null,
+          "is_group": true,
+          "subcommands": [
+            "server info"
+          ],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "server",
+            "qualified_name": "server",
+            "aliases": [],
+            "usage": "server",
+            "signature": "",
+            "parameters": [],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "server",
+            "qualified_name": "server",
+            "mention": "/server",
+            "parameters": [],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/server",
+            "Server",
+            "Server utility commands",
+            "server"
+          ],
+          "aliases": []
+        }
+      ],
+      "count": 8
+    },
+    {
       "name": "Templates",
       "commands": [
         {
@@ -5837,6 +6444,68 @@
           "aliases": []
         },
         {
+          "id": "binary",
+          "name": "binary",
+          "qualified_name": "binary",
+          "display_name": "binary",
+          "description": "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "binary",
+            "qualified_name": "binary",
+            "aliases": [],
+            "usage": "binary <message...>",
+            "signature": "<message>",
+            "parameters": [
+              {
+                "name": "message",
+                "display": "<message...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "binary",
+            "qualified_name": "binary",
+            "mention": "/binary",
+            "parameters": [
+              {
+                "name": "message",
+                "display": "<message>",
+                "description": "The text or binary to convert.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/binary",
+            "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
+            "Tools",
+            "binary"
+          ],
+          "aliases": []
+        },
+        {
           "id": "checkusers",
           "name": "checkusers",
           "qualified_name": "checkusers",
@@ -6193,6 +6862,68 @@
             "Encrypt or encode text.",
             "Tools",
             "encrypt"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "enlarge",
+          "name": "enlarge",
+          "qualified_name": "enlarge",
+          "display_name": "enlarge",
+          "description": "Enlarge a custom emoji to download it or see it in high resolution.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "enlarge",
+            "qualified_name": "enlarge",
+            "aliases": [],
+            "usage": "enlarge <emoji>",
+            "signature": "<emoji>",
+            "parameters": [
+              {
+                "name": "emoji",
+                "display": "<emoji>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "PartialEmoji"
+              }
+            ],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "enlarge",
+            "qualified_name": "enlarge",
+            "mention": "/enlarge",
+            "parameters": [
+              {
+                "name": "emoji",
+                "display": "<emoji>",
+                "description": "The custom emoji you want to enlarge.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/enlarge",
+            "Enlarge a custom emoji to download it or see it in high resolution.",
+            "Tools",
+            "enlarge"
           ],
           "aliases": []
         },
@@ -6731,6 +7462,144 @@
             "image / rotate-up",
             "image rotate-up",
             "rotate-up"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "instagram",
+          "name": "instagram",
+          "qualified_name": "instagram",
+          "display_name": "instagram",
+          "description": "Embed an Instagram reel or post.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "instagram",
+            "qualified_name": "instagram",
+            "aliases": [
+              "ig"
+            ],
+            "usage": "instagram <link>",
+            "signature": "<link>",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              }
+            ],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "instagram",
+            "qualified_name": "instagram",
+            "mention": "/instagram",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": "The Instagram reel URL to embed.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/instagram",
+            "Embed an Instagram reel or post.",
+            "Tools",
+            "ig",
+            "instagram"
+          ],
+          "aliases": [
+            "ig"
+          ]
+        },
+        {
+          "id": "math",
+          "name": "math",
+          "qualified_name": "math",
+          "display_name": "math",
+          "description": "Performs a mathematical calculation.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "math",
+            "qualified_name": "math",
+            "aliases": [],
+            "usage": "math <expression...>",
+            "signature": "<expression>",
+            "parameters": [
+              {
+                "name": "expression",
+                "display": "<expression...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": {
+              "number": 10,
+              "bucket": "default",
+              "wait": true
+            }
+          },
+          "slash": {
+            "name": "math",
+            "qualified_name": "math",
+            "mention": "/math",
+            "parameters": [
+              {
+                "name": "expression",
+                "display": "<expression>",
+                "description": "The mathematical expression to evaluate.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/math",
+            "Performs a mathematical calculation.",
+            "Tools",
+            "math"
           ],
           "aliases": []
         },
@@ -7285,6 +8154,368 @@
           "aliases": []
         },
         {
+          "id": "thumbnail",
+          "name": "thumbnail",
+          "qualified_name": "thumbnail",
+          "display_name": "thumbnail",
+          "description": "Fetch the youtube video thumnail.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "thumbnail",
+            "qualified_name": "thumbnail",
+            "aliases": [],
+            "usage": "thumbnail <link>",
+            "signature": "<link>",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "thumbnail",
+            "qualified_name": "thumbnail",
+            "mention": "/thumbnail",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": "The YouTube video URL to fetch the thumbnail from.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/thumbnail",
+            "Fetch the youtube video thumnail.",
+            "Tools",
+            "thumbnail"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "tiktok",
+          "name": "tiktok",
+          "qualified_name": "tiktok",
+          "display_name": "tiktok",
+          "description": "Embed a TikTok video.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "tiktok",
+            "qualified_name": "tiktok",
+            "aliases": [
+              "tt"
+            ],
+            "usage": "tiktok <link>",
+            "signature": "<link>",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              }
+            ],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "tiktok",
+            "qualified_name": "tiktok",
+            "mention": "/tiktok",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": "The TikTok video URL to embed.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/tiktok",
+            "Embed a TikTok video.",
+            "Tools",
+            "tiktok",
+            "tt"
+          ],
+          "aliases": [
+            "tt"
+          ]
+        },
+        {
+          "id": "tinyurl",
+          "name": "tinyurl",
+          "qualified_name": "tinyurl",
+          "display_name": "tinyurl",
+          "description": "Shorten a URL using TinyURL",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "tinyurl",
+            "qualified_name": "tinyurl",
+            "aliases": [],
+            "usage": "tinyurl <url>",
+            "signature": "<url>",
+            "parameters": [
+              {
+                "name": "url",
+                "display": "<url>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 15.0,
+              "bucket": null,
+              "label": "1/15s"
+            },
+            "max_concurrency": {
+              "number": 20,
+              "bucket": "default",
+              "wait": true
+            }
+          },
+          "slash": {
+            "name": "tinyurl",
+            "qualified_name": "tinyurl",
+            "mention": "/tinyurl",
+            "parameters": [
+              {
+                "name": "url",
+                "display": "<url>",
+                "description": "\u2026",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/tinyurl",
+            "Shorten a URL using TinyURL",
+            "Tools",
+            "tinyurl"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "translate",
+          "name": "translate",
+          "qualified_name": "translate",
+          "display_name": "translate",
+          "description": "Translates the given text to the requested language.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "translate",
+            "qualified_name": "translate",
+            "aliases": [],
+            "usage": "translate [to] <text...>",
+            "signature": "[to] <text>",
+            "parameters": [
+              {
+                "name": "to",
+                "display": "[to]",
+                "description": null,
+                "required": false,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              },
+              {
+                "name": "text",
+                "display": "<text...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": {
+              "number": 50,
+              "bucket": "default",
+              "wait": true
+            }
+          },
+          "slash": {
+            "name": "translate",
+            "qualified_name": "translate",
+            "mention": "/translate",
+            "parameters": [
+              {
+                "name": "text",
+                "display": "<text>",
+                "description": "The text to translate.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              },
+              {
+                "name": "to",
+                "display": "[to]",
+                "description": "Target language (name or code, e.g., Spanish or es). Defaults to English.",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/translate",
+            "Tools",
+            "Translates the given text to the requested language.",
+            "translate"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "twitter",
+          "name": "twitter",
+          "qualified_name": "twitter",
+          "display_name": "twitter",
+          "description": "Embed an X.com post.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "twitter",
+            "qualified_name": "twitter",
+            "aliases": [
+              "tweet"
+            ],
+            "usage": "twitter <link>",
+            "signature": "<link>",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              }
+            ],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "twitter",
+            "qualified_name": "twitter",
+            "mention": "/twitter",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": "The tweet URL to embed.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/twitter",
+            "Embed an X.com post.",
+            "Tools",
+            "tweet",
+            "twitter"
+          ],
+          "aliases": [
+            "tweet"
+          ]
+        },
+        {
           "id": "wikipedia",
           "name": "wikipedia",
           "qualified_name": "wikipedia",
@@ -7417,6 +8648,68 @@
             "2fa",
             "Generate a 2FA/TOTP code from a secret.",
             "Tools"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "binary",
+          "name": "binary",
+          "qualified_name": "binary",
+          "display_name": "binary",
+          "description": "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "binary",
+            "qualified_name": "binary",
+            "aliases": [],
+            "usage": "binary <message...>",
+            "signature": "<message>",
+            "parameters": [
+              {
+                "name": "message",
+                "display": "<message...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "binary",
+            "qualified_name": "binary",
+            "mention": "/binary",
+            "parameters": [
+              {
+                "name": "message",
+                "display": "<message>",
+                "description": "The text or binary to convert.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/binary",
+            "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
+            "Tools",
+            "binary"
           ],
           "aliases": []
         },
@@ -7781,6 +9074,68 @@
           "aliases": []
         },
         {
+          "id": "enlarge",
+          "name": "enlarge",
+          "qualified_name": "enlarge",
+          "display_name": "enlarge",
+          "description": "Enlarge a custom emoji to download it or see it in high resolution.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "enlarge",
+            "qualified_name": "enlarge",
+            "aliases": [],
+            "usage": "enlarge <emoji>",
+            "signature": "<emoji>",
+            "parameters": [
+              {
+                "name": "emoji",
+                "display": "<emoji>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "PartialEmoji"
+              }
+            ],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "enlarge",
+            "qualified_name": "enlarge",
+            "mention": "/enlarge",
+            "parameters": [
+              {
+                "name": "emoji",
+                "display": "<emoji>",
+                "description": "The custom emoji you want to enlarge.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/enlarge",
+            "Enlarge a custom emoji to download it or see it in high resolution.",
+            "Tools",
+            "enlarge"
+          ],
+          "aliases": []
+        },
+        {
           "id": "figlet",
           "name": "figlet",
           "qualified_name": "figlet",
@@ -7901,6 +9256,144 @@
             "Tools",
             "Various image manipulation tools.",
             "image"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "instagram",
+          "name": "instagram",
+          "qualified_name": "instagram",
+          "display_name": "instagram",
+          "description": "Embed an Instagram reel or post.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "instagram",
+            "qualified_name": "instagram",
+            "aliases": [
+              "ig"
+            ],
+            "usage": "instagram <link>",
+            "signature": "<link>",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              }
+            ],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "instagram",
+            "qualified_name": "instagram",
+            "mention": "/instagram",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": "The Instagram reel URL to embed.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/instagram",
+            "Embed an Instagram reel or post.",
+            "Tools",
+            "ig",
+            "instagram"
+          ],
+          "aliases": [
+            "ig"
+          ]
+        },
+        {
+          "id": "math",
+          "name": "math",
+          "qualified_name": "math",
+          "display_name": "math",
+          "description": "Performs a mathematical calculation.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "math",
+            "qualified_name": "math",
+            "aliases": [],
+            "usage": "math <expression...>",
+            "signature": "<expression>",
+            "parameters": [
+              {
+                "name": "expression",
+                "display": "<expression...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": {
+              "number": 10,
+              "bucket": "default",
+              "wait": true
+            }
+          },
+          "slash": {
+            "name": "math",
+            "qualified_name": "math",
+            "mention": "/math",
+            "parameters": [
+              {
+                "name": "expression",
+                "display": "<expression>",
+                "description": "The mathematical expression to evaluate.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/math",
+            "Performs a mathematical calculation.",
+            "Tools",
+            "math"
           ],
           "aliases": []
         },
@@ -8342,6 +9835,368 @@
           "aliases": []
         },
         {
+          "id": "thumbnail",
+          "name": "thumbnail",
+          "qualified_name": "thumbnail",
+          "display_name": "thumbnail",
+          "description": "Fetch the youtube video thumnail.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "thumbnail",
+            "qualified_name": "thumbnail",
+            "aliases": [],
+            "usage": "thumbnail <link>",
+            "signature": "<link>",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "thumbnail",
+            "qualified_name": "thumbnail",
+            "mention": "/thumbnail",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": "The YouTube video URL to fetch the thumbnail from.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/thumbnail",
+            "Fetch the youtube video thumnail.",
+            "Tools",
+            "thumbnail"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "tiktok",
+          "name": "tiktok",
+          "qualified_name": "tiktok",
+          "display_name": "tiktok",
+          "description": "Embed a TikTok video.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "tiktok",
+            "qualified_name": "tiktok",
+            "aliases": [
+              "tt"
+            ],
+            "usage": "tiktok <link>",
+            "signature": "<link>",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              }
+            ],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "tiktok",
+            "qualified_name": "tiktok",
+            "mention": "/tiktok",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": "The TikTok video URL to embed.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/tiktok",
+            "Embed a TikTok video.",
+            "Tools",
+            "tiktok",
+            "tt"
+          ],
+          "aliases": [
+            "tt"
+          ]
+        },
+        {
+          "id": "tinyurl",
+          "name": "tinyurl",
+          "qualified_name": "tinyurl",
+          "display_name": "tinyurl",
+          "description": "Shorten a URL using TinyURL",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "tinyurl",
+            "qualified_name": "tinyurl",
+            "aliases": [],
+            "usage": "tinyurl <url>",
+            "signature": "<url>",
+            "parameters": [
+              {
+                "name": "url",
+                "display": "<url>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 15.0,
+              "bucket": null,
+              "label": "1/15s"
+            },
+            "max_concurrency": {
+              "number": 20,
+              "bucket": "default",
+              "wait": true
+            }
+          },
+          "slash": {
+            "name": "tinyurl",
+            "qualified_name": "tinyurl",
+            "mention": "/tinyurl",
+            "parameters": [
+              {
+                "name": "url",
+                "display": "<url>",
+                "description": "\u2026",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/tinyurl",
+            "Shorten a URL using TinyURL",
+            "Tools",
+            "tinyurl"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "translate",
+          "name": "translate",
+          "qualified_name": "translate",
+          "display_name": "translate",
+          "description": "Translates the given text to the requested language.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "translate",
+            "qualified_name": "translate",
+            "aliases": [],
+            "usage": "translate [to] <text...>",
+            "signature": "[to] <text>",
+            "parameters": [
+              {
+                "name": "to",
+                "display": "[to]",
+                "description": null,
+                "required": false,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              },
+              {
+                "name": "text",
+                "display": "<text...>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "keyword_only",
+                "type": "str"
+              }
+            ],
+            "cooldown": {
+              "rate": 1,
+              "per": 5.0,
+              "bucket": null,
+              "label": "1/5s"
+            },
+            "max_concurrency": {
+              "number": 50,
+              "bucket": "default",
+              "wait": true
+            }
+          },
+          "slash": {
+            "name": "translate",
+            "qualified_name": "translate",
+            "mention": "/translate",
+            "parameters": [
+              {
+                "name": "text",
+                "display": "<text>",
+                "description": "The text to translate.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              },
+              {
+                "name": "to",
+                "display": "[to]",
+                "description": "Target language (name or code, e.g., Spanish or es). Defaults to English.",
+                "required": false,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/translate",
+            "Tools",
+            "Translates the given text to the requested language.",
+            "translate"
+          ],
+          "aliases": []
+        },
+        {
+          "id": "twitter",
+          "name": "twitter",
+          "qualified_name": "twitter",
+          "display_name": "twitter",
+          "description": "Embed an X.com post.",
+          "category": "Tools",
+          "cog": "Tools",
+          "parent": null,
+          "is_group": false,
+          "subcommands": [],
+          "availability": {
+            "prefix": true,
+            "slash": true
+          },
+          "prefix": {
+            "name": "twitter",
+            "qualified_name": "twitter",
+            "aliases": [
+              "tweet"
+            ],
+            "usage": "twitter <link>",
+            "signature": "<link>",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": null,
+                "required": true,
+                "default": null,
+                "kind": "positional_or_keyword",
+                "type": "str"
+              }
+            ],
+            "cooldown": null,
+            "max_concurrency": null
+          },
+          "slash": {
+            "name": "twitter",
+            "qualified_name": "twitter",
+            "mention": "/twitter",
+            "parameters": [
+              {
+                "name": "link",
+                "display": "<link>",
+                "description": "The tweet URL to embed.",
+                "required": true,
+                "default": null,
+                "kind": "slash_option",
+                "type": "string",
+                "choices": []
+              }
+            ],
+            "contexts": [],
+            "installs": []
+          },
+          "search_terms": [
+            "/twitter",
+            "Embed an X.com post.",
+            "Tools",
+            "tweet",
+            "twitter"
+          ],
+          "aliases": [
+            "tweet"
+          ]
+        },
+        {
           "id": "wikipedia",
           "name": "wikipedia",
           "qualified_name": "wikipedia",
@@ -8409,10 +10264,10 @@
           "aliases": []
         }
       ],
-      "count": 20
+      "count": 29
     },
     {
-      "name": "Utilities",
+      "name": "Utility",
       "commands": [
         {
           "id": "avatar",
@@ -8420,8 +10275,8 @@
           "qualified_name": "avatar",
           "display_name": "avatar",
           "description": "Fetch a user's avatar.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -8476,8 +10331,7 @@
           "search_terms": [
             "/avatar",
             "Fetch a user's avatar.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "avatar"
           ],
           "aliases": []
@@ -8488,8 +10342,8 @@
           "qualified_name": "banner",
           "display_name": "banner",
           "description": "Fetch a user's banner.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -8544,186 +10398,8 @@
           "search_terms": [
             "/banner",
             "Fetch a user's banner.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "banner"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "binary",
-          "name": "binary",
-          "qualified_name": "binary",
-          "display_name": "binary",
-          "description": "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "binary",
-            "qualified_name": "binary",
-            "aliases": [],
-            "usage": "binary <message...>",
-            "signature": "<message>",
-            "parameters": [
-              {
-                "name": "message",
-                "display": "<message...>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "keyword_only",
-                "type": "str"
-              }
-            ],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "binary",
-            "qualified_name": "binary",
-            "mention": "/binary",
-            "parameters": [
-              {
-                "name": "message",
-                "display": "<message>",
-                "description": "The text or binary to convert.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/binary",
-            "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
-            "User Utility",
-            "Utilities",
-            "binary"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "channel",
-          "name": "channel",
-          "qualified_name": "channel",
-          "display_name": "channel",
-          "description": "Channel utility commands",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": null,
-          "is_group": true,
-          "subcommands": [
-            "channel info"
-          ],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "channel",
-            "qualified_name": "channel",
-            "aliases": [],
-            "usage": "channel",
-            "signature": "",
-            "parameters": [],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "channel",
-            "qualified_name": "channel",
-            "mention": "/channel",
-            "parameters": [],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/channel",
-            "Channel utility commands",
-            "Server Utility",
-            "Utilities",
-            "channel"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "channel.info",
-          "name": "info",
-          "qualified_name": "channel info",
-          "display_name": "channel / info",
-          "description": "Get information about a specific channel.",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": "channel",
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "info",
-            "qualified_name": "channel info",
-            "aliases": [],
-            "usage": "channel info [channel]",
-            "signature": "[channel]",
-            "parameters": [
-              {
-                "name": "channel",
-                "display": "[channel]",
-                "description": null,
-                "required": false,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "Union"
-              }
-            ],
-            "cooldown": {
-              "rate": 1,
-              "per": 5.0,
-              "bucket": null,
-              "label": "1/5s"
-            },
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "info",
-            "qualified_name": "channel info",
-            "mention": "/channel info",
-            "parameters": [
-              {
-                "name": "channel",
-                "display": "[channel]",
-                "description": "The channel to fetch information for.",
-                "required": false,
-                "default": null,
-                "kind": "slash_option",
-                "type": "channel",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/channel info",
-            "Get information about a specific channel.",
-            "Server Utility",
-            "Utilities",
-            "channel / info",
-            "channel info",
-            "info"
           ],
           "aliases": []
         },
@@ -8733,8 +10409,8 @@
           "qualified_name": "deco",
           "display_name": "deco",
           "description": "Get a user avatar decoration.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -8793,20 +10469,19 @@
           "search_terms": [
             "/deco",
             "Get a user avatar decoration.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "deco"
           ],
           "aliases": []
         },
         {
-          "id": "enlarge",
-          "name": "enlarge",
-          "qualified_name": "enlarge",
-          "display_name": "enlarge",
-          "description": "Enlarge a custom emoji to download it or see it in high resolution.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "id": "deco-search",
+          "name": "deco-search",
+          "qualified_name": "deco-search",
+          "display_name": "deco-search",
+          "description": "Search Discord shop avatar decorations with an animated preview.",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -8815,146 +10490,15 @@
             "slash": true
           },
           "prefix": {
-            "name": "enlarge",
-            "qualified_name": "enlarge",
+            "name": "deco-search",
+            "qualified_name": "deco-search",
             "aliases": [],
-            "usage": "enlarge <emoji>",
-            "signature": "<emoji>",
+            "usage": "deco-search <query...>",
+            "signature": "<query>",
             "parameters": [
               {
-                "name": "emoji",
-                "display": "<emoji>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "PartialEmoji"
-              }
-            ],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "enlarge",
-            "qualified_name": "enlarge",
-            "mention": "/enlarge",
-            "parameters": [
-              {
-                "name": "emoji",
-                "display": "<emoji>",
-                "description": "The custom emoji you want to enlarge.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/enlarge",
-            "Enlarge a custom emoji to download it or see it in high resolution.",
-            "User Utility",
-            "Utilities",
-            "enlarge"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "instagram",
-          "name": "instagram",
-          "qualified_name": "instagram",
-          "display_name": "instagram",
-          "description": "Embed an Instagram reel or post.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "instagram",
-            "qualified_name": "instagram",
-            "aliases": [
-              "ig"
-            ],
-            "usage": "instagram <link>",
-            "signature": "<link>",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              }
-            ],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "instagram",
-            "qualified_name": "instagram",
-            "mention": "/instagram",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": "The Instagram reel URL to embed.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/instagram",
-            "Embed an Instagram reel or post.",
-            "User Utility",
-            "Utilities",
-            "ig",
-            "instagram"
-          ],
-          "aliases": [
-            "ig"
-          ]
-        },
-        {
-          "id": "math",
-          "name": "math",
-          "qualified_name": "math",
-          "display_name": "math",
-          "description": "Performs a mathematical calculation.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "math",
-            "qualified_name": "math",
-            "aliases": [],
-            "usage": "math <expression...>",
-            "signature": "<expression>",
-            "parameters": [
-              {
-                "name": "expression",
-                "display": "<expression...>",
+                "name": "query",
+                "display": "<query...>",
                 "description": null,
                 "required": true,
                 "default": null,
@@ -8969,20 +10513,20 @@
               "label": "1/5s"
             },
             "max_concurrency": {
-              "number": 10,
+              "number": 50,
               "bucket": "default",
               "wait": true
             }
           },
           "slash": {
-            "name": "math",
-            "qualified_name": "math",
-            "mention": "/math",
+            "name": "deco-search",
+            "qualified_name": "deco-search",
+            "mention": "/deco-search",
             "parameters": [
               {
-                "name": "expression",
-                "display": "<expression>",
-                "description": "The mathematical expression to evaluate.",
+                "name": "query",
+                "display": "<query>",
+                "description": "The name (or part of it) of the decoration.",
                 "required": true,
                 "default": null,
                 "kind": "slash_option",
@@ -8994,125 +10538,10 @@
             "installs": []
           },
           "search_terms": [
-            "/math",
-            "Performs a mathematical calculation.",
-            "User Utility",
-            "Utilities",
-            "math"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "member",
-          "name": "member",
-          "qualified_name": "member",
-          "display_name": "member",
-          "description": "Member utility commands",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": null,
-          "is_group": true,
-          "subcommands": [
-            "member info"
-          ],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "member",
-            "qualified_name": "member",
-            "aliases": [],
-            "usage": "member",
-            "signature": "",
-            "parameters": [],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "member",
-            "qualified_name": "member",
-            "mention": "/member",
-            "parameters": [],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/member",
-            "Member utility commands",
-            "Server Utility",
-            "Utilities",
-            "member"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "member.info",
-          "name": "info",
-          "qualified_name": "member info",
-          "display_name": "member / info",
-          "description": "Get information about a specific member.",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": "member",
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "info",
-            "qualified_name": "member info",
-            "aliases": [],
-            "usage": "member info [user]",
-            "signature": "[user]",
-            "parameters": [
-              {
-                "name": "user",
-                "display": "[user]",
-                "description": null,
-                "required": false,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "Member"
-              }
-            ],
-            "cooldown": {
-              "rate": 1,
-              "per": 5.0,
-              "bucket": null,
-              "label": "1/5s"
-            },
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "info",
-            "qualified_name": "member info",
-            "mention": "/member info",
-            "parameters": [
-              {
-                "name": "user",
-                "display": "[user]",
-                "description": "The member to fetch information for.",
-                "required": false,
-                "default": null,
-                "kind": "slash_option",
-                "type": "user",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/member info",
-            "Get information about a specific member.",
-            "Server Utility",
-            "Utilities",
-            "info",
-            "member / info",
-            "member info"
+            "/deco-search",
+            "Search Discord shop avatar decorations with an animated preview.",
+            "Utility",
+            "deco-search"
           ],
           "aliases": []
         },
@@ -9122,8 +10551,8 @@
           "qualified_name": "ping",
           "display_name": "ping",
           "description": "Check the bot's latency.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -9157,8 +10586,7 @@
           "search_terms": [
             "/ping",
             "Check the bot's latency.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "ping"
           ],
           "aliases": []
@@ -9169,8 +10597,8 @@
           "qualified_name": "qr",
           "display_name": "qr",
           "description": "Generate various types of QR codes.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": true,
           "subcommands": [
@@ -9217,8 +10645,7 @@
           "search_terms": [
             "/qr",
             "Generate various types of QR codes.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "qr",
             "qrcode"
           ],
@@ -9232,8 +10659,8 @@
           "qualified_name": "qr crypto",
           "display_name": "qr / crypto",
           "description": "Create a QR for a crypto address",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": "qr",
           "is_group": false,
           "subcommands": [],
@@ -9383,8 +10810,7 @@
           "search_terms": [
             "/qr crypto",
             "Create a QR for a crypto address",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "crypto",
             "qr / crypto",
             "qr crypto"
@@ -9397,8 +10823,8 @@
           "qualified_name": "qr esewa",
           "display_name": "qr / esewa",
           "description": "Create a QR for eSewa",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": "qr",
           "is_group": false,
           "subcommands": [],
@@ -9469,8 +10895,7 @@
           "search_terms": [
             "/qr esewa",
             "Create a QR for eSewa",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "esewa",
             "npr",
             "qr / esewa",
@@ -9486,8 +10911,8 @@
           "qualified_name": "qr paypal",
           "display_name": "qr / paypal",
           "description": "Create QR for PayPal",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": "qr",
           "is_group": false,
           "subcommands": [],
@@ -9539,8 +10964,7 @@
           "search_terms": [
             "/qr paypal",
             "Create QR for PayPal",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "paypal",
             "pp",
             "qr / paypal",
@@ -9556,8 +10980,8 @@
           "qualified_name": "qr text",
           "display_name": "qr / text",
           "description": "Create a QR with custom text",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": "qr",
           "is_group": false,
           "subcommands": [],
@@ -9609,8 +11033,7 @@
           "search_terms": [
             "/qr text",
             "Create a QR with custom text",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "qr / text",
             "qr text",
             "text",
@@ -9626,8 +11049,8 @@
           "qualified_name": "qr upi",
           "display_name": "qr / upi",
           "description": "Create a QR for UPI with optional amount",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": "qr",
           "is_group": false,
           "subcommands": [],
@@ -9717,8 +11140,7 @@
           "search_terms": [
             "/qr upi",
             "Create a QR for UPI with optional amount",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "inr",
             "qr / upi",
             "qr upi",
@@ -9734,8 +11156,8 @@
           "qualified_name": "qr url",
           "display_name": "qr / url",
           "description": "Create a QR with custom URL",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": "qr",
           "is_group": false,
           "subcommands": [],
@@ -9787,8 +11209,7 @@
           "search_terms": [
             "/qr url",
             "Create a QR with custom URL",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "link",
             "qr / url",
             "qr url",
@@ -9799,587 +11220,13 @@
           ]
         },
         {
-          "id": "role",
-          "name": "role",
-          "qualified_name": "role",
-          "display_name": "role",
-          "description": "Role utility commands",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": null,
-          "is_group": true,
-          "subcommands": [
-            "role info"
-          ],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "role",
-            "qualified_name": "role",
-            "aliases": [],
-            "usage": "role",
-            "signature": "",
-            "parameters": [],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "role",
-            "qualified_name": "role",
-            "mention": "/role",
-            "parameters": [],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/role",
-            "Role utility commands",
-            "Server Utility",
-            "Utilities",
-            "role"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "role.info",
-          "name": "info",
-          "qualified_name": "role info",
-          "display_name": "role / info",
-          "description": "Get details of a specific role.",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": "role",
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "info",
-            "qualified_name": "role info",
-            "aliases": [],
-            "usage": "role info <role>",
-            "signature": "<role>",
-            "parameters": [
-              {
-                "name": "role",
-                "display": "<role>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "Role"
-              }
-            ],
-            "cooldown": {
-              "rate": 1,
-              "per": 5.0,
-              "bucket": null,
-              "label": "1/5s"
-            },
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "info",
-            "qualified_name": "role info",
-            "mention": "/role info",
-            "parameters": [
-              {
-                "name": "role",
-                "display": "<role>",
-                "description": "The role to fetch information for.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "role",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/role info",
-            "Get details of a specific role.",
-            "Server Utility",
-            "Utilities",
-            "info",
-            "role / info",
-            "role info"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "server",
-          "name": "server",
-          "qualified_name": "server",
-          "display_name": "server",
-          "description": "Server utility commands",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": null,
-          "is_group": true,
-          "subcommands": [
-            "server info"
-          ],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "server",
-            "qualified_name": "server",
-            "aliases": [],
-            "usage": "server",
-            "signature": "",
-            "parameters": [],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "server",
-            "qualified_name": "server",
-            "mention": "/server",
-            "parameters": [],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/server",
-            "Server Utility",
-            "Server utility commands",
-            "Utilities",
-            "server"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "server.info",
-          "name": "info",
-          "qualified_name": "server info",
-          "display_name": "server / info",
-          "description": "Get information about the server.",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": "server",
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "info",
-            "qualified_name": "server info",
-            "aliases": [],
-            "usage": "server info",
-            "signature": "",
-            "parameters": [],
-            "cooldown": {
-              "rate": 1,
-              "per": 5.0,
-              "bucket": null,
-              "label": "1/5s"
-            },
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "info",
-            "qualified_name": "server info",
-            "mention": "/server info",
-            "parameters": [],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/server info",
-            "Get information about the server.",
-            "Server Utility",
-            "Utilities",
-            "info",
-            "server / info",
-            "server info"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "thumbnail",
-          "name": "thumbnail",
-          "qualified_name": "thumbnail",
-          "display_name": "thumbnail",
-          "description": "Fetch the youtube video thumnail.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "thumbnail",
-            "qualified_name": "thumbnail",
-            "aliases": [],
-            "usage": "thumbnail <link>",
-            "signature": "<link>",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              }
-            ],
-            "cooldown": {
-              "rate": 1,
-              "per": 5.0,
-              "bucket": null,
-              "label": "1/5s"
-            },
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "thumbnail",
-            "qualified_name": "thumbnail",
-            "mention": "/thumbnail",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": "The YouTube video URL to fetch the thumbnail from.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/thumbnail",
-            "Fetch the youtube video thumnail.",
-            "User Utility",
-            "Utilities",
-            "thumbnail"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "tiktok",
-          "name": "tiktok",
-          "qualified_name": "tiktok",
-          "display_name": "tiktok",
-          "description": "Embed a TikTok video.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "tiktok",
-            "qualified_name": "tiktok",
-            "aliases": [
-              "tt"
-            ],
-            "usage": "tiktok <link>",
-            "signature": "<link>",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              }
-            ],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "tiktok",
-            "qualified_name": "tiktok",
-            "mention": "/tiktok",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": "The TikTok video URL to embed.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/tiktok",
-            "Embed a TikTok video.",
-            "User Utility",
-            "Utilities",
-            "tiktok",
-            "tt"
-          ],
-          "aliases": [
-            "tt"
-          ]
-        },
-        {
-          "id": "tinyurl",
-          "name": "tinyurl",
-          "qualified_name": "tinyurl",
-          "display_name": "tinyurl",
-          "description": "Shorten a URL using TinyURL",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "tinyurl",
-            "qualified_name": "tinyurl",
-            "aliases": [],
-            "usage": "tinyurl <url>",
-            "signature": "<url>",
-            "parameters": [
-              {
-                "name": "url",
-                "display": "<url>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              }
-            ],
-            "cooldown": {
-              "rate": 1,
-              "per": 15.0,
-              "bucket": null,
-              "label": "1/15s"
-            },
-            "max_concurrency": {
-              "number": 20,
-              "bucket": "default",
-              "wait": true
-            }
-          },
-          "slash": {
-            "name": "tinyurl",
-            "qualified_name": "tinyurl",
-            "mention": "/tinyurl",
-            "parameters": [
-              {
-                "name": "url",
-                "display": "<url>",
-                "description": "\u2026",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/tinyurl",
-            "Shorten a URL using TinyURL",
-            "User Utility",
-            "Utilities",
-            "tinyurl"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "translate",
-          "name": "translate",
-          "qualified_name": "translate",
-          "display_name": "translate",
-          "description": "Translates the given text to the requested language.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "translate",
-            "qualified_name": "translate",
-            "aliases": [],
-            "usage": "translate [to] <text...>",
-            "signature": "[to] <text>",
-            "parameters": [
-              {
-                "name": "to",
-                "display": "[to]",
-                "description": null,
-                "required": false,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              },
-              {
-                "name": "text",
-                "display": "<text...>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "keyword_only",
-                "type": "str"
-              }
-            ],
-            "cooldown": {
-              "rate": 1,
-              "per": 5.0,
-              "bucket": null,
-              "label": "1/5s"
-            },
-            "max_concurrency": {
-              "number": 50,
-              "bucket": "default",
-              "wait": true
-            }
-          },
-          "slash": {
-            "name": "translate",
-            "qualified_name": "translate",
-            "mention": "/translate",
-            "parameters": [
-              {
-                "name": "text",
-                "display": "<text>",
-                "description": "The text to translate.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              },
-              {
-                "name": "to",
-                "display": "[to]",
-                "description": "Target language (name or code, e.g., Spanish or es). Defaults to English.",
-                "required": false,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/translate",
-            "Translates the given text to the requested language.",
-            "User Utility",
-            "Utilities",
-            "translate"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "twitter",
-          "name": "twitter",
-          "qualified_name": "twitter",
-          "display_name": "twitter",
-          "description": "Embed an X.com post.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "twitter",
-            "qualified_name": "twitter",
-            "aliases": [
-              "tweet"
-            ],
-            "usage": "twitter <link>",
-            "signature": "<link>",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              }
-            ],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "twitter",
-            "qualified_name": "twitter",
-            "mention": "/twitter",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": "The tweet URL to embed.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/twitter",
-            "Embed an X.com post.",
-            "User Utility",
-            "Utilities",
-            "tweet",
-            "twitter"
-          ],
-          "aliases": [
-            "tweet"
-          ]
-        },
-        {
           "id": "userinfo",
           "name": "userinfo",
           "qualified_name": "userinfo",
           "display_name": "userinfo",
           "description": "Get information about a user.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -10434,8 +11281,7 @@
           "search_terms": [
             "/userinfo",
             "Get information about a user.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "userinfo"
           ],
           "aliases": []
@@ -10448,8 +11294,8 @@
           "qualified_name": "avatar",
           "display_name": "avatar",
           "description": "Fetch a user's avatar.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -10504,8 +11350,7 @@
           "search_terms": [
             "/avatar",
             "Fetch a user's avatar.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "avatar"
           ],
           "aliases": []
@@ -10516,8 +11361,8 @@
           "qualified_name": "banner",
           "display_name": "banner",
           "description": "Fetch a user's banner.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -10572,116 +11417,8 @@
           "search_terms": [
             "/banner",
             "Fetch a user's banner.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "banner"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "binary",
-          "name": "binary",
-          "qualified_name": "binary",
-          "display_name": "binary",
-          "description": "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "binary",
-            "qualified_name": "binary",
-            "aliases": [],
-            "usage": "binary <message...>",
-            "signature": "<message>",
-            "parameters": [
-              {
-                "name": "message",
-                "display": "<message...>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "keyword_only",
-                "type": "str"
-              }
-            ],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "binary",
-            "qualified_name": "binary",
-            "mention": "/binary",
-            "parameters": [
-              {
-                "name": "message",
-                "display": "<message>",
-                "description": "The text or binary to convert.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/binary",
-            "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
-            "User Utility",
-            "Utilities",
-            "binary"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "channel",
-          "name": "channel",
-          "qualified_name": "channel",
-          "display_name": "channel",
-          "description": "Channel utility commands",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": null,
-          "is_group": true,
-          "subcommands": [
-            "channel info"
-          ],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "channel",
-            "qualified_name": "channel",
-            "aliases": [],
-            "usage": "channel",
-            "signature": "",
-            "parameters": [],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "channel",
-            "qualified_name": "channel",
-            "mention": "/channel",
-            "parameters": [],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/channel",
-            "Channel utility commands",
-            "Server Utility",
-            "Utilities",
-            "channel"
           ],
           "aliases": []
         },
@@ -10691,8 +11428,8 @@
           "qualified_name": "deco",
           "display_name": "deco",
           "description": "Get a user avatar decoration.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -10751,20 +11488,19 @@
           "search_terms": [
             "/deco",
             "Get a user avatar decoration.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "deco"
           ],
           "aliases": []
         },
         {
-          "id": "enlarge",
-          "name": "enlarge",
-          "qualified_name": "enlarge",
-          "display_name": "enlarge",
-          "description": "Enlarge a custom emoji to download it or see it in high resolution.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "id": "deco-search",
+          "name": "deco-search",
+          "qualified_name": "deco-search",
+          "display_name": "deco-search",
+          "description": "Search Discord shop avatar decorations with an animated preview.",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -10773,146 +11509,15 @@
             "slash": true
           },
           "prefix": {
-            "name": "enlarge",
-            "qualified_name": "enlarge",
+            "name": "deco-search",
+            "qualified_name": "deco-search",
             "aliases": [],
-            "usage": "enlarge <emoji>",
-            "signature": "<emoji>",
+            "usage": "deco-search <query...>",
+            "signature": "<query>",
             "parameters": [
               {
-                "name": "emoji",
-                "display": "<emoji>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "PartialEmoji"
-              }
-            ],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "enlarge",
-            "qualified_name": "enlarge",
-            "mention": "/enlarge",
-            "parameters": [
-              {
-                "name": "emoji",
-                "display": "<emoji>",
-                "description": "The custom emoji you want to enlarge.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/enlarge",
-            "Enlarge a custom emoji to download it or see it in high resolution.",
-            "User Utility",
-            "Utilities",
-            "enlarge"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "instagram",
-          "name": "instagram",
-          "qualified_name": "instagram",
-          "display_name": "instagram",
-          "description": "Embed an Instagram reel or post.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "instagram",
-            "qualified_name": "instagram",
-            "aliases": [
-              "ig"
-            ],
-            "usage": "instagram <link>",
-            "signature": "<link>",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              }
-            ],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "instagram",
-            "qualified_name": "instagram",
-            "mention": "/instagram",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": "The Instagram reel URL to embed.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/instagram",
-            "Embed an Instagram reel or post.",
-            "User Utility",
-            "Utilities",
-            "ig",
-            "instagram"
-          ],
-          "aliases": [
-            "ig"
-          ]
-        },
-        {
-          "id": "math",
-          "name": "math",
-          "qualified_name": "math",
-          "display_name": "math",
-          "description": "Performs a mathematical calculation.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "math",
-            "qualified_name": "math",
-            "aliases": [],
-            "usage": "math <expression...>",
-            "signature": "<expression>",
-            "parameters": [
-              {
-                "name": "expression",
-                "display": "<expression...>",
+                "name": "query",
+                "display": "<query...>",
                 "description": null,
                 "required": true,
                 "default": null,
@@ -10927,20 +11532,20 @@
               "label": "1/5s"
             },
             "max_concurrency": {
-              "number": 10,
+              "number": 50,
               "bucket": "default",
               "wait": true
             }
           },
           "slash": {
-            "name": "math",
-            "qualified_name": "math",
-            "mention": "/math",
+            "name": "deco-search",
+            "qualified_name": "deco-search",
+            "mention": "/deco-search",
             "parameters": [
               {
-                "name": "expression",
-                "display": "<expression>",
-                "description": "The mathematical expression to evaluate.",
+                "name": "query",
+                "display": "<query>",
+                "description": "The name (or part of it) of the decoration.",
                 "required": true,
                 "default": null,
                 "kind": "slash_option",
@@ -10952,55 +11557,10 @@
             "installs": []
           },
           "search_terms": [
-            "/math",
-            "Performs a mathematical calculation.",
-            "User Utility",
-            "Utilities",
-            "math"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "member",
-          "name": "member",
-          "qualified_name": "member",
-          "display_name": "member",
-          "description": "Member utility commands",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": null,
-          "is_group": true,
-          "subcommands": [
-            "member info"
-          ],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "member",
-            "qualified_name": "member",
-            "aliases": [],
-            "usage": "member",
-            "signature": "",
-            "parameters": [],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "member",
-            "qualified_name": "member",
-            "mention": "/member",
-            "parameters": [],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/member",
-            "Member utility commands",
-            "Server Utility",
-            "Utilities",
-            "member"
+            "/deco-search",
+            "Search Discord shop avatar decorations with an animated preview.",
+            "Utility",
+            "deco-search"
           ],
           "aliases": []
         },
@@ -11010,8 +11570,8 @@
           "qualified_name": "ping",
           "display_name": "ping",
           "description": "Check the bot's latency.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -11045,8 +11605,7 @@
           "search_terms": [
             "/ping",
             "Check the bot's latency.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "ping"
           ],
           "aliases": []
@@ -11057,8 +11616,8 @@
           "qualified_name": "qr",
           "display_name": "qr",
           "description": "Generate various types of QR codes.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": true,
           "subcommands": [
@@ -11105,8 +11664,7 @@
           "search_terms": [
             "/qr",
             "Generate various types of QR codes.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "qr",
             "qrcode"
           ],
@@ -11115,468 +11673,13 @@
           ]
         },
         {
-          "id": "role",
-          "name": "role",
-          "qualified_name": "role",
-          "display_name": "role",
-          "description": "Role utility commands",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": null,
-          "is_group": true,
-          "subcommands": [
-            "role info"
-          ],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "role",
-            "qualified_name": "role",
-            "aliases": [],
-            "usage": "role",
-            "signature": "",
-            "parameters": [],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "role",
-            "qualified_name": "role",
-            "mention": "/role",
-            "parameters": [],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/role",
-            "Role utility commands",
-            "Server Utility",
-            "Utilities",
-            "role"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "server",
-          "name": "server",
-          "qualified_name": "server",
-          "display_name": "server",
-          "description": "Server utility commands",
-          "category": "Utilities",
-          "cog": "Server Utility",
-          "parent": null,
-          "is_group": true,
-          "subcommands": [
-            "server info"
-          ],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "server",
-            "qualified_name": "server",
-            "aliases": [],
-            "usage": "server",
-            "signature": "",
-            "parameters": [],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "server",
-            "qualified_name": "server",
-            "mention": "/server",
-            "parameters": [],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/server",
-            "Server Utility",
-            "Server utility commands",
-            "Utilities",
-            "server"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "thumbnail",
-          "name": "thumbnail",
-          "qualified_name": "thumbnail",
-          "display_name": "thumbnail",
-          "description": "Fetch the youtube video thumnail.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "thumbnail",
-            "qualified_name": "thumbnail",
-            "aliases": [],
-            "usage": "thumbnail <link>",
-            "signature": "<link>",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              }
-            ],
-            "cooldown": {
-              "rate": 1,
-              "per": 5.0,
-              "bucket": null,
-              "label": "1/5s"
-            },
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "thumbnail",
-            "qualified_name": "thumbnail",
-            "mention": "/thumbnail",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": "The YouTube video URL to fetch the thumbnail from.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/thumbnail",
-            "Fetch the youtube video thumnail.",
-            "User Utility",
-            "Utilities",
-            "thumbnail"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "tiktok",
-          "name": "tiktok",
-          "qualified_name": "tiktok",
-          "display_name": "tiktok",
-          "description": "Embed a TikTok video.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "tiktok",
-            "qualified_name": "tiktok",
-            "aliases": [
-              "tt"
-            ],
-            "usage": "tiktok <link>",
-            "signature": "<link>",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              }
-            ],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "tiktok",
-            "qualified_name": "tiktok",
-            "mention": "/tiktok",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": "The TikTok video URL to embed.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/tiktok",
-            "Embed a TikTok video.",
-            "User Utility",
-            "Utilities",
-            "tiktok",
-            "tt"
-          ],
-          "aliases": [
-            "tt"
-          ]
-        },
-        {
-          "id": "tinyurl",
-          "name": "tinyurl",
-          "qualified_name": "tinyurl",
-          "display_name": "tinyurl",
-          "description": "Shorten a URL using TinyURL",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "tinyurl",
-            "qualified_name": "tinyurl",
-            "aliases": [],
-            "usage": "tinyurl <url>",
-            "signature": "<url>",
-            "parameters": [
-              {
-                "name": "url",
-                "display": "<url>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              }
-            ],
-            "cooldown": {
-              "rate": 1,
-              "per": 15.0,
-              "bucket": null,
-              "label": "1/15s"
-            },
-            "max_concurrency": {
-              "number": 20,
-              "bucket": "default",
-              "wait": true
-            }
-          },
-          "slash": {
-            "name": "tinyurl",
-            "qualified_name": "tinyurl",
-            "mention": "/tinyurl",
-            "parameters": [
-              {
-                "name": "url",
-                "display": "<url>",
-                "description": "\u2026",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/tinyurl",
-            "Shorten a URL using TinyURL",
-            "User Utility",
-            "Utilities",
-            "tinyurl"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "translate",
-          "name": "translate",
-          "qualified_name": "translate",
-          "display_name": "translate",
-          "description": "Translates the given text to the requested language.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "translate",
-            "qualified_name": "translate",
-            "aliases": [],
-            "usage": "translate [to] <text...>",
-            "signature": "[to] <text>",
-            "parameters": [
-              {
-                "name": "to",
-                "display": "[to]",
-                "description": null,
-                "required": false,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              },
-              {
-                "name": "text",
-                "display": "<text...>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "keyword_only",
-                "type": "str"
-              }
-            ],
-            "cooldown": {
-              "rate": 1,
-              "per": 5.0,
-              "bucket": null,
-              "label": "1/5s"
-            },
-            "max_concurrency": {
-              "number": 50,
-              "bucket": "default",
-              "wait": true
-            }
-          },
-          "slash": {
-            "name": "translate",
-            "qualified_name": "translate",
-            "mention": "/translate",
-            "parameters": [
-              {
-                "name": "text",
-                "display": "<text>",
-                "description": "The text to translate.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              },
-              {
-                "name": "to",
-                "display": "[to]",
-                "description": "Target language (name or code, e.g., Spanish or es). Defaults to English.",
-                "required": false,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/translate",
-            "Translates the given text to the requested language.",
-            "User Utility",
-            "Utilities",
-            "translate"
-          ],
-          "aliases": []
-        },
-        {
-          "id": "twitter",
-          "name": "twitter",
-          "qualified_name": "twitter",
-          "display_name": "twitter",
-          "description": "Embed an X.com post.",
-          "category": "Utilities",
-          "cog": "User Utility",
-          "parent": null,
-          "is_group": false,
-          "subcommands": [],
-          "availability": {
-            "prefix": true,
-            "slash": true
-          },
-          "prefix": {
-            "name": "twitter",
-            "qualified_name": "twitter",
-            "aliases": [
-              "tweet"
-            ],
-            "usage": "twitter <link>",
-            "signature": "<link>",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": null,
-                "required": true,
-                "default": null,
-                "kind": "positional_or_keyword",
-                "type": "str"
-              }
-            ],
-            "cooldown": null,
-            "max_concurrency": null
-          },
-          "slash": {
-            "name": "twitter",
-            "qualified_name": "twitter",
-            "mention": "/twitter",
-            "parameters": [
-              {
-                "name": "link",
-                "display": "<link>",
-                "description": "The tweet URL to embed.",
-                "required": true,
-                "default": null,
-                "kind": "slash_option",
-                "type": "string",
-                "choices": []
-              }
-            ],
-            "contexts": [],
-            "installs": []
-          },
-          "search_terms": [
-            "/twitter",
-            "Embed an X.com post.",
-            "User Utility",
-            "Utilities",
-            "tweet",
-            "twitter"
-          ],
-          "aliases": [
-            "tweet"
-          ]
-        },
-        {
           "id": "userinfo",
           "name": "userinfo",
           "qualified_name": "userinfo",
           "display_name": "userinfo",
           "description": "Get information about a user.",
-          "category": "Utilities",
-          "cog": "User Utility",
+          "category": "Utility",
+          "cog": "Utility",
           "parent": null,
           "is_group": false,
           "subcommands": [],
@@ -11631,14 +11734,13 @@
           "search_terms": [
             "/userinfo",
             "Get information about a user.",
-            "User Utility",
-            "Utilities",
+            "Utility",
             "userinfo"
           ],
           "aliases": []
         }
       ],
-      "count": 29
+      "count": 13
     }
   ],
   "commands": [
@@ -12168,8 +12270,8 @@
       "qualified_name": "avatar",
       "display_name": "avatar",
       "description": "Fetch a user's avatar.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -12224,8 +12326,7 @@
       "search_terms": [
         "/avatar",
         "Fetch a user's avatar.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "avatar"
       ],
       "aliases": []
@@ -12558,8 +12659,8 @@
       "qualified_name": "banner",
       "display_name": "banner",
       "description": "Fetch a user's banner.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -12614,8 +12715,7 @@
       "search_terms": [
         "/banner",
         "Fetch a user's banner.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "banner"
       ],
       "aliases": []
@@ -12626,8 +12726,8 @@
       "qualified_name": "binary",
       "display_name": "binary",
       "description": "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -12677,8 +12777,7 @@
       "search_terms": [
         "/binary",
         "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "binary"
       ],
       "aliases": []
@@ -12869,8 +12968,8 @@
       "qualified_name": "channel",
       "display_name": "channel",
       "description": "Channel utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -12901,8 +13000,7 @@
       "search_terms": [
         "/channel",
         "Channel utility commands",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "channel"
       ],
       "aliases": []
@@ -12913,8 +13011,8 @@
       "qualified_name": "channel info",
       "display_name": "channel / info",
       "description": "Get information about a specific channel.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "channel",
       "is_group": false,
       "subcommands": [],
@@ -12969,8 +13067,7 @@
       "search_terms": [
         "/channel info",
         "Get information about a specific channel.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "channel / info",
         "channel info",
         "info"
@@ -13375,8 +13472,8 @@
       "qualified_name": "deco",
       "display_name": "deco",
       "description": "Get a user avatar decoration.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -13435,9 +13532,79 @@
       "search_terms": [
         "/deco",
         "Get a user avatar decoration.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "deco"
+      ],
+      "aliases": []
+    },
+    {
+      "id": "deco-search",
+      "name": "deco-search",
+      "qualified_name": "deco-search",
+      "display_name": "deco-search",
+      "description": "Search Discord shop avatar decorations with an animated preview.",
+      "category": "Utility",
+      "cog": "Utility",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "deco-search",
+        "qualified_name": "deco-search",
+        "aliases": [],
+        "usage": "deco-search <query...>",
+        "signature": "<query>",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": {
+          "number": 50,
+          "bucket": "default",
+          "wait": true
+        }
+      },
+      "slash": {
+        "name": "deco-search",
+        "qualified_name": "deco-search",
+        "mention": "/deco-search",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query>",
+            "description": "The name (or part of it) of the decoration.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/deco-search",
+        "Search Discord shop avatar decorations with an animated preview.",
+        "Utility",
+        "deco-search"
       ],
       "aliases": []
     },
@@ -13796,8 +13963,8 @@
       "qualified_name": "enlarge",
       "display_name": "enlarge",
       "description": "Enlarge a custom emoji to download it or see it in high resolution.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -13847,8 +14014,7 @@
       "search_terms": [
         "/enlarge",
         "Enlarge a custom emoji to download it or see it in high resolution.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "enlarge"
       ],
       "aliases": []
@@ -14992,8 +15158,8 @@
       "qualified_name": "instagram",
       "display_name": "instagram",
       "description": "Embed an Instagram reel or post.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -15045,8 +15211,7 @@
       "search_terms": [
         "/instagram",
         "Embed an Instagram reel or post.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "ig",
         "instagram"
       ],
@@ -15106,8 +15271,8 @@
       "qualified_name": "math",
       "display_name": "math",
       "description": "Performs a mathematical calculation.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -15166,8 +15331,7 @@
       "search_terms": [
         "/math",
         "Performs a mathematical calculation.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "math"
       ],
       "aliases": []
@@ -15178,8 +15342,8 @@
       "qualified_name": "member",
       "display_name": "member",
       "description": "Member utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -15210,8 +15374,7 @@
       "search_terms": [
         "/member",
         "Member utility commands",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "member"
       ],
       "aliases": []
@@ -15222,8 +15385,8 @@
       "qualified_name": "member info",
       "display_name": "member / info",
       "description": "Get information about a specific member.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "member",
       "is_group": false,
       "subcommands": [],
@@ -15278,8 +15441,7 @@
       "search_terms": [
         "/member info",
         "Get information about a specific member.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "info",
         "member / info",
         "member info"
@@ -15620,8 +15782,8 @@
       "qualified_name": "ping",
       "display_name": "ping",
       "description": "Check the bot's latency.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -15655,8 +15817,7 @@
       "search_terms": [
         "/ping",
         "Check the bot's latency.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "ping"
       ],
       "aliases": []
@@ -15734,8 +15895,8 @@
       "qualified_name": "qr",
       "display_name": "qr",
       "description": "Generate various types of QR codes.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -15782,8 +15943,7 @@
       "search_terms": [
         "/qr",
         "Generate various types of QR codes.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "qr",
         "qrcode"
       ],
@@ -15797,8 +15957,8 @@
       "qualified_name": "qr crypto",
       "display_name": "qr / crypto",
       "description": "Create a QR for a crypto address",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -15948,8 +16108,7 @@
       "search_terms": [
         "/qr crypto",
         "Create a QR for a crypto address",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "crypto",
         "qr / crypto",
         "qr crypto"
@@ -15962,8 +16121,8 @@
       "qualified_name": "qr esewa",
       "display_name": "qr / esewa",
       "description": "Create a QR for eSewa",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -16034,8 +16193,7 @@
       "search_terms": [
         "/qr esewa",
         "Create a QR for eSewa",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "esewa",
         "npr",
         "qr / esewa",
@@ -16051,8 +16209,8 @@
       "qualified_name": "qr paypal",
       "display_name": "qr / paypal",
       "description": "Create QR for PayPal",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -16104,8 +16262,7 @@
       "search_terms": [
         "/qr paypal",
         "Create QR for PayPal",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "paypal",
         "pp",
         "qr / paypal",
@@ -16121,8 +16278,8 @@
       "qualified_name": "qr text",
       "display_name": "qr / text",
       "description": "Create a QR with custom text",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -16174,8 +16331,7 @@
       "search_terms": [
         "/qr text",
         "Create a QR with custom text",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "qr / text",
         "qr text",
         "text",
@@ -16191,8 +16347,8 @@
       "qualified_name": "qr upi",
       "display_name": "qr / upi",
       "description": "Create a QR for UPI with optional amount",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -16282,8 +16438,7 @@
       "search_terms": [
         "/qr upi",
         "Create a QR for UPI with optional amount",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "inr",
         "qr / upi",
         "qr upi",
@@ -16299,8 +16454,8 @@
       "qualified_name": "qr url",
       "display_name": "qr / url",
       "description": "Create a QR with custom URL",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -16352,8 +16507,7 @@
       "search_terms": [
         "/qr url",
         "Create a QR with custom URL",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "link",
         "qr / url",
         "qr url",
@@ -17034,8 +17188,8 @@
       "qualified_name": "role",
       "display_name": "role",
       "description": "Role utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -17066,8 +17220,7 @@
       "search_terms": [
         "/role",
         "Role utility commands",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "role"
       ],
       "aliases": []
@@ -17078,8 +17231,8 @@
       "qualified_name": "role info",
       "display_name": "role / info",
       "description": "Get details of a specific role.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "role",
       "is_group": false,
       "subcommands": [],
@@ -17134,8 +17287,7 @@
       "search_terms": [
         "/role info",
         "Get details of a specific role.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "info",
         "role / info",
         "role info"
@@ -17454,8 +17606,8 @@
       "qualified_name": "server",
       "display_name": "server",
       "description": "Server utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -17485,9 +17637,8 @@
       },
       "search_terms": [
         "/server",
-        "Server Utility",
+        "Server",
         "Server utility commands",
-        "Utilities",
         "server"
       ],
       "aliases": []
@@ -17498,8 +17649,8 @@
       "qualified_name": "server info",
       "display_name": "server / info",
       "description": "Get information about the server.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "server",
       "is_group": false,
       "subcommands": [],
@@ -17533,8 +17684,7 @@
       "search_terms": [
         "/server info",
         "Get information about the server.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "info",
         "server / info",
         "server info"
@@ -18107,8 +18257,8 @@
       "qualified_name": "thumbnail",
       "display_name": "thumbnail",
       "description": "Fetch the youtube video thumnail.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -18163,8 +18313,7 @@
       "search_terms": [
         "/thumbnail",
         "Fetch the youtube video thumnail.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "thumbnail"
       ],
       "aliases": []
@@ -18242,8 +18391,8 @@
       "qualified_name": "tiktok",
       "display_name": "tiktok",
       "description": "Embed a TikTok video.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -18295,8 +18444,7 @@
       "search_terms": [
         "/tiktok",
         "Embed a TikTok video.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "tiktok",
         "tt"
       ],
@@ -18310,8 +18458,8 @@
       "qualified_name": "tinyurl",
       "display_name": "tinyurl",
       "description": "Shorten a URL using TinyURL",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -18370,8 +18518,7 @@
       "search_terms": [
         "/tinyurl",
         "Shorten a URL using TinyURL",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "tinyurl"
       ],
       "aliases": []
@@ -18382,8 +18529,8 @@
       "qualified_name": "translate",
       "display_name": "translate",
       "description": "Translates the given text to the requested language.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -18460,9 +18607,8 @@
       },
       "search_terms": [
         "/translate",
+        "Tools",
         "Translates the given text to the requested language.",
-        "User Utility",
-        "Utilities",
         "translate"
       ],
       "aliases": []
@@ -18540,8 +18686,8 @@
       "qualified_name": "twitter",
       "display_name": "twitter",
       "description": "Embed an X.com post.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -18593,8 +18739,7 @@
       "search_terms": [
         "/twitter",
         "Embed an X.com post.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "tweet",
         "twitter"
       ],
@@ -19000,8 +19145,8 @@
       "qualified_name": "userinfo",
       "display_name": "userinfo",
       "description": "Get information about a user.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -19056,8 +19201,7 @@
       "search_terms": [
         "/userinfo",
         "Get information about a user.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "userinfo"
       ],
       "aliases": []
@@ -19657,8 +19801,8 @@
       "qualified_name": "avatar",
       "display_name": "avatar",
       "description": "Fetch a user's avatar.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -19713,8 +19857,7 @@
       "search_terms": [
         "/avatar",
         "Fetch a user's avatar.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "avatar"
       ],
       "aliases": []
@@ -20047,8 +20190,8 @@
       "qualified_name": "banner",
       "display_name": "banner",
       "description": "Fetch a user's banner.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -20103,8 +20246,7 @@
       "search_terms": [
         "/banner",
         "Fetch a user's banner.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "banner"
       ],
       "aliases": []
@@ -20115,8 +20257,8 @@
       "qualified_name": "binary",
       "display_name": "binary",
       "description": "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -20166,8 +20308,7 @@
       "search_terms": [
         "/binary",
         "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "binary"
       ],
       "aliases": []
@@ -20358,8 +20499,8 @@
       "qualified_name": "channel",
       "display_name": "channel",
       "description": "Channel utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -20390,8 +20531,7 @@
       "search_terms": [
         "/channel",
         "Channel utility commands",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "channel"
       ],
       "aliases": []
@@ -20402,8 +20542,8 @@
       "qualified_name": "channel info",
       "display_name": "channel / info",
       "description": "Get information about a specific channel.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "channel",
       "is_group": false,
       "subcommands": [],
@@ -20458,8 +20598,7 @@
       "search_terms": [
         "/channel info",
         "Get information about a specific channel.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "channel / info",
         "channel info",
         "info"
@@ -20864,8 +21003,8 @@
       "qualified_name": "deco",
       "display_name": "deco",
       "description": "Get a user avatar decoration.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -20924,9 +21063,79 @@
       "search_terms": [
         "/deco",
         "Get a user avatar decoration.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "deco"
+      ],
+      "aliases": []
+    },
+    "deco-search": {
+      "id": "deco-search",
+      "name": "deco-search",
+      "qualified_name": "deco-search",
+      "display_name": "deco-search",
+      "description": "Search Discord shop avatar decorations with an animated preview.",
+      "category": "Utility",
+      "cog": "Utility",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "deco-search",
+        "qualified_name": "deco-search",
+        "aliases": [],
+        "usage": "deco-search <query...>",
+        "signature": "<query>",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": {
+          "number": 50,
+          "bucket": "default",
+          "wait": true
+        }
+      },
+      "slash": {
+        "name": "deco-search",
+        "qualified_name": "deco-search",
+        "mention": "/deco-search",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query>",
+            "description": "The name (or part of it) of the decoration.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/deco-search",
+        "Search Discord shop avatar decorations with an animated preview.",
+        "Utility",
+        "deco-search"
       ],
       "aliases": []
     },
@@ -21285,8 +21494,8 @@
       "qualified_name": "enlarge",
       "display_name": "enlarge",
       "description": "Enlarge a custom emoji to download it or see it in high resolution.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -21336,8 +21545,7 @@
       "search_terms": [
         "/enlarge",
         "Enlarge a custom emoji to download it or see it in high resolution.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "enlarge"
       ],
       "aliases": []
@@ -22481,8 +22689,8 @@
       "qualified_name": "instagram",
       "display_name": "instagram",
       "description": "Embed an Instagram reel or post.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -22534,8 +22742,7 @@
       "search_terms": [
         "/instagram",
         "Embed an Instagram reel or post.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "ig",
         "instagram"
       ],
@@ -22595,8 +22802,8 @@
       "qualified_name": "math",
       "display_name": "math",
       "description": "Performs a mathematical calculation.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -22655,8 +22862,7 @@
       "search_terms": [
         "/math",
         "Performs a mathematical calculation.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "math"
       ],
       "aliases": []
@@ -22667,8 +22873,8 @@
       "qualified_name": "member",
       "display_name": "member",
       "description": "Member utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -22699,8 +22905,7 @@
       "search_terms": [
         "/member",
         "Member utility commands",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "member"
       ],
       "aliases": []
@@ -22711,8 +22916,8 @@
       "qualified_name": "member info",
       "display_name": "member / info",
       "description": "Get information about a specific member.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "member",
       "is_group": false,
       "subcommands": [],
@@ -22767,8 +22972,7 @@
       "search_terms": [
         "/member info",
         "Get information about a specific member.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "info",
         "member / info",
         "member info"
@@ -23109,8 +23313,8 @@
       "qualified_name": "ping",
       "display_name": "ping",
       "description": "Check the bot's latency.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -23144,8 +23348,7 @@
       "search_terms": [
         "/ping",
         "Check the bot's latency.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "ping"
       ],
       "aliases": []
@@ -23223,8 +23426,8 @@
       "qualified_name": "qr",
       "display_name": "qr",
       "description": "Generate various types of QR codes.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -23271,8 +23474,7 @@
       "search_terms": [
         "/qr",
         "Generate various types of QR codes.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "qr",
         "qrcode"
       ],
@@ -23286,8 +23488,8 @@
       "qualified_name": "qr crypto",
       "display_name": "qr / crypto",
       "description": "Create a QR for a crypto address",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -23437,8 +23639,7 @@
       "search_terms": [
         "/qr crypto",
         "Create a QR for a crypto address",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "crypto",
         "qr / crypto",
         "qr crypto"
@@ -23451,8 +23652,8 @@
       "qualified_name": "qr esewa",
       "display_name": "qr / esewa",
       "description": "Create a QR for eSewa",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -23523,8 +23724,7 @@
       "search_terms": [
         "/qr esewa",
         "Create a QR for eSewa",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "esewa",
         "npr",
         "qr / esewa",
@@ -23540,8 +23740,8 @@
       "qualified_name": "qr paypal",
       "display_name": "qr / paypal",
       "description": "Create QR for PayPal",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -23593,8 +23793,7 @@
       "search_terms": [
         "/qr paypal",
         "Create QR for PayPal",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "paypal",
         "pp",
         "qr / paypal",
@@ -23610,8 +23809,8 @@
       "qualified_name": "qr text",
       "display_name": "qr / text",
       "description": "Create a QR with custom text",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -23663,8 +23862,7 @@
       "search_terms": [
         "/qr text",
         "Create a QR with custom text",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "qr / text",
         "qr text",
         "text",
@@ -23680,8 +23878,8 @@
       "qualified_name": "qr upi",
       "display_name": "qr / upi",
       "description": "Create a QR for UPI with optional amount",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -23771,8 +23969,7 @@
       "search_terms": [
         "/qr upi",
         "Create a QR for UPI with optional amount",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "inr",
         "qr / upi",
         "qr upi",
@@ -23788,8 +23985,8 @@
       "qualified_name": "qr url",
       "display_name": "qr / url",
       "description": "Create a QR with custom URL",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -23841,8 +24038,7 @@
       "search_terms": [
         "/qr url",
         "Create a QR with custom URL",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "link",
         "qr / url",
         "qr url",
@@ -24523,8 +24719,8 @@
       "qualified_name": "role",
       "display_name": "role",
       "description": "Role utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -24555,8 +24751,7 @@
       "search_terms": [
         "/role",
         "Role utility commands",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "role"
       ],
       "aliases": []
@@ -24567,8 +24762,8 @@
       "qualified_name": "role info",
       "display_name": "role / info",
       "description": "Get details of a specific role.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "role",
       "is_group": false,
       "subcommands": [],
@@ -24623,8 +24818,7 @@
       "search_terms": [
         "/role info",
         "Get details of a specific role.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "info",
         "role / info",
         "role info"
@@ -24943,8 +25137,8 @@
       "qualified_name": "server",
       "display_name": "server",
       "description": "Server utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -24974,9 +25168,8 @@
       },
       "search_terms": [
         "/server",
-        "Server Utility",
+        "Server",
         "Server utility commands",
-        "Utilities",
         "server"
       ],
       "aliases": []
@@ -24987,8 +25180,8 @@
       "qualified_name": "server info",
       "display_name": "server / info",
       "description": "Get information about the server.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "server",
       "is_group": false,
       "subcommands": [],
@@ -25022,8 +25215,7 @@
       "search_terms": [
         "/server info",
         "Get information about the server.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "info",
         "server / info",
         "server info"
@@ -25596,8 +25788,8 @@
       "qualified_name": "thumbnail",
       "display_name": "thumbnail",
       "description": "Fetch the youtube video thumnail.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -25652,8 +25844,7 @@
       "search_terms": [
         "/thumbnail",
         "Fetch the youtube video thumnail.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "thumbnail"
       ],
       "aliases": []
@@ -25731,8 +25922,8 @@
       "qualified_name": "tiktok",
       "display_name": "tiktok",
       "description": "Embed a TikTok video.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -25784,8 +25975,7 @@
       "search_terms": [
         "/tiktok",
         "Embed a TikTok video.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "tiktok",
         "tt"
       ],
@@ -25799,8 +25989,8 @@
       "qualified_name": "tinyurl",
       "display_name": "tinyurl",
       "description": "Shorten a URL using TinyURL",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -25859,8 +26049,7 @@
       "search_terms": [
         "/tinyurl",
         "Shorten a URL using TinyURL",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "tinyurl"
       ],
       "aliases": []
@@ -25871,8 +26060,8 @@
       "qualified_name": "translate",
       "display_name": "translate",
       "description": "Translates the given text to the requested language.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -25949,9 +26138,8 @@
       },
       "search_terms": [
         "/translate",
+        "Tools",
         "Translates the given text to the requested language.",
-        "User Utility",
-        "Utilities",
         "translate"
       ],
       "aliases": []
@@ -26029,8 +26217,8 @@
       "qualified_name": "twitter",
       "display_name": "twitter",
       "description": "Embed an X.com post.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -26082,8 +26270,7 @@
       "search_terms": [
         "/twitter",
         "Embed an X.com post.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "tweet",
         "twitter"
       ],
@@ -26489,8 +26676,8 @@
       "qualified_name": "userinfo",
       "display_name": "userinfo",
       "description": "Get information about a user.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -26545,8 +26732,7 @@
       "search_terms": [
         "/userinfo",
         "Get information about a user.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "userinfo"
       ],
       "aliases": []
@@ -27146,8 +27332,8 @@
       "qualified_name": "avatar",
       "display_name": "avatar",
       "description": "Fetch a user's avatar.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -27202,8 +27388,7 @@
       "search_terms": [
         "/avatar",
         "Fetch a user's avatar.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "avatar"
       ],
       "aliases": []
@@ -27536,8 +27721,8 @@
       "qualified_name": "banner",
       "display_name": "banner",
       "description": "Fetch a user's banner.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -27592,8 +27777,7 @@
       "search_terms": [
         "/banner",
         "Fetch a user's banner.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "banner"
       ],
       "aliases": []
@@ -27604,8 +27788,8 @@
       "qualified_name": "binary",
       "display_name": "binary",
       "description": "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -27655,8 +27839,7 @@
       "search_terms": [
         "/binary",
         "Converts text to binary or binary to text.\nThe command automatically detects the input type.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "binary"
       ],
       "aliases": []
@@ -27847,8 +28030,8 @@
       "qualified_name": "channel",
       "display_name": "channel",
       "description": "Channel utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -27879,8 +28062,7 @@
       "search_terms": [
         "/channel",
         "Channel utility commands",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "channel"
       ],
       "aliases": []
@@ -27891,8 +28073,8 @@
       "qualified_name": "channel info",
       "display_name": "channel / info",
       "description": "Get information about a specific channel.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "channel",
       "is_group": false,
       "subcommands": [],
@@ -27947,8 +28129,7 @@
       "search_terms": [
         "/channel info",
         "Get information about a specific channel.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "channel / info",
         "channel info",
         "info"
@@ -28353,8 +28534,8 @@
       "qualified_name": "deco",
       "display_name": "deco",
       "description": "Get a user avatar decoration.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -28413,9 +28594,79 @@
       "search_terms": [
         "/deco",
         "Get a user avatar decoration.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "deco"
+      ],
+      "aliases": []
+    },
+    "deco-search": {
+      "id": "deco-search",
+      "name": "deco-search",
+      "qualified_name": "deco-search",
+      "display_name": "deco-search",
+      "description": "Search Discord shop avatar decorations with an animated preview.",
+      "category": "Utility",
+      "cog": "Utility",
+      "parent": null,
+      "is_group": false,
+      "subcommands": [],
+      "availability": {
+        "prefix": true,
+        "slash": true
+      },
+      "prefix": {
+        "name": "deco-search",
+        "qualified_name": "deco-search",
+        "aliases": [],
+        "usage": "deco-search <query...>",
+        "signature": "<query>",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query...>",
+            "description": null,
+            "required": true,
+            "default": null,
+            "kind": "keyword_only",
+            "type": "str"
+          }
+        ],
+        "cooldown": {
+          "rate": 1,
+          "per": 5.0,
+          "bucket": null,
+          "label": "1/5s"
+        },
+        "max_concurrency": {
+          "number": 50,
+          "bucket": "default",
+          "wait": true
+        }
+      },
+      "slash": {
+        "name": "deco-search",
+        "qualified_name": "deco-search",
+        "mention": "/deco-search",
+        "parameters": [
+          {
+            "name": "query",
+            "display": "<query>",
+            "description": "The name (or part of it) of the decoration.",
+            "required": true,
+            "default": null,
+            "kind": "slash_option",
+            "type": "string",
+            "choices": []
+          }
+        ],
+        "contexts": [],
+        "installs": []
+      },
+      "search_terms": [
+        "/deco-search",
+        "Search Discord shop avatar decorations with an animated preview.",
+        "Utility",
+        "deco-search"
       ],
       "aliases": []
     },
@@ -28774,8 +29025,8 @@
       "qualified_name": "enlarge",
       "display_name": "enlarge",
       "description": "Enlarge a custom emoji to download it or see it in high resolution.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -28825,8 +29076,7 @@
       "search_terms": [
         "/enlarge",
         "Enlarge a custom emoji to download it or see it in high resolution.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "enlarge"
       ],
       "aliases": []
@@ -29970,8 +30220,8 @@
       "qualified_name": "instagram",
       "display_name": "instagram",
       "description": "Embed an Instagram reel or post.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -30023,8 +30273,7 @@
       "search_terms": [
         "/instagram",
         "Embed an Instagram reel or post.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "ig",
         "instagram"
       ],
@@ -30084,8 +30333,8 @@
       "qualified_name": "math",
       "display_name": "math",
       "description": "Performs a mathematical calculation.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -30144,8 +30393,7 @@
       "search_terms": [
         "/math",
         "Performs a mathematical calculation.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "math"
       ],
       "aliases": []
@@ -30156,8 +30404,8 @@
       "qualified_name": "member",
       "display_name": "member",
       "description": "Member utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -30188,8 +30436,7 @@
       "search_terms": [
         "/member",
         "Member utility commands",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "member"
       ],
       "aliases": []
@@ -30200,8 +30447,8 @@
       "qualified_name": "member info",
       "display_name": "member / info",
       "description": "Get information about a specific member.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "member",
       "is_group": false,
       "subcommands": [],
@@ -30256,8 +30503,7 @@
       "search_terms": [
         "/member info",
         "Get information about a specific member.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "info",
         "member / info",
         "member info"
@@ -30598,8 +30844,8 @@
       "qualified_name": "ping",
       "display_name": "ping",
       "description": "Check the bot's latency.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -30633,8 +30879,7 @@
       "search_terms": [
         "/ping",
         "Check the bot's latency.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "ping"
       ],
       "aliases": []
@@ -30712,8 +30957,8 @@
       "qualified_name": "qr",
       "display_name": "qr",
       "description": "Generate various types of QR codes.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -30760,8 +31005,7 @@
       "search_terms": [
         "/qr",
         "Generate various types of QR codes.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "qr",
         "qrcode"
       ],
@@ -30775,8 +31019,8 @@
       "qualified_name": "qr crypto",
       "display_name": "qr / crypto",
       "description": "Create a QR for a crypto address",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -30926,8 +31170,7 @@
       "search_terms": [
         "/qr crypto",
         "Create a QR for a crypto address",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "crypto",
         "qr / crypto",
         "qr crypto"
@@ -30940,8 +31183,8 @@
       "qualified_name": "qr esewa",
       "display_name": "qr / esewa",
       "description": "Create a QR for eSewa",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -31012,8 +31255,7 @@
       "search_terms": [
         "/qr esewa",
         "Create a QR for eSewa",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "esewa",
         "npr",
         "qr / esewa",
@@ -31029,8 +31271,8 @@
       "qualified_name": "qr paypal",
       "display_name": "qr / paypal",
       "description": "Create QR for PayPal",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -31082,8 +31324,7 @@
       "search_terms": [
         "/qr paypal",
         "Create QR for PayPal",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "paypal",
         "pp",
         "qr / paypal",
@@ -31099,8 +31340,8 @@
       "qualified_name": "qr text",
       "display_name": "qr / text",
       "description": "Create a QR with custom text",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -31152,8 +31393,7 @@
       "search_terms": [
         "/qr text",
         "Create a QR with custom text",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "qr / text",
         "qr text",
         "text",
@@ -31169,8 +31409,8 @@
       "qualified_name": "qr upi",
       "display_name": "qr / upi",
       "description": "Create a QR for UPI with optional amount",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -31260,8 +31500,7 @@
       "search_terms": [
         "/qr upi",
         "Create a QR for UPI with optional amount",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "inr",
         "qr / upi",
         "qr upi",
@@ -31277,8 +31516,8 @@
       "qualified_name": "qr url",
       "display_name": "qr / url",
       "description": "Create a QR with custom URL",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": "qr",
       "is_group": false,
       "subcommands": [],
@@ -31330,8 +31569,7 @@
       "search_terms": [
         "/qr url",
         "Create a QR with custom URL",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "link",
         "qr / url",
         "qr url",
@@ -32012,8 +32250,8 @@
       "qualified_name": "role",
       "display_name": "role",
       "description": "Role utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -32044,8 +32282,7 @@
       "search_terms": [
         "/role",
         "Role utility commands",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "role"
       ],
       "aliases": []
@@ -32056,8 +32293,8 @@
       "qualified_name": "role info",
       "display_name": "role / info",
       "description": "Get details of a specific role.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "role",
       "is_group": false,
       "subcommands": [],
@@ -32112,8 +32349,7 @@
       "search_terms": [
         "/role info",
         "Get details of a specific role.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "info",
         "role / info",
         "role info"
@@ -32432,8 +32668,8 @@
       "qualified_name": "server",
       "display_name": "server",
       "description": "Server utility commands",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": null,
       "is_group": true,
       "subcommands": [
@@ -32463,9 +32699,8 @@
       },
       "search_terms": [
         "/server",
-        "Server Utility",
+        "Server",
         "Server utility commands",
-        "Utilities",
         "server"
       ],
       "aliases": []
@@ -32476,8 +32711,8 @@
       "qualified_name": "server info",
       "display_name": "server / info",
       "description": "Get information about the server.",
-      "category": "Utilities",
-      "cog": "Server Utility",
+      "category": "Server",
+      "cog": "Server",
       "parent": "server",
       "is_group": false,
       "subcommands": [],
@@ -32511,8 +32746,7 @@
       "search_terms": [
         "/server info",
         "Get information about the server.",
-        "Server Utility",
-        "Utilities",
+        "Server",
         "info",
         "server / info",
         "server info"
@@ -33085,8 +33319,8 @@
       "qualified_name": "thumbnail",
       "display_name": "thumbnail",
       "description": "Fetch the youtube video thumnail.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -33141,8 +33375,7 @@
       "search_terms": [
         "/thumbnail",
         "Fetch the youtube video thumnail.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "thumbnail"
       ],
       "aliases": []
@@ -33220,8 +33453,8 @@
       "qualified_name": "tiktok",
       "display_name": "tiktok",
       "description": "Embed a TikTok video.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -33273,8 +33506,7 @@
       "search_terms": [
         "/tiktok",
         "Embed a TikTok video.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "tiktok",
         "tt"
       ],
@@ -33288,8 +33520,8 @@
       "qualified_name": "tinyurl",
       "display_name": "tinyurl",
       "description": "Shorten a URL using TinyURL",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -33348,8 +33580,7 @@
       "search_terms": [
         "/tinyurl",
         "Shorten a URL using TinyURL",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "tinyurl"
       ],
       "aliases": []
@@ -33360,8 +33591,8 @@
       "qualified_name": "translate",
       "display_name": "translate",
       "description": "Translates the given text to the requested language.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -33438,9 +33669,8 @@
       },
       "search_terms": [
         "/translate",
+        "Tools",
         "Translates the given text to the requested language.",
-        "User Utility",
-        "Utilities",
         "translate"
       ],
       "aliases": []
@@ -33518,8 +33748,8 @@
       "qualified_name": "twitter",
       "display_name": "twitter",
       "description": "Embed an X.com post.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Tools",
+      "cog": "Tools",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -33571,8 +33801,7 @@
       "search_terms": [
         "/twitter",
         "Embed an X.com post.",
-        "User Utility",
-        "Utilities",
+        "Tools",
         "tweet",
         "twitter"
       ],
@@ -33978,8 +34207,8 @@
       "qualified_name": "userinfo",
       "display_name": "userinfo",
       "description": "Get information about a user.",
-      "category": "Utilities",
-      "cog": "User Utility",
+      "category": "Utility",
+      "cog": "Utility",
       "parent": null,
       "is_group": false,
       "subcommands": [],
@@ -34034,8 +34263,7 @@
       "search_terms": [
         "/userinfo",
         "Get information about a user.",
-        "User Utility",
-        "Utilities",
+        "Utility",
         "userinfo"
       ],
       "aliases": []

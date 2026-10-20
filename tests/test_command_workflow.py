@@ -379,8 +379,8 @@ async def test_offline_command_behavior_and_metrics() -> None:
         "ping": lambda ctx: with_user_utility(ctx, lambda cog, c: cog.ping.callback(cog, c)),
         "avatar": lambda ctx: with_user_utility(ctx, lambda cog, c: cog.avatar.callback(cog, c)),
         "userinfo": lambda ctx: with_user_utility(ctx, lambda cog, c: cog.userinfo.callback(cog, c)),
-        "math": lambda ctx: with_user_utility(ctx, lambda cog, c: cog.math.callback(cog, c, expression="2 + 2 * 3")),
-        "binary": lambda ctx: with_user_utility(ctx, lambda cog, c: cog.binary.callback(cog, c, message="hello")),
+        "math": lambda ctx: with_tools(ctx, lambda cog, c: cog.math.callback(cog, c, expression="2 + 2 * 3")),
+        "binary": lambda ctx: with_tools(ctx, lambda cog, c: cog.binary.callback(cog, c, message="hello")),
         "say": lambda ctx: with_tools(ctx, lambda cog, c: cog.say_group.callback(cog, c, message="hello")),
         "say in-embed": lambda ctx: with_tools(ctx, lambda cog, c: cog.say_in_embed.callback(cog, c, message="hello")),
         "encrypt": lambda ctx: with_tools(
