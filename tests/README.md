@@ -8,7 +8,7 @@ The tests run without a Discord bot token or external API credentials. Network, 
 - `test_service_regressions.py` covers HTTP response handling, cancellation, shared user lookup caching, and the GitHub, crypto, and Tavily cache behavior.
 - `test_concurrency_safety.py` covers cache single-flight behavior, bounded worker pools, CPU offloading, database update serialization, and process-safe usage writes.
 - `test_event_loop_safety.py` checks that blocking maintenance work stays off the gateway loop.
-- `test_resource_monitor.py` covers resource thresholds, webhook payloads, command attribution, and prefix/slash dispatch tracking.
+- `test_resource_monitor.py` covers resource thresholds, webhook payloads, command attribution, and mention/slash dispatch tracking.
 - `test_owner_broadcast.py` covers broadcast confirmation and delivery outcomes.
 
 `conftest.py` clears the shared application cache and resource-monitor environment settings between tests so results do not depend on previous cases or deployment configuration.

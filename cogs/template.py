@@ -20,6 +20,18 @@ from core.cache import cache
 MAX_TEMPLATE_NAME = 80
 MAX_CONTENT_LENGTH = 2000
 MAX_BUTTONS = 5
+MAX_COMPONENT_TEXT_LENGTH = 4000
+
+
+class TemplatePayloadTooLong(ValueError):
+    """A template with link buttons exceeds Discord's Components V2 text limit."""
+
+
+def _escape_component_mentions(text: str) -> str:
+    text = text.replace("<@", "<@\u200b").replace("<#", "<#\u200b")
+    return discord.utils.escape_mentions(text)
+
+
 URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 
 
@@ -261,11 +273,10 @@ class Template(commands.Cog):
             await self._send_embed(ctx, "You have no templates.", ephemeral=True)
             return
         view = TemplateListView(ctx.author.id, templates)
-        embed = view.build_index_embed()
         if ctx.interaction:
-            await ctx.interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await ctx.interaction.response.send_message(view=view, ephemeral=True)
             return
-        await ctx.send(embed=embed, view=view)
+        await ctx.send(view=view)
 
     @template.command(name="send", description="Send one of your templates", aliases=["s"])
     @app_commands.describe(name="Template name")
@@ -278,10 +289,15 @@ class Template(commands.Cog):
         if not template:
             await self._send_embed(ctx, "Template not found.", ephemeral=True)
             return
-        content, embed, view = build_template_payload(template)
-        message_kwargs: dict[str, Any] = {"content": content, "embed": embed}
+        try:
+            content, embed, view = build_template_payload(template)
+        except TemplatePayloadTooLong as exc:
+            await self._send_embed(ctx, str(exc), ephemeral=True)
+            return
         if view is not None:
-            message_kwargs["view"] = view
+            message_kwargs: dict[str, Any] = {"view": view}
+        else:
+            message_kwargs = {"content": content, "embed": embed}
         if ctx.interaction:
             await ctx.interaction.response.send_message(**message_kwargs)
             return
@@ -370,41 +386,96 @@ class Template(commands.Cog):
         creating: bool,
     ) -> None:
         view = TemplateBuilderView(self, ctx.author.id, name, data)
-        embed = view.build_preview_embed(creating=creating)
+        view.render_preview(creating=creating)
         if ctx.interaction:
-            await ctx.interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await ctx.interaction.response.send_message(view=view, ephemeral=True)
             return
-        await ctx.send(embed=embed, view=view)
+        await ctx.send(view=view)
 
 
-def build_template_payload(template: dict[str, Any]) -> tuple[str | None, discord.Embed | None, discord.ui.View | None]:
+def _embed_text(embed: discord.Embed) -> str:
+    parts: list[str] = []
+    if embed.author.name:
+        author = embed.author.name
+        if embed.author.url:
+            author = f"[{author}]({embed.author.url})"
+        parts.append(f"-# {author}")
+    if embed.title:
+        title = embed.title
+        if embed.url:
+            title = f"[{title}]({embed.url})"
+        parts.append(f"## {title}")
+    if embed.description:
+        parts.append(embed.description)
+    parts.extend(f"**{field.name}**\n{field.value}" for field in embed.fields)
+    if embed.footer.text:
+        parts.append(f"-# {embed.footer.text}")
+    if embed.timestamp:
+        parts.append(f"-# <t:{int(embed.timestamp.timestamp())}:f>")
+    return "\n\n".join(parts)
+
+
+def build_template_payload(
+    template: dict[str, Any],
+) -> tuple[str | None, discord.Embed | None, discord.ui.LayoutView | None]:
     content = template.get("content") or None
     embed = discord.Embed.from_dict(template["embed"]) if template.get("embed") else None
     buttons = template.get("buttons") or []
-    view = discord.ui.View(timeout=None) if buttons else None
-    if view:
-        add_link_buttons(view, buttons)
+    view = None
+    if buttons:
+        view = discord.ui.LayoutView(timeout=None)
+        children: list[discord.ui.Item] = []
+        accent_colour = embed.colour if embed is not None else None
+        content_text = _embed_text(embed) if embed is not None else ""
+        if content:
+            content_text = f"{content}\n\n{content_text}" if content_text else content
+        content_text = _escape_component_mentions(content_text)
+        if len(content_text) > MAX_COMPONENT_TEXT_LENGTH:
+            raise TemplatePayloadTooLong(
+                "This template is too long to send with its buttons. Shorten the text or embed, then try again."
+            )
+        if content_text:
+            children.append(discord.ui.TextDisplay(content_text))
+        image_urls = (
+            list(dict.fromkeys(url for url in (embed.image.url, embed.thumbnail.url) if url))
+            if embed is not None
+            else []
+        )
+        if not children:
+            children.append(discord.ui.TextDisplay("\u200b"))
+        if image_urls:
+            media_items = [discord.MediaGalleryItem(media=url) for url in image_urls]
+            children.append(discord.ui.MediaGallery(*media_items))
+        link_row = discord.ui.ActionRow()
+        add_link_buttons(link_row, buttons)
+        children.append(link_row)
+        view.add_item(discord.ui.Container(*children, accent_colour=accent_colour))
+        content = None
+        embed = None
     return content, embed, view
 
 
-def add_link_buttons(view: discord.ui.View, buttons: list[dict[str, str]], *, row: int | None = None) -> None:
+def add_link_buttons(view: discord.ui.ActionRow, buttons: list[dict[str, str]]) -> None:
     for button in buttons[:MAX_BUTTONS]:
         view.add_item(
             discord.ui.Button(
                 label=button["label"],
                 url=button["url"],
                 style=discord.ButtonStyle.link,
-                row=row,
             )
         )
 
 
-class TemplateListView(discord.ui.View):
+class TemplateListView(discord.ui.LayoutView):
     def __init__(self, author_id: int, templates: list[dict[str, Any]]) -> None:
         super().__init__(timeout=120)
         self.author_id = author_id
         self.templates = templates
-        self.add_item(TemplateSelect(templates))
+        self.select = TemplateSelect(templates)
+        self.content_component = discord.ui.TextDisplay(self.build_index_text())
+        self.container = discord.ui.Container(self.content_component)
+        self.add_item(self.container)
+        self.add_item(discord.ui.ActionRow(self.select))
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
@@ -412,14 +483,12 @@ class TemplateListView(discord.ui.View):
             return False
         return True
 
-    def build_index_embed(self) -> discord.Embed:
+    def build_index_text(self) -> str:
         lines = [f"`{template['name']}`" for template in self.templates[:25]]
-        embed = discord.Embed(
-            title=f"{Emoji.COMMAND.value} Your templates",
-            description="\n".join(lines),
+        content = (
+            f"## {Emoji.COMMAND.value} Your templates\n" + "\n".join(lines) + f"\n-# {len(self.templates)} template(s)"
         )
-        embed.set_footer(text=f"{len(self.templates)} template(s)")
-        return embed
+        return _escape_component_mentions(content)
 
 
 class TemplateSelect(discord.ui.Select):
@@ -438,19 +507,25 @@ class TemplateSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         template = self.templates_by_id[self.values[0]]
-        content, embed, view = build_template_payload(template)
+        try:
+            content, embed, view = build_template_payload(template)
+        except TemplatePayloadTooLong as exc:
+            await interaction.response.send_message(str(exc), ephemeral=True)
+            return
+        if view is not None:
+            await interaction.response.send_message(view=view, ephemeral=True)
+            return
         if embed is None:
             embed = discord.Embed(title=f"Template: {template['name']}", description=content or "Empty template.")
             content = None
         await interaction.response.send_message(
             content=content,
             embed=embed,
-            view=view,
             ephemeral=True,
         )
 
 
-class TemplateBuilderView(discord.ui.View):
+class TemplateBuilderView(discord.ui.LayoutView):
     def __init__(self, cog: Template, author_id: int, name: str, data: dict[str, Any]) -> None:
         super().__init__(timeout=600)
         self.cog = cog
@@ -462,6 +537,27 @@ class TemplateBuilderView(discord.ui.View):
             "buttons": data.get("buttons") or [],
         }
         self.message: discord.Message | None = None
+        self.creating = False
+        self.content_component = discord.ui.TextDisplay("")
+        self.container = discord.ui.Container(self.content_component)
+        self.add_item(self.container)
+        self.buttons: list[discord.ui.Button] = []
+        for label, style, callback in (
+            ("Text", discord.ButtonStyle.secondary, self.text_button),
+            ("Embed", discord.ButtonStyle.secondary, self.embed_button),
+            ("Media", discord.ButtonStyle.secondary, self.media_button),
+            ("Author/Footer", discord.ButtonStyle.secondary, self.author_footer_button),
+            ("Buttons", discord.ButtonStyle.secondary, self.buttons_button),
+            ("Preview", discord.ButtonStyle.primary, self.preview_button),
+            ("Save", discord.ButtonStyle.success, self.save_button),
+            ("Cancel", discord.ButtonStyle.danger, self.cancel_button),
+        ):
+            button = discord.ui.Button(label=label, style=style)
+            button.callback = callback
+            self.buttons.append(button)
+        self.add_item(discord.ui.ActionRow(*self.buttons[:5]))
+        self.add_item(discord.ui.ActionRow(*self.buttons[5:]))
+        self.render_preview()
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
@@ -469,73 +565,85 @@ class TemplateBuilderView(discord.ui.View):
             return False
         return True
 
-    def build_preview_embed(self, *, creating: bool = False) -> discord.Embed:
-        embed = discord.Embed(title=f"{'Create' if creating else 'Edit'} template: {self.name}")
+    def build_preview_text(self, *, creating: bool = False) -> str:
         content = self.data.get("content") or ""
-        embed.add_field(name="Text", value=content[:1024] if content else "None", inline=False)
-        embed.add_field(name="Embed", value="Enabled" if self.data.get("embed") else "None", inline=True)
-        embed.add_field(name="Buttons", value=str(len(self.data.get("buttons") or [])), inline=True)
-        embed.set_footer(text="Use the buttons below to build, preview, and save.")
-        return embed
+        text_preview = content[:1024] if content else "None"
+        embed_status = "Enabled" if self.data.get("embed") else "None"
+        button_count = len(self.data.get("buttons") or [])
+        return (
+            f"## {'Create' if creating else 'Edit'} template: {self.name}\n"
+            f"**Text**\n{text_preview}\n\n**Embed**: {embed_status}\n**Buttons**: {button_count}\n"
+            "-# Use the buttons below to build, preview, and save."
+        )
+
+    def render_preview(self, *, creating: bool | None = None) -> None:
+        if creating is not None:
+            self.creating = creating
+        self.content_component.content = _escape_component_mentions(self.build_preview_text(creating=self.creating))
 
     async def refresh(self, interaction: discord.Interaction) -> None:
-        await interaction.response.edit_message(embed=self.build_preview_embed(), view=self)
+        self.render_preview()
+        await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label="Text", style=discord.ButtonStyle.secondary)
-    async def text_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+    async def text_button(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(TemplateTextModal(self))
 
-    @discord.ui.button(label="Embed", style=discord.ButtonStyle.secondary)
-    async def embed_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+    async def embed_button(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(TemplateEmbedModal(self))
 
-    @discord.ui.button(label="Media", style=discord.ButtonStyle.secondary)
-    async def media_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+    async def media_button(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(TemplateMediaModal(self))
 
-    @discord.ui.button(label="Author/Footer", style=discord.ButtonStyle.secondary)
-    async def author_footer_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+    async def author_footer_button(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(TemplateAuthorFooterModal(self))
 
-    @discord.ui.button(label="Buttons", style=discord.ButtonStyle.secondary)
-    async def buttons_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+    async def buttons_button(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(TemplateButtonsModal(self))
 
-    @discord.ui.button(label="Preview", style=discord.ButtonStyle.primary)
-    async def preview_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        content, embed, view = build_template_payload(self.data)
-        if content is None and embed is None:
+    async def preview_button(self, interaction: discord.Interaction) -> None:
+        try:
+            content, embed, view = build_template_payload(self.data)
+        except TemplatePayloadTooLong as exc:
+            await interaction.response.send_message(str(exc), ephemeral=True)
+            return
+        if content is None and embed is None and view is None:
             await interaction.response.send_message("Add text or an embed before previewing.", ephemeral=True)
             return
-        message_kwargs: dict[str, Any] = {"content": content, "embed": embed, "ephemeral": True}
+        message_kwargs: dict[str, Any] = {"ephemeral": True}
         if view is not None:
             message_kwargs["view"] = view
+        else:
+            message_kwargs.update(content=content, embed=embed)
         await interaction.response.send_message(**message_kwargs)
 
-    @discord.ui.button(label="Save", style=discord.ButtonStyle.success)
-    async def save_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+    async def save_button(self, interaction: discord.Interaction) -> None:
         if not self.data.get("content") and not self.data.get("embed"):
             await interaction.response.send_message("Add text or an embed before saving.", ephemeral=True)
             return
+        try:
+            build_template_payload(self.data)
+        except TemplatePayloadTooLong as exc:
+            await interaction.response.send_message(str(exc), ephemeral=True)
+            return
         await interaction.response.defer()
         await asyncio.to_thread(self.cog._save_template, self.author_id, self.name, self.data)
-        for item in self.children:
+        for item in self.buttons:
             item.disabled = True
+        self.content_component.content = f"Saved template `{self.name}`."
         await interaction.edit_original_response(
-            embed=discord.Embed(description=f"Saved template `{self.name}`."),
             view=self,
         )
         self.stop()
 
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger)
-    async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        for item in self.children:
+    async def cancel_button(self, interaction: discord.Interaction) -> None:
+        for item in self.buttons:
             item.disabled = True
-        await interaction.response.edit_message(embed=discord.Embed(description="Canceled."), view=self)
+        self.content_component.content = "Canceled."
+        await interaction.response.edit_message(view=self)
         self.stop()
 
     async def on_timeout(self) -> None:
-        for item in self.children:
+        for item in self.buttons:
             item.disabled = True
         if self.message:
             with suppress(discord.HTTPException):

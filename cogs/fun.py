@@ -22,7 +22,7 @@ from core.workers import run_cpu
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MEME_ASSETS_DIR = PROJECT_ROOT / "assets" / "memes"
 COOLVETICA_FONT = PROJECT_ROOT / "assets" / "fonts" / "coolvetica" / "Coolvetica Rg.otf"
-RIP_FONT = PROJECT_ROOT / "assets" / "fonts" / "coolvetica" / "Coolvetica Hv Comp.otf"
+RIP_FONT = PROJECT_ROOT / "assets" / "fonts" / "coolvetica" / "Coolvetica Rg.otf"
 
 
 class Fun(commands.Cog):

@@ -171,9 +171,7 @@ class Owner(commands.Cog):
                 else:
                     result.sent += 1
 
-            if progress_message is not None and (
-                index % BROADCAST_PROGRESS_INTERVAL == 0 or index == result.total
-            ):
+            if progress_message is not None and (index % BROADCAST_PROGRESS_INTERVAL == 0 or index == result.total):
                 with suppress(discord.HTTPException):
                     await progress_message.edit(content=self._format_broadcast_status(result))
 
@@ -347,7 +345,7 @@ class Owner(commands.Cog):
             color=discord.Color.blue(),
         )
         view = EmbedPaginator(embeds, author_id=ctx.author.id)
-        view.message = await ctx.reply(embed=embeds[0], view=view, mention_author=False)
+        view.message = await ctx.reply(view=view, mention_author=False)
 
     @commands.command(
         name="dm-users",
@@ -379,11 +377,7 @@ class Owner(commands.Cog):
             preview = f"{preview}..."
         confirmed = await confirm_action(
             ctx,
-            (
-                f"Send this DM to `{len(installed_users)}` tracked user(s)?\n"
-                "This cannot be undone.\n\n"
-                f">>> {preview}"
-            ),
+            (f"Send this DM to `{len(installed_users)}` tracked user(s)?\nThis cannot be undone.\n\n>>> {preview}"),
             timeout=30,
             ephemeral=False,
             confirm_label="Send DMs",

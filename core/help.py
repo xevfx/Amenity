@@ -35,6 +35,8 @@ GROUP_ORDER = {
     "feedback": 10,
     "other": 11,
 }
+
+
 @dataclass(frozen=True)
 class GroupMeta:
     """Everything the help menu needs to describe one command group."""
@@ -266,6 +268,57 @@ async def _build_command_embed(
     return embed
 
 
+async def _build_command_text(
+    command: commands.Command,
+    index: HelpIndex,
+    author: discord.abc.User,
+    prefix: str,
+) -> str:
+    """Markdown representation of a command detail screen for Components V2.
+
+    Mirrors :func:`_build_command_embed` field-for-field; used only inside the
+    interactive (Components V2) help view, where embeds are not allowed.
+    """
+    mention = index.get_command_mention(command.qualified_name, prefix=prefix)
+    sections = [
+        f"## Command: {command.qualified_name}",
+        f"{mention}\n\n{_get_command_description(command)}",
+    ]
+
+    if command.parent:
+        sections.append(f"**Parent**\n{index.get_command_mention(command.parent.qualified_name, prefix=prefix)}")
+
+    if hasattr(command, "usage") and command.usage:
+        usage = f"{prefix}{command.qualified_name} {command.usage}"
+    else:
+        usage = _build_signature(prefix, command)
+    sections.append(f"**Usage**\n`{usage}`")
+
+    aliases = getattr(command, "aliases", [])
+    if aliases:
+        sections.append(f"**Aliases**\n{', '.join(f'`{alias}`' for alias in sorted(aliases))}")
+
+    cooldown = getattr(command, "_buckets", None)
+    if cooldown and cooldown._cooldown:
+        sections.append(f"**Cooldown**\n{cooldown._cooldown.per:.0f}s per {cooldown._cooldown.type.name}")
+
+    if _is_group(command):
+        visible_subcommands = []
+        for sub in sorted(command.commands, key=lambda c: c.name):
+            if await index.can_see_command(sub, author):
+                sub_mention = index.get_command_mention(sub.qualified_name, prefix=prefix)
+                visible_subcommands.append(f"{sub_mention}\n-# {_get_command_description(sub)}")
+        if visible_subcommands:
+            sections.append("**Subcommands**\n" + "\n\n".join(visible_subcommands[:10]))
+
+    params = _command_parameters(command)
+    if params:
+        sections.append("**Parameters**\n" + "\n".join(params))
+
+    sections.append("-# <> required, [] optional • Amenity")
+    return "\n\n".join(sections)
+
+
 IGNORED_COGS: frozenset[str] = frozenset({"owner", "jishaku", "helpcog"})
 
 
@@ -494,7 +547,18 @@ def _command_parameters(command: commands.Command) -> list[str]:
     return lines
 
 
-class HelpView(discord.ui.View):
+HELP_ACCENT_COLOR = 0x0EEDEB
+HELP_COMMAND_ACCENT_COLOR = 0x05C1F5
+MAX_HELP_TEXT_LENGTH = 4000
+
+
+class HelpView(discord.ui.LayoutView):
+    """Components V2 help menu.
+
+    Message text and its controls live together inside one Components V2
+    container; send and edit paths pass only ``view=``.
+    """
+
     def __init__(
         self,
         bot: commands.Bot,
@@ -517,7 +581,19 @@ class HelpView(discord.ui.View):
         self.current_page: int = 0
         self.total_pages: int = 1
         self.mode: str = "home"
+        self.content_component = discord.ui.TextDisplay("\u200b")
+        self.container = discord.ui.Container(self.content_component, accent_colour=HELP_ACCENT_COLOR)
+        self.add_item(self.container)
         self._update_components()
+
+    def _set_content(self, content: str) -> None:
+        """Keep each V2 help message within Discord's TextDisplay budget."""
+        content = content.replace("<@", "<@\u200b").replace("<#", "<#\u200b")
+        content = discord.utils.escape_mentions(content)
+        marker = "\n\n-# Help text shortened to fit Discord's Components V2 limit."
+        if len(content) > MAX_HELP_TEXT_LENGTH:
+            content = content[: MAX_HELP_TEXT_LENGTH - len(marker)].rstrip() + marker
+        self.content_component.content = content or "\u200b"
 
     def _groups(self) -> list[str]:
         groups = set()
@@ -582,8 +658,21 @@ class HelpView(discord.ui.View):
             )
         return options
 
+    def _clear_rows(self) -> None:
+        """Keep the help text and rebuild all controls inside its container."""
+        self.container.clear_items()
+        self.container.add_item(self.content_component)
+
     def _update_components(self) -> None:
-        self.clear_items()
+        if self.mode == "home":
+            self._render_home_content()
+        elif self.mode == "group" and self.selected_group:
+            self._render_group_content(self.selected_group)
+        elif self.mode == "cog":
+            self._render_cog_content(self.current_cog)
+        # "command" and "search" content is rendered by their callers.
+
+        self._clear_rows()
 
         placeholder = "Choose a command category..."
         options = self._group_options()
@@ -594,48 +683,49 @@ class HelpView(discord.ui.View):
                 placeholder = f"{_group_label(self.selected_group)}: Choose a category..."
 
         if options:
-            self.add_item(HelpCategorySelect(self, options[:25], placeholder=placeholder))
+            self.container.add_item(
+                discord.ui.ActionRow(HelpCategorySelect(self, options[:25], placeholder=placeholder))
+            )
 
         if self.total_pages > 1:
-            self.add_item(HelpFirstButton(self))
-            self.add_item(HelpPrevButton(self))
-            self.add_item(HelpPageIndicator(self))
-            self.add_item(HelpNextButton(self))
-            self.add_item(HelpLastButton(self))
+            self.container.add_item(
+                discord.ui.ActionRow(
+                    HelpFirstButton(self),
+                    HelpPrevButton(self),
+                    HelpPageIndicator(self),
+                    HelpNextButton(self),
+                    HelpLastButton(self),
+                )
+            )
 
-        action_row = 2 if self.total_pages > 1 else 1
+        nav_items = []
         if self.mode != "home":
-            self.add_item(HelpHomeButton(self, row=action_row))
-        self.add_item(HelpSearchButton(self, row=action_row))
-        self.add_item(HelpCloseButton(self, row=action_row))
+            nav_items.append(HelpHomeButton(self))
+        nav_items.append(HelpSearchButton(self))
+        self.container.add_item(discord.ui.ActionRow(*nav_items))
 
-    async def create_home_embed(self) -> discord.Embed:
-        group_lines = []
-        for group_name in self._groups():
-            group_lines.append(f"{_group_emoji(group_name)} {_group_label(group_name)}")
-
+    def _render_home_content(self) -> None:
+        self.container.accent_colour = HELP_ACCENT_COLOR
+        group_lines = [f"{_group_emoji(group_name)} {_group_label(group_name)}" for group_name in self._groups()]
         help_mention = self.index.get_command_mention("help", prefix=self.prefix)
-        embed = discord.Embed(
-            title=f"{Emoji.CROWN.value} Amenity Commands",
-            description="\n".join(
+        self._set_content(
+            "\n".join(
                 [
+                    f"## {Emoji.CROWN.value} Amenity Commands",
                     "Select a command group from the dropdown below to explore commands.\n",
                     *group_lines,
                     f"\nUse {help_mention} `<command>` for details.",
                 ]
-            ),
-            color=0x0EEDEB,
+            )
         )
-        return embed
 
-    async def create_group_embed(self, group_name: str) -> discord.Embed:
+    def _render_group_content(self, group_name: str) -> None:
+        self.container.accent_colour = HELP_ACCENT_COLOR
         label = _group_label(group_name)
+        emoji = _group_emoji(group_name)
+        description = _group_description(group_name)
         command_count = self._group_command_count(group_name)
-        embed = discord.Embed(
-            title=f"{_group_emoji(group_name)} {label} — {command_count} commands",
-            description=_group_description(group_name),
-            color=0x0EEDEB,
-        )
+        heading = f"## {emoji} {label} — {command_count} commands"
 
         cogs = self._grouped_cogs().get(group_name, [])
         if len(cogs) <= 1:
@@ -646,17 +736,13 @@ class HelpView(discord.ui.View):
             else:
                 commands_list = []
 
-            desc = _group_description(group_name)
             display_commands = self._get_display_commands(commands_list)
             if not display_commands:
-                embed.description = (
-                    f"{desc}\n\n*No commands are currently available in this category.*"
-                    if desc
-                    else "*No commands are currently available in this category.*"
-                )
                 self.total_pages = 0
                 self.current_page = 0
-                return embed
+                note = "*No commands are currently available in this category.*"
+                self._set_content("\n\n".join(part for part in (heading, description, note) if part))
+                return
 
             per_page = 30
             self.total_pages = max(1, (len(display_commands) + per_page - 1) // per_page)
@@ -666,18 +752,19 @@ class HelpView(discord.ui.View):
             page_commands = display_commands[start:end]
 
             mentions = _format_command_mentions(page_commands, self.index, limit=None)
-            embed.description = f"{desc}\n\n{mentions}" if desc else mentions
-
+            body = "\n\n".join(part for part in (description, mentions) if part)
             if self.total_pages > 1:
-                embed.set_footer(
-                    text=f"Page {self.current_page + 1}/{self.total_pages} • {len(display_commands)} commands • Amenity"
+                footer = (
+                    f"-# Page {self.current_page + 1}/{self.total_pages} • {len(display_commands)} commands • Amenity"
                 )
             else:
-                embed.set_footer(text=f"{len(display_commands)} commands • Amenity")
-            return embed
+                footer = f"-# {len(display_commands)} commands • Amenity"
+            self._set_content("\n\n".join([heading, body, footer]))
+            return
 
         self.total_pages = 1
         self.current_page = 0
+        sections = [heading]
         rendered = False
         for cog in cogs:
             commands_list = self.mapping.get(cog, [])
@@ -685,35 +772,17 @@ class HelpView(discord.ui.View):
             if not display_commands:
                 continue
             rendered = True
-            embed.add_field(
-                name=f"{_cog_emoji(cog)} {_cog_display_name(cog)}",
-                value=_format_command_mentions(display_commands, self.index, limit=30),
-                inline=False,
-            )
+            mentions = _format_command_mentions(display_commands, self.index, limit=30)
+            sections.append(f"**{_cog_emoji(cog)} {_cog_display_name(cog)}**\n{mentions}")
         if not rendered:
-            embed.description = (
-                f"{_group_description(group_name)}\n\n*No commands are currently available in this category.*"
-                if _group_description(group_name)
-                else "*No commands are currently available in this category.*"
-            )
-            self.total_pages = 0
-            self.current_page = 0
-            return embed
-        embed.set_footer(text=f"{command_count} commands • Amenity")
-        return embed
+            note = "*No commands are currently available in this category.*"
+            self._set_content("\n\n".join(part for part in (heading, description, note) if part))
+            return
+        sections.append(f"-# {command_count} commands • Amenity")
+        self._set_content("\n\n".join(sections))
 
-    def _get_display_commands(self, commands_list: Sequence[commands.Command]) -> list[commands.Command]:
-        displayed: list[commands.Command] = []
-        seen = set()
-        for cmd in commands_list:
-            if _is_group(cmd) and getattr(cmd, "commands", None):
-                continue
-            if cmd.qualified_name not in seen:
-                seen.add(cmd.qualified_name)
-                displayed.append(cmd)
-        return sorted(displayed, key=lambda c: c.qualified_name)
-
-    async def create_cog_embed(self, cog: commands.Cog | None) -> discord.Embed:
+    def _render_cog_content(self, cog: commands.Cog | None) -> None:
+        self.container.accent_colour = HELP_ACCENT_COLOR
         if cog is None:
             commands_list = self.uncategorized
             title = "Uncategorized"
@@ -728,18 +797,15 @@ class HelpView(discord.ui.View):
             icon = _cog_emoji(cog)
             description = _cog_description(cog)
 
-        embed = discord.Embed(
-            title=f"{icon} {title} Commands",
-            description=description,
-            color=0x0EEDEB,
-        )
+        heading = f"## {icon} {title} Commands"
 
         display_commands = self._get_display_commands(commands_list)
         if not display_commands:
-            embed.description = f"{description}\n\n*No commands are currently available in this category.*"
             self.total_pages = 0
             self.current_page = 0
-            return embed
+            note = f"{description}\n\n*No commands are currently available in this category.*"
+            self._set_content("\n\n".join([heading, note]))
+            return
 
         per_page = 30
         self.total_pages = max(1, (len(display_commands) + per_page - 1) // per_page)
@@ -749,8 +815,7 @@ class HelpView(discord.ui.View):
         page_commands = display_commands[start:end]
 
         command_entries = [
-            self.index.get_command_mention(cmd.qualified_name, prefix=self.prefix)
-            for cmd in page_commands
+            self.index.get_command_mention(cmd.qualified_name, prefix=self.prefix) for cmd in page_commands
         ]
 
         chunks: list[str] = []
@@ -768,25 +833,29 @@ class HelpView(discord.ui.View):
         if current:
             chunks.append(", ".join(current))
 
+        sections = [heading, description]
         for i, chunk in enumerate(chunks):
             field_name = "Commands" if i == 0 else "Commands (cont.)"
-            embed.add_field(name=field_name, value=chunk, inline=False)
+            sections.append(f"**{field_name}**\n{chunk}")
 
         footer_parts = (
             [f"Page {self.current_page + 1}/{self.total_pages}", f"{len(display_commands)} commands", "Amenity"]
             if self.total_pages > 1
             else [f"{len(display_commands)} commands", "Amenity"]
         )
-        embed.set_footer(text=" • ".join(footer_parts))
-        return embed
+        sections.append(f"-# {' • '.join(footer_parts)}")
+        self._set_content("\n\n".join(sections))
 
-    async def create_command_embed(self, command: commands.Command) -> discord.Embed:
-        return await _build_command_embed(
-            command=command,
-            index=self.index,
-            author=self.author,
-            prefix=self.prefix,
-        )
+    def _get_display_commands(self, commands_list: Sequence[commands.Command]) -> list[commands.Command]:
+        displayed: list[commands.Command] = []
+        seen = set()
+        for cmd in commands_list:
+            if _is_group(cmd) and getattr(cmd, "commands", None):
+                continue
+            if cmd.qualified_name not in seen:
+                seen.add(cmd.qualified_name)
+                displayed.append(cmd)
+        return sorted(displayed, key=lambda c: c.qualified_name)
 
     async def show_home(self, interaction: discord.Interaction) -> None:
         self.mode = "home"
@@ -794,9 +863,8 @@ class HelpView(discord.ui.View):
         self.current_cog = None
         self.current_page = 0
         self.total_pages = 1
-        embed = await self.create_home_embed()
         self._update_components()
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.edit_message(view=self)
 
     async def show_group(self, interaction: discord.Interaction, group_name: str) -> None:
         if group_name == "other":
@@ -813,39 +881,40 @@ class HelpView(discord.ui.View):
         self.current_cog = None
         self.current_page = 0
         self.total_pages = 1
-        embed = await self.create_group_embed(group_name)
         self._update_components()
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.edit_message(view=self)
 
-    async def build_cog_view(self, cog: commands.Cog | None) -> discord.Embed:
-        """Switch the view into cog mode and return the embed for its opening page."""
+    async def build_cog_view(self, cog: commands.Cog | None) -> None:
+        """Switch the view into cog mode and render its opening page."""
         self.mode = "cog"
         self.current_cog = cog
         self.selected_group = _cog_group_name(cog) if cog is not None else None
         self.current_page = 0
-        embed = await self.create_cog_embed(cog)
         self._update_components()
-        return embed
 
     async def show_cog(self, interaction: discord.Interaction, cog: commands.Cog | None) -> None:
-        embed = await self.build_cog_view(cog)
-        await interaction.response.edit_message(embed=embed, view=self)
+        await self.build_cog_view(cog)
+        await interaction.response.edit_message(view=self)
 
     async def show_command(self, interaction: discord.Interaction, command: commands.Command) -> None:
         self.mode = "command"
         self.total_pages = 1
-        embed = await self.create_command_embed(command)
+        self._set_content(
+            await _build_command_text(
+                command=command,
+                index=self.index,
+                author=self.author,
+                prefix=self.prefix,
+            )
+        )
+        self.container.accent_colour = HELP_COMMAND_ACCENT_COLOR
         self._update_components()
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.edit_message(view=self)
 
     async def go_to_page(self, interaction: discord.Interaction, page: int) -> None:
         self.current_page = max(0, min(page, self.total_pages - 1))
-        if self.mode == "group" and self.selected_group:
-            embed = await self.create_group_embed(self.selected_group)
-        else:
-            embed = await self.create_cog_embed(self.current_cog)
         self._update_components()
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.edit_message(view=self)
 
     async def change_page(self, interaction: discord.Interaction, delta: int) -> None:
         await self.go_to_page(interaction, self.current_page + delta)
@@ -862,7 +931,7 @@ class HelpView(discord.ui.View):
     async def on_timeout(self) -> None:
         if self.message:
             with suppress(discord.HTTPException):
-                for child in self.children:
+                for child in self.walk_children():
                     if hasattr(child, "disabled"):
                         child.disabled = True
                 await self.message.edit(view=self)
@@ -880,7 +949,6 @@ class HelpCategorySelect(discord.ui.Select):
             min_values=1,
             max_values=1,
             options=options,
-            row=0,
         )
         self.help_view = help_view
 
@@ -933,32 +1001,28 @@ class HelpSearchModal(discord.ui.Modal, title="Search Commands"):
     async def on_submit(self, interaction: discord.Interaction) -> None:
         results = await self.help_view.index.search(self.query.value, interaction.user)
         visible = [cmd for cmd in results if not _is_group(cmd) or not getattr(cmd, "commands", None)]
+        help_view = self.help_view
 
-        if not visible:
-            embed = discord.Embed(
-                title="Search Results",
-                description=f"No commands found matching `{self.query.value}`.",
-                color=discord.Color.red(),
-            )
-        else:
+        if visible:
             lines = [
-                f"{self.help_view.index.get_command_mention(cmd.qualified_name, prefix=self.help_view.prefix)}"
+                f"{help_view.index.get_command_mention(cmd.qualified_name, prefix=help_view.prefix)}"
                 f"\n-# {_get_command_description(cmd)}"
                 for cmd in visible
             ]
-            embed = discord.Embed(
-                title=f"Search Results: `{self.query.value}`",
-                description="\n\n".join(lines),
-                color=0x0EEDEB,
-            )
-            embed.set_footer(text=f"{len(visible)} result(s) found • Amenity")
+            content = f"**Search Results: `{self.query.value}`**\n\n" + "\n\n".join(lines)
+            content += f"\n\n-# {len(visible)} result(s) found • Amenity"
+            help_view.container.accent_colour = HELP_ACCENT_COLOR
+        else:
+            content = f"No commands found matching `{self.query.value}`."
+            help_view.container.accent_colour = discord.Color.red()
 
-        self.help_view.current_cog = None
-        self.help_view.current_page = 0
-        self.help_view.total_pages = 0
-        self.help_view.mode = "search"
-        self.help_view._update_components()
-        await interaction.response.edit_message(embed=embed, view=self.help_view)
+        help_view._set_content(content)
+        help_view.current_cog = None
+        help_view.current_page = 0
+        help_view.total_pages = 0
+        help_view.mode = "search"
+        help_view._update_components()
+        await interaction.response.edit_message(view=help_view)
 
 
 class HelpFirstButton(discord.ui.Button):
@@ -966,7 +1030,6 @@ class HelpFirstButton(discord.ui.Button):
         super().__init__(
             style=discord.ButtonStyle.secondary,
             label="<<",
-            row=1,
             disabled=help_view.current_page <= 0,
         )
         self.help_view = help_view
@@ -980,7 +1043,6 @@ class HelpPrevButton(discord.ui.Button):
         super().__init__(
             style=discord.ButtonStyle.secondary,
             label="<",
-            row=1,
             disabled=help_view.current_page <= 0,
         )
         self.help_view = help_view
@@ -995,7 +1057,6 @@ class HelpPageIndicator(discord.ui.Button):
             style=discord.ButtonStyle.secondary,
             label=f"{help_view.current_page + 1}/{max(help_view.total_pages, 1)}",
             disabled=True,
-            row=1,
         )
 
 
@@ -1004,7 +1065,6 @@ class HelpNextButton(discord.ui.Button):
         super().__init__(
             style=discord.ButtonStyle.secondary,
             label=">",
-            row=1,
             disabled=help_view.current_page >= help_view.total_pages - 1,
         )
         self.help_view = help_view
@@ -1018,7 +1078,6 @@ class HelpLastButton(discord.ui.Button):
         super().__init__(
             style=discord.ButtonStyle.secondary,
             label=">>",
-            row=1,
             disabled=help_view.current_page >= help_view.total_pages - 1,
         )
         self.help_view = help_view
@@ -1028,8 +1087,8 @@ class HelpLastButton(discord.ui.Button):
 
 
 class HelpHomeButton(discord.ui.Button):
-    def __init__(self, help_view: HelpView, *, row: int = 1) -> None:
-        super().__init__(style=discord.ButtonStyle.primary, label="Home", row=row)
+    def __init__(self, help_view: HelpView) -> None:
+        super().__init__(style=discord.ButtonStyle.primary, label="Home")
         self.help_view = help_view
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -1037,21 +1096,12 @@ class HelpHomeButton(discord.ui.Button):
 
 
 class HelpSearchButton(discord.ui.Button):
-    def __init__(self, help_view: HelpView, *, row: int = 1) -> None:
-        super().__init__(style=discord.ButtonStyle.secondary, label="Search", row=row)
+    def __init__(self, help_view: HelpView) -> None:
+        super().__init__(style=discord.ButtonStyle.secondary, label="Search", emoji=Emoji.SEARCH.value)
         self.help_view = help_view
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(HelpSearchModal(self.help_view))
-
-
-class HelpCloseButton(discord.ui.Button):
-    def __init__(self, help_view: HelpView, *, row: int = 2) -> None:
-        super().__init__(style=discord.ButtonStyle.danger, label="Close", row=row)
-        self.help_view = help_view
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        await interaction.message.delete()
 
 
 class AmenityHelpCommand(commands.HelpCommand):
@@ -1081,8 +1131,8 @@ class AmenityHelpCommand(commands.HelpCommand):
             mapping=cog_mapping,
             uncategorized=uncategorized,
         )
-        embed = await view.create_home_embed()
-        message = await ctx.send(embed=embed, view=view)
+        # Components V2: the message content lives inside the view itself.
+        message = await ctx.send(view=view)
         view.message = message
 
     async def send_cog_help(self, cog: commands.Cog) -> None:
@@ -1104,8 +1154,8 @@ class AmenityHelpCommand(commands.HelpCommand):
             mapping=cog_mapping,
             uncategorized=uncategorized,
         )
-        embed = await view.build_cog_view(cog)
-        message = await ctx.send(embed=embed, view=view)
+        await view.build_cog_view(cog)
+        message = await ctx.send(view=view)
         view.message = message
 
     async def send_group_help(self, group: commands.Group) -> None:
@@ -1182,8 +1232,8 @@ class HelpCog(commands.Cog):
             for cog in mapping:
                 if cog.qualified_name.lower() == query.lower() or _cog_display_name(cog).lower() == query.lower():
                     view = make_view()
-                    embed = await view.build_cog_view(cog)
-                    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+                    await view.build_cog_view(cog)
+                    await interaction.response.send_message(view=view, ephemeral=True)
                     view.message = await interaction.original_response()
                     return
 
@@ -1222,8 +1272,7 @@ class HelpCog(commands.Cog):
             return
 
         view = make_view()
-        embed = await view.create_home_embed()
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.response.send_message(view=view, ephemeral=True)
         view.message = await interaction.original_response()
 
 

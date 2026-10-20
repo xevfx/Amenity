@@ -3,7 +3,7 @@ from contextlib import suppress
 
 import discord
 from discord.ext import commands
-from discord.ui import Button, View
+from discord.ui import Button, LayoutView, TextDisplay
 
 from .emojis import Emoji
 
@@ -17,29 +17,32 @@ class Links:
         return Button(label=label, url=url, emoji=emoji, style=discord.ButtonStyle.link)
 
     @staticmethod
-    def view(label: str, url: str, emoji: str | None = None) -> View:
-        """Create a persistent view with one link button."""
-        view = View(timeout=None)  # Link views don't need timeout
-        view.add_item(Links.button(label, url, emoji))
+    def view(label: str, url: str, emoji: str | None = None) -> LayoutView:
+        """Create a persistent Components V2 view with one link button."""
+        view = LayoutView(timeout=None)
+        view.add_item(discord.ui.Container(discord.ui.ActionRow(Links.button(label, url, emoji))))
         return view
 
     @staticmethod
     def multi_view(
         links: Sequence[tuple[str, str] | tuple[str, str, str]],
-    ) -> View:
+    ) -> LayoutView:
         """Create a persistent view with multiple link buttons.
 
         Args:
             links: List of tuples like [("Label", "URL"), ("Label", "URL", "emoji")]
         """
-        view = View(timeout=None)  # Link views don't need timeout
+        view = LayoutView(timeout=None)
+        buttons = []
         for link in links:
             if len(link) == 2:
                 label, url = link
                 emoji = None
             else:
                 label, url, emoji = link
-            view.add_item(Links.button(label, url, emoji))
+            buttons.append(Links.button(label, url, emoji))
+        rows = [discord.ui.ActionRow(*buttons[index : index + 5]) for index in range(0, len(buttons), 5)]
+        view.add_item(discord.ui.Container(*rows))
         return view
 
 
@@ -50,15 +53,15 @@ class BotLinks:
         self.support_url = support_url or "https://discord.gg/x4kaVDcubT"
         self.invite_url = invite_url or "https://discord.com/oauth2/authorize?client_id=1455170105666306113"
 
-    def support(self, label: str = "Support Server", emoji: str = "🎗️") -> View:
+    def support(self, label: str = "Support Server", emoji: str = "🎗️") -> LayoutView:
         """Get support server link view."""
         return Links.view(label, self.support_url, emoji)
 
-    def invite(self, label: str = "Invite Bot", emoji: str = "🤖") -> View:
+    def invite(self, label: str = "Invite Bot", emoji: str = "🤖") -> LayoutView:
         """Get bot invite link view."""
         return Links.view(label, self.invite_url, emoji)
 
-    def both(self) -> View:
+    def both(self) -> LayoutView:
         """Get view with both support and invite buttons."""
         return Links.multi_view(
             [
@@ -68,7 +71,7 @@ class BotLinks:
         )
 
 
-class ConfirmView(View):
+class ConfirmView(LayoutView):
     def __init__(
         self,
         author_id: int,
@@ -78,18 +81,20 @@ class ConfirmView(View):
         confirm_style: discord.ButtonStyle = discord.ButtonStyle.danger,
         cancel_style: discord.ButtonStyle = discord.ButtonStyle.secondary,
         timeout: float = 30.0,
+        prompt: str,
     ) -> None:
         super().__init__(timeout=timeout)
         self.author_id = author_id
         self.value: bool | None = None
         self.message: discord.Message | None = None
+        self.prompt_component = TextDisplay(prompt)
+        self.add_item(self.prompt_component)
 
         confirm = Button(label=confirm_label, style=confirm_style)
         confirm.callback = self._confirm
         cancel = Button(label=cancel_label, style=cancel_style)
         cancel.callback = self._cancel
-        self.add_item(confirm)
-        self.add_item(cancel)
+        self.add_item(discord.ui.ActionRow(confirm, cancel))
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
@@ -110,7 +115,10 @@ class ConfirmView(View):
 
     async def _finish(self, interaction: discord.Interaction) -> None:
         for item in self.children:
-            item.disabled = True
+            if isinstance(item, discord.ui.ActionRow):
+                for child in item.children:
+                    if isinstance(child, Button):
+                        child.disabled = True
         with suppress(discord.HTTPException):
             if interaction.response.is_done():
                 if interaction.message:
@@ -121,7 +129,10 @@ class ConfirmView(View):
 
     async def on_timeout(self) -> None:
         for item in self.children:
-            item.disabled = True
+            if isinstance(item, discord.ui.ActionRow):
+                for child in item.children:
+                    if isinstance(child, Button):
+                        child.disabled = True
         if self.message:
             with suppress(discord.HTTPException):
                 await self.message.edit(view=self)
@@ -148,37 +159,39 @@ async def confirm_action(
         confirm_style=confirm_style,
         cancel_style=cancel_style,
         timeout=timeout,
+        prompt=prompt,
     )
 
     if getattr(ctx, "interaction", None):
         if ctx.interaction.response.is_done():
             message = await ctx.interaction.followup.send(
-                prompt,
                 view=view,
                 ephemeral=ephemeral,
             )
         else:
             await ctx.interaction.response.send_message(
-                prompt,
                 view=view,
                 ephemeral=ephemeral,
             )
             message = await ctx.interaction.original_response()
     else:
-        message = await ctx.send(prompt, view=view)
+        message = await ctx.send(view=view)
 
     view.message = message
     await view.wait()
 
     if view.value is True and confirm_message is not None:
         with suppress(discord.HTTPException):
-            await message.edit(content=confirm_message, view=None)
+            view.prompt_component.content = confirm_message
+            await message.edit(view=view)
     elif view.value is False and cancel_message is not None:
         with suppress(discord.HTTPException):
-            await message.edit(content=cancel_message, view=None)
+            view.prompt_component.content = cancel_message
+            await message.edit(view=view)
     elif view.value is None and timeout_message is not None:
         with suppress(discord.HTTPException):
-            await message.edit(content=timeout_message, view=None)
+            view.prompt_component.content = timeout_message
+            await message.edit(view=view)
 
     return view.value is True
 
@@ -198,18 +211,12 @@ bot_links = BotLinks(
     invite_url="https://discord.com/oauth2/authorize?client_id=123456789&scope=bot"
 )
 
-# Use in commands
-@bot.command()
-async def support(ctx):
-    await ctx.send("Join our support server!", view=bot_links.support())
-
-@bot.command()
-async def invite(ctx):
-    await ctx.send("Invite me!", view=bot_links.invite())
-
-@bot.command()
+# Components V2 views carry all message content, so send the view without a
+# separate content or embed argument.
 async def links(ctx):
-    await ctx.send("Useful links:", view=bot_links.both())
+    await ctx.send(view=bot_links.support())
+    await ctx.send(view=bot_links.invite())
+    await ctx.send(view=bot_links.both())
 
 # Custom links
 custom_view = Links.multi_view([

@@ -40,10 +40,24 @@ def _deck() -> list[tuple[str, str]]:
     return d
 
 
+def _text_panel(content: str, *, accent_colour: discord.Colour | None = None) -> discord.ui.LayoutView:
+    """Build a static Components V2 panel containing a single text display."""
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(discord.ui.Container(discord.ui.TextDisplay(content), accent_colour=accent_colour))
+    return view
+
+
+def _disable_buttons(view: discord.ui.LayoutView) -> None:
+    """Disable every button nested anywhere inside a Components V2 view."""
+    for item in view.walk_children():
+        if isinstance(item, discord.ui.Button):
+            item.disabled = True
+
+
 class TicTacToeButton(discord.ui.Button["TicTacToeView"]):
     def __init__(self, x: int, y: int) -> None:
-        # custom_id helps keep track of the board coordinates (row x, column y)
-        super().__init__(style=discord.ButtonStyle.secondary, label="\u200b", row=x)
+        # The row is set structurally by the ActionRow the button lives in.
+        super().__init__(style=discord.ButtonStyle.secondary, label="\u200b")
         self.x = x
         self.y = y
 
@@ -82,22 +96,17 @@ class TicTacToeButton(discord.ui.Button["TicTacToeView"]):
                 content = "🤝 **It's a tie!**"
 
             # Disable all buttons when game ends
-            for child in view.children:
-                child.disabled = True
+            _disable_buttons(view)
 
             view.stop()
         else:
-            # Game continues, update turn prompt
-            current_mention = view.player_x.mention if view.turn == view.X else view.player_o.mention
-            content = (
-                f"🎮 Tic-Tac-Toe: {view.player_x.mention} (X) vs "
-                f"{view.player_o.mention} (O)\n➡️ Current Turn: {current_mention}"
-            )
+            content = view.turn_message()
 
-        await interaction.response.edit_message(content=content, view=view)
+        view.status.content = content
+        await interaction.response.edit_message(view=view)
 
 
-class TicTacToeView(discord.ui.View):
+class TicTacToeView(discord.ui.LayoutView):
     X = 1
     O = -1  # noqa: E741
     TIE = 2
@@ -116,10 +125,20 @@ class TicTacToeView(discord.ui.View):
             [0, 0, 0],
         ]
 
-        # Dynamically generate and attach the 9 buttons
+        self.status = discord.ui.TextDisplay(self.turn_message())
+        self.container = discord.ui.Container(self.status, accent_colour=discord.Color.blurple())
+        self.add_item(self.container)
+
+        # Dynamically generate and attach the 9 buttons, one ActionRow per board row
         for x in range(3):
-            for y in range(3):
-                self.add_item(TicTacToeButton(x, y))
+            self.container.add_item(discord.ui.ActionRow(*(TicTacToeButton(x, y) for y in range(3))))
+
+    def turn_message(self) -> str:
+        current_mention = self.player_x.mention if self.turn == self.X else self.player_o.mention
+        return (
+            f"🎮 Tic-Tac-Toe: {self.player_x.mention} (X) vs "
+            f"{self.player_o.mention} (O)\n➡️ Current Turn: {current_mention}"
+        )
 
     def check_winner(self) -> int | None:
         # Check rows
@@ -155,8 +174,8 @@ class TicTacToeView(discord.ui.View):
 
 class MinesTileButton(discord.ui.Button["MinesView"]):
     def __init__(self, x: int, y: int) -> None:
-        # 5x5 grid means row index corresponds to x
-        super().__init__(style=discord.ButtonStyle.secondary, label="\u200b", row=x)
+        # The 5x5 grid is laid out as one ActionRow per board row.
+        super().__init__(style=discord.ButtonStyle.secondary, label="\u200b")
         self.x = x
         self.y = y
 
@@ -188,10 +207,11 @@ class MinesTileButton(discord.ui.Button["MinesView"]):
                 await view.end_game(interaction, won=True)
             else:
                 # Update grid view and continue playing
-                await interaction.response.edit_message(content=view.get_status_message(), view=view)
+                view.status.content = view.get_status_message()
+                await interaction.response.edit_message(view=view)
 
 
-class MinesView(discord.ui.View):
+class MinesView(discord.ui.LayoutView):
     def __init__(self, player_id: int, num_mines: int) -> None:
         super().__init__(timeout=180.0)  # 3-minute timeout
         self.player_id = player_id
@@ -206,10 +226,13 @@ class MinesView(discord.ui.View):
 
         self.grid = [tiles[i : i + 5] for i in range(0, 25, 5)]
 
-        # Dynamically append grid tiles
+        self.status = discord.ui.TextDisplay(self.get_status_message())
+        self.container = discord.ui.Container(self.status, accent_colour=discord.Color.blurple())
+        self.add_item(self.container)
+
+        # Dynamically append grid tiles, one ActionRow per board row
         for x in range(5):
-            for y in range(5):
-                self.add_item(MinesTileButton(x, y))
+            self.container.add_item(discord.ui.ActionRow(*(MinesTileButton(x, y) for y in range(5))))
 
     def get_status_message(self) -> str:
         return (
@@ -223,17 +246,18 @@ class MinesView(discord.ui.View):
         self.stop()
 
         # Reveal the full board map to the player
-        for child in self.children:
+        for child in self.walk_children():
+            if not isinstance(child, MinesTileButton):
+                continue
             child.disabled = True
-            if isinstance(child, MinesTileButton):
-                child.label = None
-                if self.grid[child.x][child.y] == "B":
-                    triggered = str(child.emoji) == Emoji.BLAST.value
-                    child.emoji = Emoji.BLAST.value if triggered else Emoji.BOMB.value
-                    if not triggered:
-                        child.style = discord.ButtonStyle.secondary
-                else:
-                    child.emoji = Emoji.DIMOND.value
+            child.label = None
+            if self.grid[child.x][child.y] == "B":
+                triggered = str(child.emoji) == Emoji.BLAST.value
+                child.emoji = Emoji.BLAST.value if triggered else Emoji.BOMB.value
+                if not triggered:
+                    child.style = discord.ButtonStyle.secondary
+            else:
+                child.emoji = Emoji.DIMOND.value
 
         # Determine structural header state string
         if won:
@@ -244,7 +268,8 @@ class MinesView(discord.ui.View):
                 f"`{self.diamonds_found}` diamonds. Game Over!"
             )
 
-        await interaction.response.edit_message(content=f"{header}\n\n{self.get_status_message()}", view=self)
+        self.status.content = f"{header}\n\n{self.get_status_message()}"
+        await interaction.response.edit_message(view=self)
 
 
 class Games(commands.Cog):
@@ -269,17 +294,17 @@ class Games(commands.Cog):
         color: discord.Color = discord.Color.blurple(),
         ephemeral: bool = False,
     ) -> None:
-        embed = discord.Embed(description=description, color=color)
-        if title:
-            embed.title = title
+        """Send a Components V2 text panel (name kept for internal call-site compatibility)."""
+        content = f"## {title}\n{description}" if title else description
+        view = _text_panel(content, accent_colour=color)
         if ctx.interaction:
             # prefer followup if initial response is done
             if ctx.interaction.response.is_done():
-                await ctx.interaction.followup.send(embed=embed, ephemeral=ephemeral)
+                await ctx.interaction.followup.send(view=view, ephemeral=ephemeral)
             else:
-                await ctx.interaction.response.send_message(embed=embed, ephemeral=ephemeral)
+                await ctx.interaction.response.send_message(view=view, ephemeral=ephemeral)
             return
-        await ctx.send(embed=embed)
+        await ctx.send(view=view)
 
     @commands.hybrid_command(name="coinflip", description="Flip a coin.")
     @app_commands.describe(side="Optional: call heads or tails")
@@ -336,44 +361,47 @@ class Games(commands.Cog):
                 await self._send_embed(ctx, "You cannot challenge yourself.", ephemeral=True)
                 return
 
-            class BJChallengeView(discord.ui.View):
+            class BJChallengeView(discord.ui.LayoutView):
                 def __init__(self) -> None:
                     super().__init__(timeout=30)
                     self.accepted: bool | None = None
+                    self.status = discord.ui.TextDisplay(
+                        f"{opponent.mention}, you have been challenged to Blackjack by {ctx.author.mention}."
+                    )
+                    self.add_item(discord.ui.Container(self.status, accent_colour=discord.Color.blurple()))
 
-                @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
-                async def accept_bj(inner_self, interaction: discord.Interaction, btn: discord.ui.Button) -> None:
+                    accept = discord.ui.Button(label="Accept", style=discord.ButtonStyle.success)
+                    accept.callback = self._accept
+                    decline = discord.ui.Button(label="Decline", style=discord.ButtonStyle.danger)
+                    decline.callback = self._decline
+                    self.add_item(discord.ui.ActionRow(accept, decline))
+
+                async def _accept(self, interaction: discord.Interaction) -> None:
                     if interaction.user.id != opponent.id:
                         await interaction.response.send_message("Only the challenged user may accept.", ephemeral=True)
                         return
-                    inner_self.accepted = True
-                    for child in inner_self.children:
-                        child.disabled = True
-                    await interaction.response.edit_message(
-                        content=f"{opponent.mention} accepted the challenge!", view=inner_self
-                    )
-                    inner_self.stop()
+                    self.accepted = True
+                    _disable_buttons(self)
+                    self.status.content = f"{opponent.mention} accepted the challenge!"
+                    await interaction.response.edit_message(view=self)
+                    self.stop()
 
-                @discord.ui.button(label="Decline", style=discord.ButtonStyle.danger)
-                async def decline_bj(inner_self, interaction: discord.Interaction, btn: discord.ui.Button) -> None:
+                async def _decline(self, interaction: discord.Interaction) -> None:
                     if interaction.user.id != opponent.id:
                         await interaction.response.send_message("Only the challenged user may decline.", ephemeral=True)
                         return
-                    inner_self.accepted = False
-                    for child in inner_self.children:
-                        child.disabled = True
-                    await interaction.response.edit_message(content="Challenge declined.", view=inner_self)
-                    inner_self.stop()
+                    self.accepted = False
+                    _disable_buttons(self)
+                    self.status.content = "Challenge declined."
+                    await interaction.response.edit_message(view=self)
+                    self.stop()
 
             chal_view = BJChallengeView()
-            chal_msg = await ctx.send(
-                f"{opponent.mention}, you have been challenged to Blackjack by {ctx.author.mention}.",
-                view=chal_view,
-            )
+            chal_msg = await ctx.send(view=chal_view)
 
             timed_out = await chal_view.wait()
             if timed_out or chal_view.accepted is None:
-                await chal_msg.edit(content="Challenge timed out.", view=None)
+                await chal_msg.edit(view=_text_panel("Challenge timed out."))
                 return
             if not chal_view.accepted:
                 return
@@ -392,16 +420,25 @@ class Games(commands.Cog):
                 hands[ctx.author.id].append(deck.pop())
                 hands[opponent.id].append(deck.pop())
 
-            class BJView(discord.ui.View):
+            class BJView(discord.ui.LayoutView):
                 def __init__(self, timeout: float | None = 300) -> None:
                     super().__init__(timeout=timeout)
                     self.finished = False
                     self.finished_players: set[int] = set()
                     self.hand_messages: dict[int, discord.WebhookMessage] = {}
 
-                def build_main_embed(self) -> discord.Embed:
-                    status = "**Game Over**" if self.finished else "Click **View My Hand** to see your cards privately!"
-                    embed = discord.Embed(title="♠ Blackjack ♥", description=status, color=discord.Color.green())
+                    self.status = discord.ui.TextDisplay(self.build_status_text())
+                    self.container = discord.ui.Container(self.status, accent_colour=discord.Color.green())
+                    self.container.add_item(discord.ui.ActionRow(ActionButton("hit"), ActionButton("stand")))
+                    self.container.add_item(discord.ui.ActionRow(ActionButton("view_hand")))
+                    self.add_item(self.container)
+
+                def build_status_text(self, description: str | None = None) -> str:
+                    if description is None:
+                        description = (
+                            "**Game Over**" if self.finished else "Click **View My Hand** to see your cards privately!"
+                        )
+                    parts = ["## ♠ Blackjack ♥", description]
 
                     for p in players:
                         val = _hand_value(hands[p.id])
@@ -422,17 +459,18 @@ class Games(commands.Cog):
                                 line = f"**Hand:** {_hand_display(initial_two_cards)} = **{initial_value}**"
 
                         name = getattr(p, "global_name", None) or p.name
-                        embed.add_field(name=name, value=line, inline=False)
-                    return embed
+                        parts.append(f"**{name}**\n{line}")
+                    return "\n\n".join(parts)
 
-                def build_hand_embed(self, pid: int) -> discord.Embed:
+                def build_hand_panel(self, pid: int) -> discord.ui.LayoutView:
                     val = _hand_value(hands[pid])
                     status_text = "💥 BUSTED!" if val > 21 else ("✨ BLACKJACK!" if val == 21 else "Active Hand")
-                    return discord.Embed(
-                        title="Your Private Hand",
-                        description=(f"{_hand_display(hands[pid])}\n**Your Total Value:** {val} ({status_text})"),
-                        color=discord.Color.blue(),
+                    content = (
+                        f"## Your Private Hand\n"
+                        f"{_hand_display(hands[pid])}\n"
+                        f"**Your Total Value:** {val} ({status_text})"
                     )
+                    return _text_panel(content, accent_colour=discord.Color.blue())
 
                 def check_game_over(self) -> bool:
                     # FIX: Auto-lock players who hit 21 or bust so checking is completely accurate
@@ -460,16 +498,12 @@ class Games(commands.Cog):
             class ActionButton(discord.ui.Button):
                 def __init__(self, action: str) -> None:
                     label = {"hit": "Hit", "stand": "Stand", "view_hand": "View My Hand"}[action]
-                    if action == "hit":
-                        style = discord.ButtonStyle.primary
-                        row = 0
-                    elif action == "stand":
-                        style = discord.ButtonStyle.secondary
-                        row = 0
-                    else:
-                        style = discord.ButtonStyle.success
-                        row = 1
-                    super().__init__(style=style, label=label, row=row)
+                    style = {
+                        "hit": discord.ButtonStyle.primary,
+                        "stand": discord.ButtonStyle.secondary,
+                        "view_hand": discord.ButtonStyle.success,
+                    }[action]
+                    super().__init__(style=style, label=label)
                     self.action = action
 
                 async def callback(inner_self, interaction: discord.Interaction) -> None:
@@ -481,7 +515,10 @@ class Games(commands.Cog):
                     pid = interaction.user.id
 
                     if inner_self.action == "view_hand":
-                        await interaction.response.send_message(embed=bj_view.build_hand_embed(pid), ephemeral=True)
+                        await interaction.response.send_message(
+                            view=bj_view.build_hand_panel(pid),
+                            ephemeral=True,
+                        )
                         bj_view.hand_messages[pid] = await interaction.original_response()
                         return
 
@@ -506,24 +543,19 @@ class Games(commands.Cog):
                         bj_view.finished_players.add(pid)
 
                     if bj_view.check_game_over():
-                        for child in bj_view.children:
-                            child.disabled = True
-                        embed = bj_view.build_main_embed()
-                        embed.description = f"**Game Over**\n{bj_view.final_result()}"
-                        await interaction.response.edit_message(embed=embed, view=bj_view)
+                        _disable_buttons(bj_view)
+                        bj_view.status.content = bj_view.build_status_text(f"**Game Over**\n{bj_view.final_result()}")
+                        await interaction.response.edit_message(view=bj_view)
                     else:
-                        embed = bj_view.build_main_embed()
-                        await interaction.response.edit_message(embed=embed, view=bj_view)
+                        bj_view.status.content = bj_view.build_status_text()
+                        await interaction.response.edit_message(view=bj_view)
                         if pid in bj_view.hand_messages:
                             try:
-                                await bj_view.hand_messages[pid].edit(embed=bj_view.build_hand_embed(pid))
+                                await bj_view.hand_messages[pid].edit(view=bj_view.build_hand_panel(pid))
                             except discord.NotFound:
                                 bj_view.hand_messages.pop(pid, None)
 
             view = BJView()
-            view.add_item(ActionButton("hit"))
-            view.add_item(ActionButton("stand"))
-            view.add_item(ActionButton("view_hand"))
 
             # FIX: Check natural deal conditions before starting layout processing
             p1_val = _hand_value(hands[ctx.author.id])
@@ -536,20 +568,13 @@ class Games(commands.Cog):
                 view.finished_players.add(opponent.id)
 
             if view.check_game_over():
-                for child in view.children:
-                    child.disabled = True
-                embed = view.build_main_embed()
-                embed.description = f"**Game Over**\n{view.final_result()}"
-                await chal_msg.edit(content=None, embed=embed, view=view)
-            else:
-                await chal_msg.edit(content=None, embed=view.build_main_embed(), view=view)
+                _disable_buttons(view)
+                view.status.content = view.build_status_text(f"**Game Over**\n{view.final_result()}")
+            await chal_msg.edit(view=view)
 
         except Exception as exc:
             log_exception(exc)
-            if ctx.interaction:
-                await ctx.send("An error occurred while playing Blackjack.", ephemeral=True)
-            else:
-                await ctx.send("An error occurred while playing Blackjack.")
+            await self._send_embed(ctx, "An error occurred while playing Blackjack.", ephemeral=True)
 
     @commands.hybrid_command(
         name="tic-tac-toe",
@@ -588,20 +613,15 @@ class Games(commands.Cog):
         # Initialize the game view
         view = TicTacToeView(player_x=ctx.author, player_o=target_opponent)
 
-        content = (
-            f"🎮 Tic-Tac-Toe: {ctx.author.mention} (X) vs "
-            f"{target_opponent.mention} (O)\n➡️ Current Turn: {ctx.author.mention}"
-        )
-
         # Handle interaction/prefix differences gracefully matching your structural pattern
         if ctx.interaction:
             if ctx.interaction.response.is_done():
-                await ctx.interaction.followup.send(content=content, view=view, ephemeral=False)
+                await ctx.interaction.followup.send(view=view, ephemeral=False)
             else:
-                await ctx.interaction.response.send_message(content=content, view=view, ephemeral=False)
+                await ctx.interaction.response.send_message(view=view, ephemeral=False)
             return
 
-        await ctx.send(content=content, view=view)
+        await ctx.send(view=view)
 
     @commands.hybrid_command(name="mines", description="Play a game of classic Mines to the finish.")
     @app_commands.describe(mines="The number of hidden mines on the board (Between 1 and 24)")
@@ -621,17 +641,16 @@ class Games(commands.Cog):
             return
 
         view = MinesView(player_id=ctx.author.id, num_mines=mines)
-        content = view.get_status_message()
 
         # Follow framework context processing rules
         if ctx.interaction:
             if ctx.interaction.response.is_done():
-                await ctx.interaction.followup.send(content=content, view=view, ephemeral=False)
+                await ctx.interaction.followup.send(view=view, ephemeral=False)
             else:
-                await ctx.interaction.response.send_message(content=content, view=view, ephemeral=False)
+                await ctx.interaction.response.send_message(view=view, ephemeral=False)
             return
 
-        await ctx.send(content=content, view=view)
+        await ctx.send(view=view)
 
 
 async def setup(bot: Amenity) -> None:

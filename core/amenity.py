@@ -21,6 +21,7 @@ from api.log import (
     log_command_error,
     log_command_usage,
 )
+from api.buttons import Links
 from core.app_commands import (
     APP_COMMAND_IDS_CACHE_KEY,
     APP_COMMAND_IDS_CACHE_TTL,
@@ -63,8 +64,7 @@ BLOCKING_WORKER_COUNT = 4
 FETCHED_USER_CACHE_TTL = 60
 
 USER_ONLY_INSTALL_MESSAGE = (
-    "Amenity is a user-only app and cannot be installed to servers. "
-    "Please install it to your Discord account instead."
+    "Amenity is a user-only app and cannot be installed to servers. Please install it to your Discord account instead."
 )
 
 
@@ -76,11 +76,7 @@ def _application_command_name(data: object) -> str:
     options = data.get("options", [])
     while isinstance(options, list):
         subcommand = next(
-            (
-                option
-                for option in options
-                if isinstance(option, dict) and option.get("type") in (1, 2)
-            ),
+            (option for option in options if isinstance(option, dict) and option.get("type") in (1, 2)),
             None,
         )
         if subcommand is None:
@@ -98,19 +94,21 @@ os.environ["JISHAKU_FORCE_PAGINATOR"] = "True"
 class Amenity(commands.Bot):
     def __init__(self) -> None:
         intents = discord.Intents.default()
-        intents.message_content = True
         intents.members = True
         intents.guilds = True
         intents.messages = True
         intents.dm_messages = True
         super().__init__(
-            command_prefix=",",
+            # Public application commands are registered through the hybrid
+            # decorators below. Keep message-command compatibility only for
+            # an explicit mention of the bot; ordinary text prefixes are off.
+            command_prefix=commands.when_mentioned,
             intents=intents,
             case_insensitive=True,
             help_command=AmenityHelpCommand(),
             # owner_id=931347423773741097,
             strip_after_prefix=True,
-            allowed_mentions=discord.AllowedMentions(everyone=False, users=True, roles=False, replied_user=True)
+            allowed_mentions=discord.AllowedMentions(everyone=False, users=True, roles=False, replied_user=True),
         )
         self.app_command_ids: dict[str, int] = load_persisted_command_ids()
         self._event_loop_last_tick = time.monotonic()
@@ -275,10 +273,7 @@ class Amenity(commands.Bot):
         barrier = threading.Barrier(BLOCKING_WORKER_COUNT)
         try:
             await asyncio.gather(
-                *(
-                    loop.run_in_executor(None, self._wait_for_worker_pool, barrier)
-                    for _ in range(BLOCKING_WORKER_COUNT)
-                )
+                *(loop.run_in_executor(None, self._wait_for_worker_pool, barrier) for _ in range(BLOCKING_WORKER_COUNT))
             )
         except threading.BrokenBarrierError as exc:
             raise RuntimeError("Could not start blocking workers before opening the Discord gateway.") from exc
@@ -553,6 +548,7 @@ class Amenity(commands.Bot):
             await send_error("You don't have permission to use this command.")
             return
 
-        await send_error("An unexpected error occurred. Please try again later.")
+        await send_error("An unexpected error occurred. Please try again later.\n" \
+                            "#- If the issue persists, report it via </report:1560593447474167905>", view=Links().button("Support", "https://amenityy.site/support"))
         await log_app_command_error(interaction, exception)
         raise exception

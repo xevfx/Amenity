@@ -408,9 +408,9 @@ def _totp_code(secret: str, *, interval: int = 30, digits: int = 6) -> tuple[str
     counter = now // interval
     digest = hmac.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
     offset = digest[-1] & 0x0F
-    value = struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF
+    value = struct.unpack(">I", digest[offset : offset + 4])[0] & 0x7FFFFFFF
     resets_in = interval - (now % interval)
-    return str(value % (10 ** digits)).zfill(digits), resets_in, now + resets_in
+    return str(value % (10**digits)).zfill(digits), resets_in, now + resets_in
 
 
 def _host_without_port(netloc: str) -> str:
@@ -531,37 +531,45 @@ def _has_avatar_decoration(user: discord.User) -> bool:
     )
 
 
-class TOTPRefreshView(discord.ui.View):
+class TOTPRefreshView(discord.ui.LayoutView):
     def __init__(self, secret: str, author_id: int) -> None:
         super().__init__(timeout=120)
         self.secret = secret
         self.author_id = author_id
         self.message: discord.Message | None = None
+        self.content_component = discord.ui.TextDisplay("")
+        self.container = discord.ui.Container(self.content_component)
+        self.refresh_button = discord.ui.Button(label="Refresh code", style=discord.ButtonStyle.secondary)
+        self.refresh_button.callback = self.refresh_code
+        self.add_item(self.container)
+        self.add_item(discord.ui.ActionRow(self.refresh_button))
+        self._render()
 
-    def _embed(self) -> discord.Embed:
+    def _render(self) -> None:
         code, resets_in, reset_at = _totp_code(self.secret)
-        embed = discord.Embed(
-            title="2FA Code",
-            description=f"Code: `{code}`\nResets: <t:{reset_at}:R> (`{reset_at}`)\nResets in: `{resets_in}s`",
-            color=discord.Color.onyx_embed(),
+        self.content_component.content = (
+            f"## 2FA Code\nCode: `{code}`\nResets: <t:{reset_at}:R> (`{reset_at}`)\n"
+            f"Resets in: `{resets_in}s`\n-# Do not share your 2FA secret or code."
         )
-        embed.set_footer(text="Do not share your 2FA secret or code.")
-        return embed
+        self.container.accent_colour = discord.Color.onyx_embed()
 
     async def on_timeout(self) -> None:
         for item in self.children:
-            item.disabled = True
+            if isinstance(item, discord.ui.ActionRow):
+                for child in item.children:
+                    if isinstance(child, discord.ui.Button):
+                        child.disabled = True
         if self.message is not None:
             with contextlib.suppress(discord.HTTPException):
                 await self.message.edit(view=self)
 
-    @discord.ui.button(label="Refresh code", style=discord.ButtonStyle.secondary)
-    async def refresh_code(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+    async def refresh_code(self, interaction: discord.Interaction) -> None:
         if interaction.user.id != self.author_id:
             await interaction.response.send_message("This 2FA panel is not yours.", ephemeral=True)
             return
         try:
-            await interaction.response.edit_message(embed=self._embed(), view=self)
+            self._render()
+            await interaction.response.edit_message(view=self)
         except Exception as exc:
             log_exception(exc)
             await interaction.response.send_message("Failed to refresh the code.", ephemeral=True)
@@ -671,9 +679,10 @@ def _tavily_usage_process_lock() -> Iterator[None]:
                     backend = "msvcrt"
                     break
                 except OSError as exc:
-                    if exc.errno not in {errno.EACCES, errno.EAGAIN, errno.EDEADLK} and getattr(
-                        exc, "winerror", None
-                    ) != 33:
+                    if (
+                        exc.errno not in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}
+                        and getattr(exc, "winerror", None) != 33
+                    ):
                         raise
                     if time.monotonic() >= deadline:
                         raise TimeoutError("Timed out waiting for the Tavily usage file lock") from exc
@@ -1027,7 +1036,6 @@ class Tools(commands.Cog):
         summary_page = next((value for value in pages.values() if isinstance(value, dict)), None)
         return clean_results, summary_page
 
-
     async def preview_html_file(self, interaction: discord.Interaction, message: discord.Message) -> None:
         html_file = next(
             (
@@ -1153,7 +1161,8 @@ class Tools(commands.Cog):
         user: discord.User | None = None,
     ) -> None:
         await self._process_avatar(
-            ctx, user,
+            ctx,
+            user,
             add_stroke_to_avatar,
             "stroke",
             "Stroked Avatar",
@@ -1214,7 +1223,8 @@ class Tools(commands.Cog):
         user: discord.User | None = None,
     ) -> None:
         await self._process_avatar(
-            ctx, user,
+            ctx,
+            user,
             lambda b, p: rotate_avatar(b, p, -90),
             "rotate-right",
             "Rotated Right",
@@ -1234,7 +1244,8 @@ class Tools(commands.Cog):
         user: discord.User | None = None,
     ) -> None:
         await self._process_avatar(
-            ctx, user,
+            ctx,
+            user,
             lambda b, p: rotate_avatar(b, p, 90),
             "rotate-left",
             "Rotated Left",
@@ -1254,7 +1265,8 @@ class Tools(commands.Cog):
         user: discord.User | None = None,
     ) -> None:
         await self._process_avatar(
-            ctx, user,
+            ctx,
+            user,
             lambda b, p: rotate_avatar(b, p, 180),
             "rotate-up",
             "Rotated Up",
@@ -1274,12 +1286,12 @@ class Tools(commands.Cog):
         user: discord.User | None = None,
     ) -> None:
         await self._process_avatar(
-            ctx, user,
+            ctx,
+            user,
             lambda b, p: rotate_avatar(b, p, 180),
             "rotate-down",
             "Rotated Down",
         )
-
 
     @image_group.command(
         name="invert",
@@ -1583,18 +1595,17 @@ class Tools(commands.Cog):
     async def two_factor_code(self, ctx: commands.Context, *, secret: str) -> None:
         try:
             view = TOTPRefreshView(secret, ctx.author.id)
-            embed = view._embed()
         except Exception:
             await ctx.send("Invalid 2FA secret.")
             return
 
         if ctx.interaction:
-            await ctx.interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await ctx.interaction.response.send_message(view=view, ephemeral=True)
             with contextlib.suppress(discord.HTTPException):
                 view.message = await ctx.interaction.original_response()
             return
 
-        view.message = await ctx.send(embed=embed, view=view)
+        view.message = await ctx.send(view=view)
 
     @commands.hybrid_command(name="sanitize-url", description="Remove tracking parameters from a URL.")
     @app_commands.describe(url="The URL to clean.")
@@ -1807,14 +1818,18 @@ class Tools(commands.Cog):
             embeds = [build_page([], 0, 1)]
 
         view = EmbedPaginator(embeds, author_id=ctx.author.id) if len(embeds) > 1 else None
-        if ctx.interaction:
-            message = await ctx.send(embed=embeds[0], view=view, ephemeral=True)
-            if view is not None:
-                view.message = message
-            return
-        message = await ctx.send(embed=embeds[0], view=view)
-        if view is not None:
+        if ctx.interaction and view is not None:
+            message = await ctx.send(view=view, ephemeral=True)
             view.message = message
+            return
+        if ctx.interaction:
+            await ctx.send(embed=embeds[0], ephemeral=True)
+            return
+        if view is not None:
+            message = await ctx.send(view=view)
+            view.message = message
+            return
+        await ctx.send(embed=embeds[0])
 
     @commands.hybrid_command(name="replace", description="Replace text inside a message.")
     @app_commands.describe(

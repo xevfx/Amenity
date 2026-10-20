@@ -3,8 +3,10 @@ from contextlib import suppress
 
 import discord
 
+MAX_COMPONENT_TEXT_LENGTH = 4000
 
-class EmbedPaginator(discord.ui.View):
+
+class EmbedPaginator(discord.ui.LayoutView):
     def __init__(
         self,
         embeds: list[discord.Embed],
@@ -19,11 +21,44 @@ class EmbedPaginator(discord.ui.View):
         self.max_pages = len(embeds)
         self.message: discord.Message | None = None
 
+        self.first_page = discord.ui.Button(label="<<", style=discord.ButtonStyle.secondary)
+        self.previous_page = discord.ui.Button(label="<", style=discord.ButtonStyle.secondary)
+        self.page_counter = discord.ui.Button(label="1/1", style=discord.ButtonStyle.secondary, disabled=True)
+        self.next_page = discord.ui.Button(label=">", style=discord.ButtonStyle.secondary)
+        self.last_page = discord.ui.Button(label=">>", style=discord.ButtonStyle.secondary)
+        self.delete_message = discord.ui.Button(label="Close", style=discord.ButtonStyle.danger)
+        self.first_page.callback = self._first_page
+        self.previous_page.callback = self._previous_page
+        self.next_page.callback = self._next_page
+        self.last_page.callback = self._last_page
+        self.delete_message.callback = self._delete_message
+        buttons = [
+            self.first_page,
+            self.previous_page,
+            self.page_counter,
+            self.next_page,
+            self.last_page,
+            self.delete_message,
+        ]
+        self.content_component = discord.ui.TextDisplay("")
+        self.container = discord.ui.Container(self.content_component)
+        self.add_item(self.container)
+        self.add_item(discord.ui.ActionRow(*buttons[:5]))
+        self.add_item(discord.ui.ActionRow(buttons[5]))
+        self._render_embed()
+
         # Update button states
         self.update_buttons()
 
     def update_buttons(self) -> None:
         """Update button states based on current page"""
+        if self.max_pages == 0:
+            self.first_page.disabled = True
+            self.previous_page.disabled = True
+            self.next_page.disabled = True
+            self.last_page.disabled = True
+            self.page_counter.label = "0/0"
+            return
         self.first_page.disabled = self.current_page == 0
         self.previous_page.disabled = self.current_page == 0
         self.next_page.disabled = self.current_page == self.max_pages - 1
@@ -32,6 +67,51 @@ class EmbedPaginator(discord.ui.View):
         # Update page counter button
         self.page_counter.label = f"{self.current_page + 1}/{self.max_pages}"
 
+    def _render_embed(self) -> None:
+        if not self.embeds:
+            self.content_component.content = "No pages to display."
+            self.container.accent_colour = None
+            for button in (self.first_page, self.previous_page, self.next_page, self.last_page):
+                button.disabled = True
+            self.page_counter.label = "0/0"
+            return
+
+        embed = self.embeds[self.current_page]
+        parts: list[str] = []
+        if embed.author.name:
+            author = embed.author.name
+            if embed.author.url:
+                author = f"[{author}]({embed.author.url})"
+            parts.append(f"-# {author}")
+        if embed.title:
+            title = embed.title
+            if embed.url:
+                title = f"[{title}]({embed.url})"
+            parts.append(f"## {title}")
+        if embed.description:
+            parts.append(embed.description)
+        for field in embed.fields:
+            parts.append(f"**{field.name}**\n{field.value}")
+        if embed.footer.text:
+            footer = embed.footer.text
+            if embed.timestamp:
+                footer = f"{footer} • <t:{int(embed.timestamp.timestamp())}:f>"
+            parts.append(f"-# {footer}")
+        rendered = "\n\n".join(parts)
+        rendered = rendered.replace("<@", "<@\u200b").replace("<#", "<#\u200b")
+        rendered = discord.utils.escape_mentions(rendered) or "\u200b"
+        if len(rendered) > MAX_COMPONENT_TEXT_LENGTH:
+            marker = "\n\n-# Text truncated to fit Discord's Components V2 limit."
+            rendered = rendered[: MAX_COMPONENT_TEXT_LENGTH - len(marker)].rstrip() + marker
+        self.content_component.content = rendered
+        self.container.accent_colour = embed.colour
+        self.container.clear_items()
+        self.container.add_item(self.content_component)
+        media_urls = list(dict.fromkeys(url for url in (embed.image.url, embed.thumbnail.url) if url))
+        if media_urls:
+            media_items = [discord.MediaGalleryItem(media=url) for url in media_urls]
+            self.container.add_item(discord.ui.MediaGallery(*media_items))
+
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Check if the user is authorized to use the paginator"""
         if self.author_id and interaction.user.id != self.author_id:
@@ -39,73 +119,41 @@ class EmbedPaginator(discord.ui.View):
             return False
         return True
 
-    @discord.ui.button(label="<<", style=discord.ButtonStyle.secondary)
-    async def first_page(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
-    ) -> None:
-        """Go to first page"""
+    async def _first_page(self, interaction: discord.Interaction) -> None:
         self.current_page = 0
         self.update_buttons()
-        await interaction.response.edit_message(embed=self.embeds[self.current_page], view=self)
+        self._render_embed()
+        await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label="<", style=discord.ButtonStyle.secondary)
-    async def previous_page(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
-    ) -> None:
-        """Go to previous page"""
+    async def _previous_page(self, interaction: discord.Interaction) -> None:
         self.current_page -= 1
         self.update_buttons()
-        await interaction.response.edit_message(embed=self.embeds[self.current_page], view=self)
+        self._render_embed()
+        await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label="1/1", style=discord.ButtonStyle.secondary, disabled=True)
-    async def page_counter(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
-    ) -> None:
-        """Page counter - disabled button for display"""
-        pass
-
-    @discord.ui.button(label=">", style=discord.ButtonStyle.secondary)
-    async def next_page(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
-    ) -> None:
-        """Go to next page"""
+    async def _next_page(self, interaction: discord.Interaction) -> None:
         self.current_page += 1
         self.update_buttons()
-        await interaction.response.edit_message(embed=self.embeds[self.current_page], view=self)
+        self._render_embed()
+        await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label=">>", style=discord.ButtonStyle.secondary)
-    async def last_page(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
-    ) -> None:
-        """Go to last page"""
+    async def _last_page(self, interaction: discord.Interaction) -> None:
         self.current_page = self.max_pages - 1
         self.update_buttons()
-        await interaction.response.edit_message(embed=self.embeds[self.current_page], view=self)
+        self._render_embed()
+        await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label="Close", style=discord.ButtonStyle.danger)
-    async def delete_message(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
-    ) -> None:
-        """Delete the paginator message"""
+    async def _delete_message(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
         await interaction.delete_original_response()
 
     async def on_timeout(self) -> None:
         """Disable all buttons when the view times out"""
         for item in self.children:
-            item.disabled = True
+            if isinstance(item, discord.ui.ActionRow):
+                for button in item.children:
+                    if isinstance(button, discord.ui.Button):
+                        button.disabled = True
         if self.message is not None:
             with suppress(discord.HTTPException):
                 await self.message.edit(view=self)

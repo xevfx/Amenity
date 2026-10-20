@@ -9,18 +9,23 @@ import discord
 import pytest
 from discord.ext import commands
 
+from api.buttons import Links
+from api.emojis import Emoji
 from api.paginator import EmbedPaginator
+from cogs.template import TemplateBuilderView, TemplatePayloadTooLong, build_template_payload
 from cogs.tools import Tools
 from core import app_commands
 from core.amenity import Amenity
 from core.help import (
     HelpCategorySelect,
     HelpFirstButton,
+    HelpHomeButton,
     HelpIndex,
     HelpLastButton,
     HelpNextButton,
     HelpPageIndicator,
     HelpPrevButton,
+    HelpSearchButton,
     HelpView,
 )
 
@@ -40,7 +45,7 @@ def test_embed_paginator_buttons() -> None:
     embeds = [discord.Embed(title=f"Page {i}") for i in range(3)]
     paginator = EmbedPaginator(embeds)
 
-    button_labels = [child.label for child in paginator.children if isinstance(child, discord.ui.Button)]
+    button_labels = [child.label for child in paginator.walk_children() if isinstance(child, discord.ui.Button)]
     assert "<<" in button_labels
     assert "<" in button_labels
     assert ">" in button_labels
@@ -71,6 +76,75 @@ def test_embed_paginator_buttons() -> None:
     assert paginator.next_page.disabled is True
     assert paginator.last_page.disabled is True
     assert paginator.page_counter.label == "3/3"
+
+
+def test_embed_paginator_v2_limits_text_and_neutralizes_mentions() -> None:
+    embed = discord.Embed(
+        title="Shop result",
+        url="https://example.com/item",
+        description="<@123456789> " + "x" * 5000,
+    )
+
+    paginator = EmbedPaginator([embed])
+    rendered = paginator.content_component.content
+
+    assert paginator.content_length() <= 4000
+    assert "[Shop result](https://example.com/item)" in rendered
+    assert "<@123456789>" not in rendered
+    assert "<@\u200b123456789>" in rendered
+    assert "Text truncated" in rendered
+
+
+def test_links_multi_view_splits_rows_at_five_buttons() -> None:
+    view = Links.multi_view([(f"Link {index}", f"https://example.com/{index}") for index in range(7)])
+
+    container = view.to_components()[0]
+    rows = container["components"]
+    assert [len(row["components"]) for row in rows] == [5, 2]
+
+
+def test_template_v2_payload_keeps_buttons_and_rejects_oversized_text() -> None:
+    template = {
+        "content": "Template text",
+        "embed": {"title": "Template embed", "url": "https://example.com"},
+        "buttons": [{"label": "Open", "url": "https://example.com"}],
+    }
+    content, embed, view = build_template_payload(template)
+
+    assert content is None
+    assert embed is None
+    assert view is not None
+    assert view.content_length() <= 4000
+    assert "Template text" in view.to_components()[0]["components"][0]["content"]
+    assert "[Template embed](https://example.com)" in view.to_components()[0]["components"][0]["content"]
+
+    oversized = {
+        "content": "x" * 2000,
+        "embed": {"description": "y" * 2500},
+        "buttons": [{"label": "Open", "url": "https://example.com"}],
+    }
+    with pytest.raises(TemplatePayloadTooLong):
+        build_template_payload(oversized)
+
+
+@pytest.mark.asyncio
+async def test_template_preview_sends_v2_view_for_link_button_templates() -> None:
+    builder = TemplateBuilderView(
+        SimpleNamespace(),
+        author_id=123,
+        name="preview",
+        data={"content": "Template body", "embed": None, "buttons": [{"label": "Open", "url": "https://example.com"}]},
+    )
+    interaction = MagicMock()
+    interaction.response.send_message = AsyncMock()
+
+    await builder.preview_button(interaction)
+
+    kwargs = interaction.response.send_message.await_args.kwargs
+    assert kwargs["ephemeral"] is True
+    assert isinstance(kwargs["view"], discord.ui.LayoutView)
+    assert "content" not in kwargs
+    assert "embed" not in kwargs
 
 
 @pytest.mark.asyncio
@@ -134,7 +208,7 @@ def test_help_index_command_mentions() -> None:
 
 
 @pytest.mark.asyncio
-async def test_help_view_home_embed_formatting() -> None:
+async def test_help_view_home_layout_formatting() -> None:
     bot = commands.Bot(command_prefix=",", intents=discord.Intents.default())
     index = HelpIndex(bot)
 
@@ -162,16 +236,17 @@ async def test_help_view_home_embed_formatting() -> None:
         uncategorized=[],
     )
 
-    embed = await view.create_home_embed()
+    content = view.content_component.content
     # Check that category is NOT bold and does NOT have command counts
-    assert "**Tools**" not in embed.description
-    assert "Tools" in embed.description
-    assert "(19)" not in embed.description
-    assert "(19 commands)" not in embed.description
+    assert "**Tools**" not in content
+    assert "Tools" in content
+    assert "(19)" not in content
+    assert "(19 commands)" not in content
+    assert view.container.accent_colour is not None
 
 
 @pytest.mark.asyncio
-async def test_help_view_cog_embed_and_pagination() -> None:
+async def test_help_view_cog_layout_and_pagination() -> None:
     bot = commands.Bot(command_prefix=",", intents=discord.Intents.default())
     bot.app_command_ids = {"test": 9999999999, "cmd0": 1000000000}
     index = HelpIndex(bot)
@@ -186,6 +261,7 @@ async def test_help_view_cog_embed_and_pagination() -> None:
     # Create 35 dummy commands to test 30 commands per page
     dummy_commands = []
     for i in range(35):
+
         @commands.command(name=f"cmd{i}", help=f"Description for cmd{i}")
         async def dummy_cmd(ctx: commands.Context[commands.Bot]) -> None:
             pass
@@ -204,21 +280,21 @@ async def test_help_view_cog_embed_and_pagination() -> None:
     )
 
     view.mode = "cog"
-    embed = await view.create_cog_embed(cog)
+    view.current_cog = cog
+    view._update_components()
 
     # 35 commands with 30 per page yields 2 total pages
     assert view.total_pages == 2
     assert view.current_page == 0
 
-    # Embed fields should contain commands list without -# descriptions
-    field_text = "\n".join(f.value for f in embed.fields)
-    assert "</cmd0:1000000000>" in field_text
-    assert "-# Description" not in field_text
-    assert embed.footer.text == "Page 1/2 • 35 commands • Amenity"
+    # Content should contain the command list without -# descriptions
+    content = view.content_component.content
+    assert "</cmd0:1000000000>" in content
+    assert "-# Description" not in content
+    assert "Page 1/2 • 35 commands • Amenity" in content
 
-    # Check view components when pagination is active (total_pages > 1)
-    view._update_components()
-    labels = [child.label for child in view.children if isinstance(child, discord.ui.Button)]
+    # Check interactive components when pagination is active (total_pages > 1)
+    labels = [child.label for child in view.walk_children() if isinstance(child, discord.ui.Button)]
     assert "<<" in labels
     assert "<" in labels
     assert "1/2" in labels
@@ -226,18 +302,38 @@ async def test_help_view_cog_embed_and_pagination() -> None:
     assert ">>" in labels
     assert "Home" in labels
     assert "Search" in labels
-    assert "Close" in labels
+    assert "Close" not in labels
 
-    # Check that pagination buttons are in row 1 and action buttons in row 2
-    for child in view.children:
-        if isinstance(child, (HelpFirstButton, HelpPrevButton, HelpPageIndicator, HelpNextButton, HelpLastButton)):
-            assert child.row == 1
-        elif isinstance(child, discord.ui.Button) and child.label in ("Home", "Search", "Close"):
-            assert child.row == 2
+    # Text and all controls are nested in the same Components V2 container.
+    assert view.children == [view.container]
+    rows = [child for child in view.container.children if isinstance(child, discord.ui.ActionRow)]
+    pager_row = next(row for row in rows if any(isinstance(c, HelpFirstButton) for c in row.children))
+    nav_row = next(row for row in rows if any(isinstance(c, HelpSearchButton) for c in row.children))
+    assert {type(c) for c in pager_row.children} == {
+        HelpFirstButton,
+        HelpPrevButton,
+        HelpPageIndicator,
+        HelpNextButton,
+        HelpLastButton,
+    }
+    assert {type(c) for c in pager_row.children} == {
+        HelpFirstButton,
+        HelpPrevButton,
+        HelpPageIndicator,
+        HelpNextButton,
+        HelpLastButton,
+    }
+    nav_types = {type(c) for c in nav_row.children}
+    assert nav_types == {HelpHomeButton, HelpSearchButton}
+    search_button = next(c for c in nav_row.children if isinstance(c, HelpSearchButton))
+    assert str(search_button.emoji) == Emoji.SEARCH.value
+    assert view.content_component in view.container.children
+    assert view.content_length() <= 4000
+    view.to_components()
 
 
 @pytest.mark.asyncio
-async def test_help_view_group_embed_30_commands_limit() -> None:
+async def test_help_view_group_layout_30_commands_limit() -> None:
     bot = commands.Bot(command_prefix=",", intents=discord.Intents.default())
     index = HelpIndex(bot)
 
@@ -267,19 +363,20 @@ async def test_help_view_group_embed_30_commands_limit() -> None:
         uncategorized=[],
     )
 
+    view.mode = "group"
     view.selected_group = "tools"
-    embed = await view.create_group_embed("tools")
+    view._update_components()
+    content = view.content_component.content
 
     # All 17 commands must be listed without "+11 more" or any truncation!
-    assert "+11 more" not in embed.description
-    assert "+ more" not in embed.description
+    assert "+11 more" not in content
+    assert "+ more" not in content
     for i in range(17):
-        assert f"`/tool_cmd_{i}`" in embed.description
+        assert f"`/tool_cmd_{i}`" in content
 
     # Since 17 <= 30 commands, total_pages == 1, no pagination buttons
     assert view.total_pages == 1
-    view._update_components()
-    button_labels = [c.label for c in view.children if isinstance(c, discord.ui.Button)]
+    button_labels = [c.label for c in view.walk_children() if isinstance(c, discord.ui.Button)]
     assert "<<" not in button_labels
     assert "<" not in button_labels
     assert ">" not in button_labels
@@ -287,7 +384,7 @@ async def test_help_view_group_embed_30_commands_limit() -> None:
 
 
 @pytest.mark.asyncio
-async def test_help_view_group_embed_no_subgroups() -> None:
+async def test_help_view_group_layout_no_subgroups() -> None:
     bot = commands.Bot(command_prefix=",", intents=discord.Intents.default())
     bot.app_command_ids = {"ai": 111, "fix-grammar": 222, "image-gen": 333}
     index = HelpIndex(bot)
@@ -319,22 +416,23 @@ async def test_help_view_group_embed_no_subgroups() -> None:
         uncategorized=[],
     )
 
+    view.mode = "group"
     view.selected_group = "ai"
-    embed = await view.create_group_embed("ai")
+    view._update_components()
+    content = view.content_component.content
 
     # In a group without sub-groups:
-    # 1. No repetitive field like ":shine: AI (3)"
-    assert len(embed.fields) == 0
+    # 1. No repeated bold group heading line like ":shine: AI"
+    assert content.count("**AI**") == 0
 
     # 2. Commands are displayed directly under the description
-    assert "Chat, grammar, and image generation powered by AI." in embed.description
-    assert "</ai:111>" in embed.description
-    assert "</fix-grammar:222>" in embed.description
-    assert "</image-gen:333>" in embed.description
+    assert "Chat, grammar, and image generation powered by AI." in content
+    assert "</ai:111>" in content
+    assert "</fix-grammar:222>" in content
+    assert "</image-gen:333>" in content
 
     # 3. Dropdown shows main groups instead of 1-item sub-group
-    view._update_components()
-    select_items = [c for c in view.children if isinstance(c, HelpCategorySelect)]
+    select_items = [c for c in view.walk_children() if isinstance(c, HelpCategorySelect)]
     assert len(select_items) == 1
     select = select_items[0]
     # Options are main groups (values starting with group:), not sub-cogs (cog:...)
@@ -344,7 +442,7 @@ async def test_help_view_group_embed_no_subgroups() -> None:
 
 
 @pytest.mark.asyncio
-async def test_help_view_group_embed_with_subgroups() -> None:
+async def test_help_view_group_layout_with_subgroups() -> None:
     bot = commands.Bot(command_prefix=",", intents=discord.Intents.default())
     bot.app_command_ids = {"server": 101, "avatar": 102}
     index = HelpIndex(bot)
@@ -385,19 +483,20 @@ async def test_help_view_group_embed_with_subgroups() -> None:
         uncategorized=[],
     )
 
+    view.mode = "group"
     view.selected_group = "utilities"
-    embed = await view.create_group_embed("utilities")
+    view._update_components()
+    content = view.content_component.content
 
     # In a group WITH sub-groups:
-    # Separate fields are shown for each sub-group
-    assert len(embed.fields) == 2
-    field_names = [f.name for f in embed.fields]
-    assert any("Server Utility" in name for name in field_names)
-    assert any("User Utility" in name for name in field_names)
+    # Separate bold headings are shown for each sub-group
+    assert "Server Utility**" in content
+    assert "User Utility**" in content
+    assert "</server:101>" in content
+    assert "</avatar:102>" in content
 
     # Dropdown shows sub-group options for utilities
-    view._update_components()
-    select_items = [c for c in view.children if isinstance(c, HelpCategorySelect)]
+    select_items = [c for c in view.walk_children() if isinstance(c, HelpCategorySelect)]
     assert len(select_items) == 1
     select = select_items[0]
     cog_values = [opt.value for opt in select.options]
@@ -410,6 +509,9 @@ async def test_help_view_group_embed_with_subgroups() -> None:
 async def test_amenity_fetch_app_commands_in_memory() -> None:
     bot = Amenity()
     try:
+        assert bot.command_prefix is commands.when_mentioned
+        assert bot.intents.message_content is False
+
         mock_global_cmds = [
             SimpleNamespace(name="ping", id=1534606769270034533),
             SimpleNamespace(name="qr", id=1534606770511806525),
@@ -711,11 +813,11 @@ async def test_help_view_other_and_owner_groups_discarded() -> None:
     assert "owner" not in groups
     assert groups == ["tools"]
 
-    # 2. Home embed must not advertise "Other" or "Owner"
-    embed = await view.create_home_embed()
-    assert "Other" not in embed.description
-    assert "Owner" not in embed.description
-    assert "Tools" in embed.description
+    # 2. Home content must not advertise "Other" or "Owner"
+    content = view.content_component.content
+    assert "Other" not in content
+    assert "Owner" not in content
+    assert "Tools" in content
 
     # 3. Dropdown options must not contain "other" or "owner"
     options = view._group_options()

@@ -331,7 +331,6 @@ class Reminder(commands.Cog):
         if ctx.interaction:
             view = EmbedPaginator(embeds, author_id=ctx.author.id)
             await ctx.interaction.response.send_message(
-                embed=embeds[0],
                 view=view,
                 ephemeral=True,
             )
@@ -340,7 +339,7 @@ class Reminder(commands.Cog):
             return
 
         view = EmbedPaginator(embeds, author_id=ctx.author.id)
-        view.message = await ctx.send(embed=embeds[0], view=view)
+        view.message = await ctx.send(view=view)
 
     async def remind_me_about(
         self,

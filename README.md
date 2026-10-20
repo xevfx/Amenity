@@ -93,12 +93,10 @@ accepted for hosts that use that secret name.
 1. Open the Discord Developer Portal.
 2. Create an application, then create a bot for it.
 3. Copy the bot token into `TOKEN` in `.env`.
-4. Enable the required privileged intents:
-   - Message Content Intent
-   - Server Members Intent, if you use member-related commands
-5. Invite the bot with the permissions and scopes your commands need.
+4. Enable the Server Members Intent if you use member-related commands.
+5. Invite the bot with the `applications.commands` scope and the permissions your commands need.
 
-The default text command prefix is `,`. Slash and hybrid commands are synced when the bot starts.
+Slash commands are the primary interface and are synced when the bot starts. For compatibility, message commands run only when the message starts with an explicit mention of the bot; there is no regular text prefix. Message Content Intent is not required for this mention-only fallback.
 
 ## Development
 

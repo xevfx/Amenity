@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=45)
 SYSTEM_PROMPT_PATH = Path(__file__).resolve().parents[1] / ".github" / "ai" / "system.md"
-PAGE_CHARS = 3500
+PAGE_CHARS = 3000
 PROMPT_PREVIEW_CHARS = 400
 SUMMARY_MODEL_KEY = "groq/openai/gpt-oss-120b"
 POLLINATIONS_IMAGE_MODEL = "flux"
@@ -73,9 +73,7 @@ AI_MODELS: dict[str, AIModel] = {
     ),
 }
 
-MODEL_CHOICES: list[tuple[str, str]] = [
-    (model.key, f"{model.provider}: {model.label}") for model in AI_MODELS.values()
-]
+MODEL_CHOICES: list[tuple[str, str]] = [(model.key, f"{model.provider}: {model.label}") for model in AI_MODELS.values()]
 
 
 class AI(commands.Cog):
@@ -395,11 +393,11 @@ class AI(commands.Cog):
 
         view = EmbedPaginator(pages, author_id=author_id)
         if isinstance(destination, commands.Context):
-            view.message = await destination.send(embed=pages[0], view=view)
+            view.message = await destination.send(view=view)
         elif destination.response.is_done():
-            view.message = await destination.followup.send(embed=pages[0], view=view, ephemeral=ephemeral)
+            view.message = await destination.followup.send(view=view, ephemeral=ephemeral)
         else:
-            await destination.response.send_message(embed=pages[0], view=view, ephemeral=ephemeral)
+            await destination.response.send_message(view=view, ephemeral=ephemeral)
             with suppress(discord.HTTPException):
                 view.message = await destination.original_response()
 

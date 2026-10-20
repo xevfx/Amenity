@@ -784,7 +784,7 @@ class UserUtility(commands.Cog):
             return
 
         view = EmbedPaginator(embeds, author_id=ctx.author.id)
-        view.message = await ctx.reply(embed=embeds[0], view=view, mention_author=False, **send_kwargs)
+        view.message = await ctx.reply(view=view, mention_author=False, **send_kwargs)
 
 
 async def setup(bot: Amenity) -> None:

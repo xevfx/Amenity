@@ -137,7 +137,7 @@ class Github(commands.Cog):
                 embed = discord.Embed(
                     title=f"{Emoji.GITHUB.value} {full_name}",
                     url=html_url,
-                    description=repo.get('description') or "No description provided.",
+                    description=repo.get("description") or "No description provided.",
                     color=discord.Color.dark_grey(),
                 )
                 owner = repo.get("owner") or {}
@@ -178,7 +178,7 @@ class Github(commands.Cog):
                     embed.set_footer(text=f"Owner: {owner['login']}")
                 return embed
 
-            class RepoPaginator(discord.ui.View):
+            class RepoPaginator(discord.ui.LayoutView):
                 def __init__(self, repos: list[dict]) -> None:
                     super().__init__(timeout=60)
                     self.repos = repos
@@ -198,14 +198,17 @@ class Github(commands.Cog):
                     self.next_button.callback = self.next_callback
                     self.last_button.callback = self.last_callback
                     self.update_buttons()
-                    for button in (
+                    buttons = (
                         self.first_button,
                         self.previous_button,
                         self.page_indicator,
                         self.next_button,
                         self.last_button,
-                    ):
-                        self.add_item(button)
+                    )
+                    self.content_component = discord.ui.TextDisplay("")
+                    self.container = discord.ui.Container(self.content_component)
+                    self.add_item(self.container)
+                    self.add_item(discord.ui.ActionRow(*buttons))
 
                 def update_buttons(self) -> None:
                     at_start = self.index == 0
@@ -218,8 +221,19 @@ class Github(commands.Cog):
 
                 async def _show_current(self, interaction: discord.Interaction) -> None:
                     self.update_buttons()
+                    self._render_current()
+                    await interaction.response.edit_message(view=self)
+
+                def _render_current(self) -> None:
                     embed = make_embed(self.repos[self.index])
-                    await interaction.response.edit_message(embed=embed, view=self)
+                    parts = [f"## {embed.title}" if embed.title else ""]
+                    if embed.description:
+                        parts.append(embed.description)
+                    parts.extend(f"**{field.name}**\n{field.value}" for field in embed.fields)
+                    if embed.footer.text:
+                        parts.append(f"-# {embed.footer.text}")
+                    self.content_component.content = "\n\n".join(part for part in parts if part)
+                    self.container.accent_colour = embed.colour
 
                 async def first_callback(self, interaction: discord.Interaction) -> None:
                     self.index = 0
@@ -238,16 +252,18 @@ class Github(commands.Cog):
                     await self._show_current(interaction)
 
                 async def on_timeout(self) -> None:
-                    for button in self.children:
-                        if isinstance(button, discord.ui.Button):
-                            button.disabled = True
+                    for row in self.children:
+                        if isinstance(row, discord.ui.ActionRow):
+                            for button in row.children:
+                                if isinstance(button, discord.ui.Button):
+                                    button.disabled = True
                     if self.message:
                         with suppress(discord.HTTPException):
                             await self.message.edit(view=self)
 
             view = RepoPaginator(items)
-            embed = make_embed(items[0])
-            message = await ctx.reply(embed=embed, view=view, mention_author=False)
+            view._render_current()
+            message = await ctx.reply(view=view, mention_author=False)
             view.message = message
 
         except Exception as exc:
