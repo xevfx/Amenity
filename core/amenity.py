@@ -14,6 +14,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
+from api.buttons import Links
 from api.log import (
     close_webhook_sessions,
     log_app_command_error,
@@ -21,7 +22,6 @@ from api.log import (
     log_command_error,
     log_command_usage,
 )
-from api.buttons import Links
 from core.app_commands import (
     APP_COMMAND_IDS_CACHE_KEY,
     APP_COMMAND_IDS_CACHE_TTL,
@@ -549,6 +549,6 @@ class Amenity(commands.Bot):
             return
 
         await send_error("An unexpected error occurred. Please try again later.\n" \
-                            "#- If the issue persists, report it via </report:1560593447474167905>", view=Links().button("Support", "https://amenityy.site/support"))
+        "#- If the issue persists, report it via </report:1560593447474167905>", view=Links().button("Support", "https://amenityy.site/support"))
         await log_app_command_error(interaction, exception)
         raise exception
