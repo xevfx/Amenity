@@ -823,3 +823,196 @@ async def test_help_view_other_and_owner_groups_discarded() -> None:
     options = view._group_options()
     assert not any(opt.value in ("group:other", "group:owner") for opt in options)
     assert not any(opt.label in ("Other", "Owner") for opt in options)
+
+
+@pytest.mark.asyncio
+async def test_view_timeout_with_deleted_message_suppresses_not_found() -> None:
+    from api.buttons import ConfirmView
+    from cogs.games import MinesView, TicTacToeView
+    from cogs.template import TemplateBuilderView, TemplateListView
+    from cogs.tools import TOTPRefreshView
+
+    # Create dummy response for discord.NotFound
+    response = MagicMock()
+    response.status = 404
+    response.reason = "Not Found"
+    not_found_err = discord.NotFound(response, {"message": "Unknown Message", "code": 10008})
+
+    # 1. EmbedPaginator
+    paginator = EmbedPaginator([discord.Embed(title="Page 1")])
+    mock_msg = MagicMock()
+    mock_msg.edit = AsyncMock(side_effect=not_found_err)
+    paginator.message = mock_msg
+    await paginator.on_timeout()
+    assert all(child.disabled for child in paginator.walk_children() if hasattr(child, "disabled"))
+
+    # 2. ConfirmView
+    confirm = ConfirmView(author_id=123, prompt="Are you sure?")
+    confirm_msg = MagicMock()
+    confirm_msg.edit = AsyncMock(side_effect=not_found_err)
+    confirm.message = confirm_msg
+    await confirm.on_timeout()
+    assert all(child.disabled for child in confirm.walk_children() if hasattr(child, "disabled"))
+
+    # 3. TicTacToeView
+    tictactoe = TicTacToeView(
+        player_x=SimpleNamespace(id=1, mention="<@1>"), player_o=SimpleNamespace(id=2, mention="<@2>")
+    )
+    ttt_msg = MagicMock()
+    ttt_msg.edit = AsyncMock(side_effect=not_found_err)
+    tictactoe.message = ttt_msg
+    await tictactoe.on_timeout()
+    assert all(child.disabled for child in tictactoe.walk_children() if hasattr(child, "disabled"))
+
+    # 4. MinesView
+    mines = MinesView(player_id=1, num_mines=3)
+    mines_msg = MagicMock()
+    mines_msg.edit = AsyncMock(side_effect=not_found_err)
+    mines.message = mines_msg
+    await mines.on_timeout()
+    assert all(child.disabled for child in mines.walk_children() if hasattr(child, "disabled"))
+
+    # 5. TemplateListView
+    tlist = TemplateListView(author_id=123, templates=[{"id": 1, "name": "test"}])
+    tlist_msg = MagicMock()
+    tlist_msg.edit = AsyncMock(side_effect=not_found_err)
+    tlist.message = tlist_msg
+    await tlist.on_timeout()
+    assert all(child.disabled for child in tlist.walk_children() if hasattr(child, "disabled"))
+
+    # 6. TemplateBuilderView
+    tbuilder = TemplateBuilderView(MagicMock(), author_id=123, name="tpl", data={})
+    tb_msg = MagicMock()
+    tb_msg.edit = AsyncMock(side_effect=not_found_err)
+    tbuilder.message = tb_msg
+    await tbuilder.on_timeout()
+    assert all(child.disabled for child in tbuilder.walk_children() if hasattr(child, "disabled"))
+
+    # 7. TOTPRefreshView
+    totp = TOTPRefreshView("JBSWY3DPEHPK3PXP", author_id=123)
+    totp_msg = MagicMock()
+    totp_msg.edit = AsyncMock(side_effect=not_found_err)
+    totp.message = totp_msg
+    await totp.on_timeout()
+    assert all(child.disabled for child in totp.walk_children() if hasattr(child, "disabled"))
+
+
+@pytest.mark.asyncio
+async def test_view_on_error_suppresses_not_found() -> None:
+    from api.buttons import ConfirmView
+    from cogs.games import MinesView, TicTacToeView
+    from cogs.template import TemplateBuilderView, TemplateListView
+    from cogs.tools import TOTPRefreshView
+
+    response = MagicMock()
+    response.status = 404
+    response.reason = "Not Found"
+    not_found_err = discord.NotFound(response, {"message": "Unknown Message", "code": 10008})
+    interaction = MagicMock()
+    item = MagicMock()
+
+    views = [
+        EmbedPaginator([discord.Embed(title="test")]),
+        ConfirmView(author_id=123, prompt="Are you sure?"),
+        TicTacToeView(player_x=SimpleNamespace(id=1, mention="<@1>"), player_o=SimpleNamespace(id=2, mention="<@2>")),
+        MinesView(player_id=1, num_mines=3),
+        TemplateListView(author_id=123, templates=[]),
+        TemplateBuilderView(MagicMock(), author_id=123, name="tpl", data={}),
+        TOTPRefreshView("JBSWY3DPEHPK3PXP", author_id=123),
+    ]
+
+    for view in views:
+        # Should cleanly return None and not raise
+        await view.on_error(interaction, not_found_err, item)
+
+
+@pytest.mark.asyncio
+async def test_bot_error_handlers_suppress_unknown_interaction_and_message() -> None:
+    bot = Amenity()
+
+    ctx = MagicMock()
+    ctx.command = MagicMock()
+    ctx.reply = AsyncMock()
+    ctx.send_help = AsyncMock()
+
+    interaction = MagicMock()
+    interaction.response.is_done.return_value = False
+    interaction.response.send_message = AsyncMock()
+    interaction.followup.send = AsyncMock()
+
+    resp_10062 = MagicMock(status=404, reason="Not Found")
+    err_10062 = discord.NotFound(resp_10062, {"message": "Unknown interaction", "code": 10062})
+
+    resp_10008 = MagicMock(status=404, reason="Not Found")
+    err_10008 = discord.NotFound(resp_10008, {"message": "Unknown Message", "code": 10008})
+
+    # on_command_error should silently return on 10062 and 10008
+    await bot.on_command_error(ctx, err_10062)
+    await bot.on_command_error(ctx, err_10008)
+    ctx.reply.assert_not_called()
+    ctx.send_help.assert_not_called()
+
+    # on_app_command_error should silently return on 10062 and 10008
+    await bot.on_app_command_error(interaction, err_10062)
+    await bot.on_app_command_error(interaction, err_10008)
+    interaction.response.send_message.assert_not_called()
+    interaction.followup.send.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_on_app_command_error_send_error_handles_view_properly() -> None:
+    bot = Amenity()
+    interaction = MagicMock()
+    interaction.response.is_done.return_value = False
+    interaction.response.send_message = AsyncMock()
+    interaction.followup.send = AsyncMock()
+
+    class TestUnexpectedError(discord.app_commands.AppCommandError):
+        pass
+
+    with patch("core.amenity.log_app_command_error", AsyncMock()), pytest.raises(TestUnexpectedError):
+        await bot.on_app_command_error(interaction, TestUnexpectedError("unexpected failure"))
+
+    interaction.response.send_message.assert_called_once()
+    kwargs = interaction.response.send_message.call_args.kwargs
+    assert "view" in kwargs
+    assert isinstance(kwargs["view"], discord.ui.LayoutView)
+
+
+def test_tictactoe_early_tie_detection() -> None:
+    from cogs.games import TicTacToeView
+
+    view = TicTacToeView(
+        player_x=SimpleNamespace(id=1, mention="<@1>"),
+        player_o=SimpleNamespace(id=2, mention="<@2>"),
+    )
+
+    # Empty board: still fully winnable for both players.
+    assert view.check_winner() is None
+
+    # Every line contains both symbols, but a square is still empty —
+    # game should be declared a tie without filling the board.
+    view.board = [
+        [view.X, view.X, view.O],
+        [view.O, view.O, view.X],
+        [view.X, view.O, 0],
+    ]
+    assert any(cell == 0 for row in view.board for cell in row)
+    assert view.check_winner() == TicTacToeView.TIE
+
+    # A live board with empty squares keeps the game running.
+    view.board = [
+        [view.X, view.O, 0],
+        [0, view.X, 0],
+        [0, 0, view.O],
+    ]
+    assert view.check_winner() is None
+
+    # A line that is still winnable by one side is not a tie.
+    view.board = [
+        [view.X, view.O, view.O],
+        [view.O, view.X, view.X],
+        [view.X, view.O, 0],
+    ]
+    # Diagonal [X, X, -] is live for X, so the game continues.
+    assert view.check_winner() is None

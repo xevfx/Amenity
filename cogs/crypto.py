@@ -380,6 +380,7 @@ class Crypto(commands.Cog):
     @app_commands.describe(address="The Litecoin address to check")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def ltc_balance(self, ctx: commands.Context, address: str) -> None:
+        await ctx.defer()
         address = address.strip()
         if not address:
             await self._send_embed(ctx, "Usage: /balance ltc <address>", ephemeral=False)
@@ -446,6 +447,7 @@ class Crypto(commands.Cog):
     @app_commands.describe(address="The Ethereum address to check")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def eth_balance(self, ctx: commands.Context, address: str) -> None:
+        await ctx.defer()
         address = address.strip()
         if not address:
             await self._send_embed(ctx, "Usage: /balance eth <address>", ephemeral=False)
@@ -512,6 +514,7 @@ class Crypto(commands.Cog):
     @app_commands.describe(address="The Solana address to check")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def sol_balance(self, ctx: commands.Context, address: str) -> None:
+        await ctx.defer()
         address = address.strip()
         if not address:
             await self._send_embed(ctx, "Usage: /balance sol <address>", ephemeral=False)
@@ -564,6 +567,7 @@ class Crypto(commands.Cog):
     @app_commands.describe(address="The BSC address to check")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def usdt_bep20_balance(self, ctx: commands.Context, address: str) -> None:
+        await ctx.defer()
         address = address.strip()
         if not address:
             await self._send_embed(ctx, "Usage: /balance usdt-bep20 <address>", ephemeral=False)
@@ -626,6 +630,7 @@ class Crypto(commands.Cog):
     @app_commands.describe(tx_hash="The Litecoin transaction hash (TXID)")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def ltc_txid(self, ctx: commands.Context, tx_hash: str) -> None:
+        await ctx.defer()
         tx_hash = tx_hash.strip()
         if not tx_hash:
             await self._send_embed(ctx, "Usage: /txid ltc <tx_hash>", ephemeral=False)
@@ -733,6 +738,7 @@ class Crypto(commands.Cog):
     @app_commands.describe(tx_hash="The Bitcoin transaction hash (TXID)")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def btc_txid(self, ctx: commands.Context, tx_hash: str) -> None:
+        await ctx.defer()
         tx_hash = tx_hash.strip()
         if not tx_hash:
             await self._send_embed(ctx, "Usage: /txid btc <tx_hash>", ephemeral=False)
@@ -836,6 +842,7 @@ class Crypto(commands.Cog):
     @app_commands.describe(tx_hash="The Solana transaction hash (signature)")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def sol_txid(self, ctx: commands.Context, tx_hash: str) -> None:
+        await ctx.defer()
         tx_hash = tx_hash.strip()
         if not tx_hash:
             await self._send_embed(ctx, "Usage: /txid sol <tx_hash>", ephemeral=False)
@@ -934,6 +941,7 @@ class Crypto(commands.Cog):
     @app_commands.describe(tx_hash="The Ethereum transaction hash (TXID)")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def eth_txid(self, ctx: commands.Context, tx_hash: str) -> None:
+        await ctx.defer()
         tx_hash = tx_hash.strip()
         if not tx_hash:
             await self._send_embed(ctx, "Usage: /txid eth <tx_hash>", ephemeral=False)
@@ -1035,6 +1043,7 @@ class Crypto(commands.Cog):
     @app_commands.describe(tx_hash="The BSC transaction hash")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def usdt_bep20_txid(self, ctx: commands.Context, tx_hash: str) -> None:
+        await ctx.defer()
         tx_hash = tx_hash.strip()
         if not tx_hash:
             await self._send_embed(ctx, "Usage: /txid usdt-bep20 <tx_hash>", ephemeral=False)
@@ -1157,6 +1166,7 @@ class Crypto(commands.Cog):
     @app_commands.describe(coin="The cryptocurrency to get the price of")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def crypto_price(self, ctx: commands.Context, *, coin: str) -> None:
+        await ctx.defer()
         """
         Get the price of a cryptocurrency.
         Examples: ,price btc | ,price bitcoin | ,price eth
@@ -1241,6 +1251,7 @@ class Crypto(commands.Cog):
         fromm: str,
         to: str,
     ) -> None:
+        await ctx.defer()
         """
         Convert between any currencies (crypto & fiat).
         Examples:

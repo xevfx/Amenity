@@ -1,4 +1,6 @@
+import contextlib
 import random
+from typing import Any
 
 import discord
 from discord import app_commands
@@ -66,7 +68,8 @@ class TicTacToeButton(discord.ui.Button["TicTacToeView"]):
 
         # Enforce that only the current player can make a move
         if interaction.user.id != view.current_player_id:
-            await interaction.response.send_message("It's not your turn!", ephemeral=True)
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.send_message("It's not your turn!", ephemeral=True)
             return
 
         # Determine the symbol and update button state
@@ -103,7 +106,8 @@ class TicTacToeButton(discord.ui.Button["TicTacToeView"]):
             content = view.turn_message()
 
         view.status.content = content
-        await interaction.response.edit_message(view=view)
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=view)
 
 
 class TicTacToeView(discord.ui.LayoutView):
@@ -117,6 +121,7 @@ class TicTacToeView(discord.ui.LayoutView):
         self.player_o = player_o
         self.turn = self.X
         self.current_player_id = player_x.id
+        self.message: discord.Message | None = None
 
         # Initialize a 3x3 internal tracking grid
         self.board = [
@@ -165,11 +170,43 @@ class TicTacToeView(discord.ui.LayoutView):
         if diag1 == -3 or diag2 == -3:
             return self.O
 
+        # Guaranteed-tie detection: if every line already contains both
+        # symbols, neither player can complete a line — the game is a
+        # draw even if empty squares remain.
+        if not self._can_win(self.X) and not self._can_win(self.O):
+            return self.TIE
+
         # Check for tie (no empty spaces left)
         if all(cell != 0 for row in self.board for cell in row):
             return self.TIE
 
         return None
+
+    def _can_win(self, player: int) -> bool:
+        """Return True if some line could still be completed with only this player's marks."""
+        board = self.board
+        lines = (
+            *[board[x] for x in range(3)],  # rows
+            *([board[k][y] for k in range(3)] for y in range(3)),  # columns
+            [board[0][0], board[1][1], board[2][2]],  # main diagonal
+            [board[0][2], board[1][1], board[2][0]],  # anti-diagonal
+        )
+        return any(all(cell in (0, player) for cell in line) for line in lines)
+
+    async def on_timeout(self) -> None:
+        self.stop()
+        _disable_buttons(self)
+        self.status.content = "⏰ **Tic-Tac-Toe timed out.**"
+        if self.message is not None:
+            with contextlib.suppress(discord.HTTPException):
+                await self.message.edit(view=self)
+
+    async def on_error(
+                    self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]
+                ) -> None:
+        if isinstance(error, discord.NotFound):
+            return
+        log_exception(error)
 
 
 class MinesTileButton(discord.ui.Button["MinesView"]):
@@ -184,7 +221,8 @@ class MinesTileButton(discord.ui.Button["MinesView"]):
 
         # Guard: Only the game initiator can play
         if interaction.user.id != view.player_id:
-            await interaction.response.send_message("This isn't your game!", ephemeral=True)
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.send_message("This isn't your game!", ephemeral=True)
             return
 
         # Check if hit a bomb or a diamond
@@ -208,7 +246,8 @@ class MinesTileButton(discord.ui.Button["MinesView"]):
             else:
                 # Update grid view and continue playing
                 view.status.content = view.get_status_message()
-                await interaction.response.edit_message(view=view)
+                with contextlib.suppress(discord.HTTPException):
+                    await interaction.response.edit_message(view=view)
 
 
 class MinesView(discord.ui.LayoutView):
@@ -218,6 +257,7 @@ class MinesView(discord.ui.LayoutView):
         self.num_mines = num_mines
         self.diamonds_found = 0
         self.total_diamonds = 25 - num_mines
+        self.message: discord.Message | None = None
 
         # Setup internal 5x5 grid layout
         # 'D' for Diamond, 'B' for Bomb
@@ -269,7 +309,23 @@ class MinesView(discord.ui.LayoutView):
             )
 
         self.status.content = f"{header}\n\n{self.get_status_message()}"
-        await interaction.response.edit_message(view=self)
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
+
+    async def on_timeout(self) -> None:
+        self.stop()
+        _disable_buttons(self)
+        self.status.content = f"⏰ **Mines game timed out.**\n\n{self.get_status_message()}"
+        if self.message is not None:
+            with contextlib.suppress(discord.HTTPException):
+                await self.message.edit(view=self)
+
+    async def on_error(
+                    self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]
+                ) -> None:
+        if isinstance(error, discord.NotFound):
+            return
+        log_exception(error)
 
 
 class Games(commands.Cog):
@@ -297,14 +353,15 @@ class Games(commands.Cog):
         """Send a Components V2 text panel (name kept for internal call-site compatibility)."""
         content = f"## {title}\n{description}" if title else description
         view = _text_panel(content, accent_colour=color)
-        if ctx.interaction:
-            # prefer followup if initial response is done
-            if ctx.interaction.response.is_done():
-                await ctx.interaction.followup.send(view=view, ephemeral=ephemeral)
-            else:
-                await ctx.interaction.response.send_message(view=view, ephemeral=ephemeral)
-            return
-        await ctx.send(view=view)
+        with contextlib.suppress(discord.HTTPException):
+            if ctx.interaction:
+                # prefer followup if initial response is done
+                if ctx.interaction.response.is_done():
+                    await ctx.interaction.followup.send(view=view, ephemeral=ephemeral)
+                else:
+                    await ctx.interaction.response.send_message(view=view, ephemeral=ephemeral)
+                return
+            await ctx.send(view=view)
 
     @commands.hybrid_command(name="coinflip", description="Flip a coin.")
     @app_commands.describe(side="Optional: call heads or tails")
@@ -328,6 +385,8 @@ class Games(commands.Cog):
                 )
             else:
                 await self._send_embed(ctx, f"The coin landed **{result.upper()}**.", title="Coin Flip")
+        except discord.NotFound:
+            return
         except Exception as exc:
             log_exception(exc)
             await self._send_embed(ctx, "An error occurred while flipping the coin.", ephemeral=True)
@@ -365,6 +424,7 @@ class Games(commands.Cog):
                 def __init__(self) -> None:
                     super().__init__(timeout=30)
                     self.accepted: bool | None = None
+                    self.message: discord.Message | None = None
                     self.status = discord.ui.TextDisplay(
                         f"{opponent.mention}, you have been challenged to Blackjack by {ctx.author.mention}."
                     )
@@ -378,30 +438,47 @@ class Games(commands.Cog):
 
                 async def _accept(self, interaction: discord.Interaction) -> None:
                     if interaction.user.id != opponent.id:
-                        await interaction.response.send_message("Only the challenged user may accept.", ephemeral=True)
+                        with contextlib.suppress(discord.HTTPException):
+                            await interaction.response.send_message(
+                            "Only the challenged user may accept.", ephemeral=True
+                        )
                         return
                     self.accepted = True
                     _disable_buttons(self)
                     self.status.content = f"{opponent.mention} accepted the challenge!"
-                    await interaction.response.edit_message(view=self)
+                    with contextlib.suppress(discord.HTTPException):
+                        await interaction.response.edit_message(view=self)
                     self.stop()
 
                 async def _decline(self, interaction: discord.Interaction) -> None:
                     if interaction.user.id != opponent.id:
-                        await interaction.response.send_message("Only the challenged user may decline.", ephemeral=True)
+                        with contextlib.suppress(discord.HTTPException):
+                            await interaction.response.send_message(
+                            "Only the challenged user may decline.", ephemeral=True
+                        )
                         return
                     self.accepted = False
                     _disable_buttons(self)
                     self.status.content = "Challenge declined."
-                    await interaction.response.edit_message(view=self)
+                    with contextlib.suppress(discord.HTTPException):
+                        await interaction.response.edit_message(view=self)
                     self.stop()
+
+                async def on_error(
+                    self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]
+                ) -> None:
+                    if isinstance(error, discord.NotFound):
+                        return
+                    log_exception(error)
 
             chal_view = BJChallengeView()
             chal_msg = await ctx.send(view=chal_view)
+            chal_view.message = chal_msg
 
             timed_out = await chal_view.wait()
             if timed_out or chal_view.accepted is None:
-                await chal_msg.edit(view=_text_panel("Challenge timed out."))
+                with contextlib.suppress(discord.HTTPException):
+                    await chal_msg.edit(view=_text_panel("Challenge timed out."))
                 return
             if not chal_view.accepted:
                 return
@@ -426,6 +503,7 @@ class Games(commands.Cog):
                     self.finished = False
                     self.finished_players: set[int] = set()
                     self.hand_messages: dict[int, discord.WebhookMessage] = {}
+                    self.message: discord.Message | None = None
 
                     self.status = discord.ui.TextDisplay(self.build_status_text())
                     self.container = discord.ui.Container(self.status, accent_colour=discord.Color.green())
@@ -448,15 +526,16 @@ class Games(commands.Cog):
                                 line += " 💥 (Bust)"
                         else:
                             if p.id not in interacted_players:
-                                line = f"**Hand:** {_hand_display(hands[p.id])} = **{val}**"
-                                if val == 21:
-                                    line += " ✨ (Blackjack!)"
-                                elif val > 21:
-                                    line += " 💥 (Bust)"
-                            else:
+                                # First two cards are dealt face-up; only later hits stay private.
                                 initial_two_cards = hands[p.id][:2]
                                 initial_value = _hand_value(initial_two_cards)
                                 line = f"**Hand:** {_hand_display(initial_two_cards)} = **{initial_value}**"
+                                if initial_value == 21:
+                                    line += " ✨ (Blackjack!)"
+                            else:
+                                line = f"**Cards:** {len(hands[p.id])}"
+                                if p.id in self.finished_players:
+                                    line += " *(Locked in)*"
 
                         name = getattr(p, "global_name", None) or p.name
                         parts.append(f"**{name}**\n{line}")
@@ -495,6 +574,22 @@ class Games(commands.Cog):
                         return f"{p1.mention} wins!"
                     return "It's a tie!"
 
+                async def on_timeout(self) -> None:
+                    if not self.finished:
+                        self.finished = True
+                        _disable_buttons(self)
+                        self.status.content = self.build_status_text("**Game Over** (Timed out)")
+                        if self.message is not None:
+                            with contextlib.suppress(discord.HTTPException):
+                                await self.message.edit(view=self)
+
+                async def on_error(
+                    self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]
+                ) -> None:
+                    if isinstance(error, discord.NotFound):
+                        return
+                    log_exception(error)
+
             class ActionButton(discord.ui.Button):
                 def __init__(self, action: str) -> None:
                     label = {"hit": "Hit", "stand": "Stand", "view_hand": "View My Hand"}[action]
@@ -509,27 +604,35 @@ class Games(commands.Cog):
                 async def callback(inner_self, interaction: discord.Interaction) -> None:
                     bj_view: BJView = inner_self.view  # type: ignore[assignment]
                     if interaction.user.id not in [p.id for p in players]:
-                        await interaction.response.send_message("You are not a player in this game.", ephemeral=True)
+                        with contextlib.suppress(discord.HTTPException):
+                            await interaction.response.send_message(
+                            "You are not a player in this game.", ephemeral=True
+                        )
                         return
 
                     pid = interaction.user.id
 
                     if inner_self.action == "view_hand":
-                        await interaction.response.send_message(
-                            view=bj_view.build_hand_panel(pid),
-                            ephemeral=True,
-                        )
-                        bj_view.hand_messages[pid] = await interaction.original_response()
+                        try:
+                            await interaction.response.send_message(
+                                view=bj_view.build_hand_panel(pid),
+                                ephemeral=True,
+                            )
+                            bj_view.hand_messages[pid] = await interaction.original_response()
+                        except discord.HTTPException:
+                            pass
                         return
 
                     if bj_view.finished:
-                        await interaction.response.send_message("Game already finished.", ephemeral=True)
+                        with contextlib.suppress(discord.HTTPException):
+                            await interaction.response.send_message("Game already finished.", ephemeral=True)
                         return
 
                     if pid in bj_view.finished_players or _hand_value(hands[pid]) >= 21:
-                        await interaction.response.send_message(
-                            "Your choices are locked in. Waiting on your opponent.", ephemeral=True
-                        )
+                        with contextlib.suppress(discord.HTTPException):
+                            await interaction.response.send_message(
+                                "Your choices are locked in. Waiting on your opponent.", ephemeral=True
+                            )
                         return
 
                     if inner_self.action == "hit":
@@ -545,33 +648,37 @@ class Games(commands.Cog):
                     if bj_view.check_game_over():
                         _disable_buttons(bj_view)
                         bj_view.status.content = bj_view.build_status_text(f"**Game Over**\n{bj_view.final_result()}")
-                        await interaction.response.edit_message(view=bj_view)
+                        with contextlib.suppress(discord.HTTPException):
+                            await interaction.response.edit_message(view=bj_view)
                     else:
                         bj_view.status.content = bj_view.build_status_text()
-                        await interaction.response.edit_message(view=bj_view)
+                        with contextlib.suppress(discord.HTTPException):
+                            await interaction.response.edit_message(view=bj_view)
                         if pid in bj_view.hand_messages:
                             try:
                                 await bj_view.hand_messages[pid].edit(view=bj_view.build_hand_panel(pid))
-                            except discord.NotFound:
+                            except discord.HTTPException:
                                 bj_view.hand_messages.pop(pid, None)
 
             view = BJView()
+            view.message = chal_msg
 
-            # FIX: Check natural deal conditions before starting layout processing
+            # A natural 21 on the opening two cards ends the game immediately.
             p1_val = _hand_value(hands[ctx.author.id])
             p2_val = _hand_value(hands[opponent.id])
-
-            # If anyone naturally deals a 21 or busts at startup, push them to finished state right away
-            if p1_val >= 21:
-                view.finished_players.add(ctx.author.id)
-            if p2_val >= 21:
-                view.finished_players.add(opponent.id)
-
-            if view.check_game_over():
+            if p1_val == 21 or p2_val == 21:
+                _disable_buttons(view)
+                view.finished = True
+                view.status.content = view.build_status_text(f"**Game Over** ✨\n{view.final_result()}")
+            elif view.check_game_over():
+                # Defensive: two cards can't exceed 21, but keep the generic lock for safety.
                 _disable_buttons(view)
                 view.status.content = view.build_status_text(f"**Game Over**\n{view.final_result()}")
-            await chal_msg.edit(view=view)
+            with contextlib.suppress(discord.HTTPException):
+                await chal_msg.edit(view=view)
 
+        except discord.NotFound:
+            return
         except Exception as exc:
             log_exception(exc)
             await self._send_embed(ctx, "An error occurred while playing Blackjack.", ephemeral=True)
@@ -616,12 +723,14 @@ class Games(commands.Cog):
         # Handle interaction/prefix differences gracefully matching your structural pattern
         if ctx.interaction:
             if ctx.interaction.response.is_done():
-                await ctx.interaction.followup.send(view=view, ephemeral=False)
+                view.message = await ctx.interaction.followup.send(view=view, ephemeral=False)
             else:
                 await ctx.interaction.response.send_message(view=view, ephemeral=False)
+                with contextlib.suppress(discord.HTTPException):
+                    view.message = await ctx.interaction.original_response()
             return
 
-        await ctx.send(view=view)
+        view.message = await ctx.send(view=view)
 
     @commands.hybrid_command(name="mines", description="Play a game of classic Mines to the finish.")
     @app_commands.describe(mines="The number of hidden mines on the board (Between 1 and 24)")
@@ -645,12 +754,14 @@ class Games(commands.Cog):
         # Follow framework context processing rules
         if ctx.interaction:
             if ctx.interaction.response.is_done():
-                await ctx.interaction.followup.send(view=view, ephemeral=False)
+                view.message = await ctx.interaction.followup.send(view=view, ephemeral=False)
             else:
                 await ctx.interaction.response.send_message(view=view, ephemeral=False)
+                with contextlib.suppress(discord.HTTPException):
+                    view.message = await ctx.interaction.original_response()
             return
 
-        await ctx.send(view=view)
+        view.message = await ctx.send(view=view)
 
 
 async def setup(bot: Amenity) -> None:

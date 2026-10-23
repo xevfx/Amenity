@@ -9,6 +9,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from pathlib import Path
+from typing import Any
 
 import discord
 from discord import app_commands
@@ -436,6 +437,10 @@ class Amenity(commands.Bot):
         if isinstance(exception, commands.CommandNotFound):
             return
 
+        original = getattr(exception, "original", exception)
+        if isinstance(original, discord.NotFound) and getattr(original, "code", None) in (10062, 10008):
+            return
+
         if isinstance(exception, commands.CommandOnCooldown):
             await context.reply(
                 f"Command on cooldown. Try again after {exception.retry_after:.2f} seconds.",
@@ -516,16 +521,21 @@ class Amenity(commands.Bot):
         interaction: discord.Interaction,
         exception: app_commands.AppCommandError,
     ) -> None:
-        async def send_error(message: str) -> None:
+        original = getattr(exception, "original", exception)
+        if isinstance(original, discord.NotFound) and getattr(original, "code", None) in (10062, 10008):
+            return
+
+        async def send_error(message: str, *, view: discord.ui.LayoutView | discord.ui.View | None = None) -> None:
             try:
+                kwargs: dict[str, Any] = {"ephemeral": True}
+                if view is not None:
+                    kwargs["view"] = view
                 if interaction.response.is_done():
-                    await interaction.followup.send(message, ephemeral=True)
+                    await interaction.followup.send(message, **kwargs)
                     return
-                await interaction.response.send_message(message, ephemeral=True)
+                await interaction.response.send_message(message, **kwargs)
             except discord.HTTPException:
                 return
-
-        original = getattr(exception, "original", exception)
 
         if isinstance(exception, app_commands.CommandOnCooldown) or isinstance(original, commands.CommandOnCooldown):
             retry_after = getattr(exception, "retry_after", getattr(original, "retry_after", 0.0))
@@ -548,7 +558,10 @@ class Amenity(commands.Bot):
             await send_error("You don't have permission to use this command.")
             return
 
-        await send_error("An unexpected error occurred. Please try again later.\n" \
-        "#- If the issue persists, report it via </report:1560593447474167905>", view=Links().button("Support", "https://amenityy.site/support"))
+        await send_error(
+            "An unexpected error occurred. Please try again later.\n"
+            "#- If the issue persists, report it via </report:1560593447474167905>",
+            view=Links.view("Support", "https://amenityy.site/support"),
+        )
         await log_app_command_error(interaction, exception)
         raise exception

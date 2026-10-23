@@ -6,13 +6,14 @@ import types
 import typing
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from api.emojis import Emoji
+from api.log import log_exception
 from core.app_commands import command_mention, load_persisted_command_ids
 from core.cache import cache
 
@@ -864,7 +865,8 @@ class HelpView(discord.ui.LayoutView):
         self.current_page = 0
         self.total_pages = 1
         self._update_components()
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
 
     async def show_group(self, interaction: discord.Interaction, group_name: str) -> None:
         if group_name == "other":
@@ -882,7 +884,8 @@ class HelpView(discord.ui.LayoutView):
         self.current_page = 0
         self.total_pages = 1
         self._update_components()
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
 
     async def build_cog_view(self, cog: commands.Cog | None) -> None:
         """Switch the view into cog mode and render its opening page."""
@@ -894,7 +897,8 @@ class HelpView(discord.ui.LayoutView):
 
     async def show_cog(self, interaction: discord.Interaction, cog: commands.Cog | None) -> None:
         await self.build_cog_view(cog)
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
 
     async def show_command(self, interaction: discord.Interaction, command: commands.Command) -> None:
         self.mode = "command"
@@ -909,22 +913,25 @@ class HelpView(discord.ui.LayoutView):
         )
         self.container.accent_colour = HELP_COMMAND_ACCENT_COLOR
         self._update_components()
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
 
     async def go_to_page(self, interaction: discord.Interaction, page: int) -> None:
         self.current_page = max(0, min(page, self.total_pages - 1))
         self._update_components()
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
 
     async def change_page(self, interaction: discord.Interaction, delta: int) -> None:
         await self.go_to_page(interaction, self.current_page + delta)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author.id:
-            await interaction.response.send_message(
-                "You cannot use this menu. Use `/help` to open your own.",
-                ephemeral=True,
-            )
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message(
+                    "You cannot use this menu. Use `/help` to open your own.",
+                    ephemeral=True,
+                )
             return False
         return True
 
@@ -935,6 +942,11 @@ class HelpView(discord.ui.LayoutView):
                     if hasattr(child, "disabled"):
                         child.disabled = True
                 await self.message.edit(view=self)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]) -> None:
+        if isinstance(error, discord.NotFound):
+            return
+        log_exception(error)
 
 
 class HelpCategorySelect(discord.ui.Select):
@@ -1022,7 +1034,8 @@ class HelpSearchModal(discord.ui.Modal, title="Search Commands"):
         help_view.total_pages = 0
         help_view.mode = "search"
         help_view._update_components()
-        await interaction.response.edit_message(view=help_view)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=help_view)
 
 
 class HelpFirstButton(discord.ui.Button):

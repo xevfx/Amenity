@@ -1,7 +1,10 @@
 import math
 from contextlib import suppress
+from typing import Any
 
 import discord
+
+from api.log import log_exception
 
 MAX_COMPONENT_TEXT_LENGTH = 4000
 
@@ -115,7 +118,8 @@ class EmbedPaginator(discord.ui.LayoutView):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Check if the user is authorized to use the paginator"""
         if self.author_id and interaction.user.id != self.author_id:
-            await interaction.response.send_message("You can't use this paginator!", ephemeral=True)
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message("You can't use this paginator!", ephemeral=True)
             return False
         return True
 
@@ -123,40 +127,49 @@ class EmbedPaginator(discord.ui.LayoutView):
         self.current_page = 0
         self.update_buttons()
         self._render_embed()
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
 
     async def _previous_page(self, interaction: discord.Interaction) -> None:
         self.current_page -= 1
         self.update_buttons()
         self._render_embed()
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
 
     async def _next_page(self, interaction: discord.Interaction) -> None:
         self.current_page += 1
         self.update_buttons()
         self._render_embed()
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
 
     async def _last_page(self, interaction: discord.Interaction) -> None:
         self.current_page = self.max_pages - 1
         self.update_buttons()
         self._render_embed()
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
 
     async def _delete_message(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
-        await interaction.delete_original_response()
+        with suppress(discord.HTTPException):
+            if not interaction.response.is_done():
+                await interaction.response.defer()
+            await interaction.delete_original_response()
 
     async def on_timeout(self) -> None:
         """Disable all buttons when the view times out"""
-        for item in self.children:
-            if isinstance(item, discord.ui.ActionRow):
-                for button in item.children:
-                    if isinstance(button, discord.ui.Button):
-                        button.disabled = True
+        for item in self.walk_children():
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
         if self.message is not None:
             with suppress(discord.HTTPException):
                 await self.message.edit(view=self)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]) -> None:
+        if isinstance(error, discord.NotFound):
+            return
+        log_exception(error)
 
 
 class PaginatorHelper:
@@ -256,49 +269,6 @@ class PaginatorHelper:
                 embed.set_footer(text=f"Page {page_index}/{total_pages} • Total items: {len(data)}")
             else:
                 embed.set_footer(text=f"Total items: {len(data)}")
-            embeds.append(embed)
-
-        return embeds
-
-    @staticmethod
-    def create_field_embeds(
-        data: list[dict],
-        title: str,
-        items_per_page: int = 5,
-        color: discord.Color = discord.Color.blue(),
-    ) -> list[discord.Embed]:
-        """
-        Create paginated embeds with fields from a list of dictionaries
-        Args:
-            data: List of dictionaries with 'name' and 'value' keys
-            title: Title for the embeds
-            items_per_page: Number of fields per page
-            color: Color for the embeds
-        Returns:
-            List of discord.Embed objects
-        """
-        if not data:
-            embed = discord.Embed(title=title, description="No data found.", color=color)
-            return [embed]
-
-        embeds = []
-        total_pages = math.ceil(len(data) / items_per_page)
-
-        for page in range(total_pages):
-            start_index = page * items_per_page
-            end_index = min(start_index + items_per_page, len(data))
-            page_data = data[start_index:end_index]
-
-            embed = discord.Embed(title=title, color=color)
-
-            for item in page_data:
-                embed.add_field(
-                    name=item.get("name", "Unknown"),
-                    value=item.get("value", "No value"),
-                    inline=item.get("inline", False),
-                )
-
-            embed.set_footer(text=f"Page {page + 1}/{total_pages} • Total: {len(data)} items")
             embeds.append(embed)
 
         return embeds
