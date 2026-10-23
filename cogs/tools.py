@@ -16,7 +16,7 @@ import time
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 try:
     import fcntl
@@ -554,25 +554,33 @@ class TOTPRefreshView(discord.ui.LayoutView):
         self.container.accent_colour = discord.Color.onyx_embed()
 
     async def on_timeout(self) -> None:
-        for item in self.children:
-            if isinstance(item, discord.ui.ActionRow):
-                for child in item.children:
-                    if isinstance(child, discord.ui.Button):
-                        child.disabled = True
+        for item in self.walk_children():
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
         if self.message is not None:
             with contextlib.suppress(discord.HTTPException):
                 await self.message.edit(view=self)
 
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]) -> None:
+        if isinstance(error, discord.NotFound):
+            return
+        log_exception(error)
+
     async def refresh_code(self, interaction: discord.Interaction) -> None:
         if interaction.user.id != self.author_id:
-            await interaction.response.send_message("This 2FA panel is not yours.", ephemeral=True)
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.send_message("This 2FA panel is not yours.", ephemeral=True)
             return
         try:
             self._render()
-            await interaction.response.edit_message(view=self)
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.edit_message(view=self)
+        except discord.NotFound:
+            return
         except Exception as exc:
             log_exception(exc)
-            await interaction.response.send_message("Failed to refresh the code.", ephemeral=True)
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.send_message("Failed to refresh the code.", ephemeral=True)
 
 
 def add_stroke_to_avatar(
@@ -2015,6 +2023,7 @@ class Tools(commands.Cog):
         """
         Shorten a URL using TinyURL
         """
+        await ctx.defer()
         if len(url) > 150:
             await ctx.reply(
                 embed=discord.Embed(
@@ -2165,6 +2174,7 @@ class Tools(commands.Cog):
     @commands.max_concurrency(50, commands.BucketType.default, wait=True)
     async def translate(self, ctx: commands.Context, to: str = None, *, text: str) -> None:
         """Translates the given text to the requested language."""
+        await ctx.defer()
         target = to or "en"
         resolved = _resolve_language(target)
         if resolved is None:

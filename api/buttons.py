@@ -1,9 +1,12 @@
 from collections.abc import Sequence
 from contextlib import suppress
+from typing import Any
 
 import discord
 from discord.ext import commands
 from discord.ui import Button, LayoutView, TextDisplay
+
+from api.log import log_exception
 
 from .emojis import Emoji
 
@@ -98,10 +101,11 @@ class ConfirmView(LayoutView):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
-            await interaction.response.send_message(
-                "This confirmation is not for you.",
-                ephemeral=True,
-            )
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message(
+                    "This confirmation is not for you.",
+                    ephemeral=True,
+                )
             return False
         return True
 
@@ -114,11 +118,9 @@ class ConfirmView(LayoutView):
         await self._finish(interaction)
 
     async def _finish(self, interaction: discord.Interaction) -> None:
-        for item in self.children:
-            if isinstance(item, discord.ui.ActionRow):
-                for child in item.children:
-                    if isinstance(child, Button):
-                        child.disabled = True
+        for item in self.walk_children():
+            if isinstance(item, Button):
+                item.disabled = True
         with suppress(discord.HTTPException):
             if interaction.response.is_done():
                 if interaction.message:
@@ -128,14 +130,17 @@ class ConfirmView(LayoutView):
         self.stop()
 
     async def on_timeout(self) -> None:
-        for item in self.children:
-            if isinstance(item, discord.ui.ActionRow):
-                for child in item.children:
-                    if isinstance(child, Button):
-                        child.disabled = True
+        for item in self.walk_children():
+            if isinstance(item, Button):
+                item.disabled = True
         if self.message:
             with suppress(discord.HTTPException):
                 await self.message.edit(view=self)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]) -> None:
+        if isinstance(error, discord.NotFound):
+            return
+        log_exception(error)
 
 
 async def confirm_action(
@@ -194,33 +199,3 @@ async def confirm_action(
             await message.edit(view=view)
 
     return view.value is True
-
-
-# bot_links = BotLinks(
-#     support_url="https://discord.gg/your-server",
-#     invite_url="https://discord.com/oauth2/authorize?client_id=123456789&scope=bot"
-# )
-# SupportServerLink = bot_links.support()
-
-
-# Usage:
-"""
-# Setup once
-bot_links = BotLinks(
-    support_url="https://discord.gg/your-server",
-    invite_url="https://discord.com/oauth2/authorize?client_id=123456789&scope=bot"
-)
-
-# Components V2 views carry all message content, so send the view without a
-# separate content or embed argument.
-async def links(ctx):
-    await ctx.send(view=bot_links.support())
-    await ctx.send(view=bot_links.invite())
-    await ctx.send(view=bot_links.both())
-
-# Custom links
-custom_view = Links.multi_view([
-    ("Website", "https://mysite.com", "🌐"),
-    ("GitHub", "https://github.com/myrepo", "🐙")
-])
-"""

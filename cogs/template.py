@@ -13,7 +13,7 @@ from discord.ext import commands
 
 from api.buttons import confirm_action
 from api.emojis import Emoji
-from api.log import log_command_error
+from api.log import log_command_error, log_exception
 from core.amenity import Amenity
 from core.cache import cache
 
@@ -275,8 +275,9 @@ class Template(commands.Cog):
         view = TemplateListView(ctx.author.id, templates)
         if ctx.interaction:
             await ctx.interaction.response.send_message(view=view, ephemeral=True)
+            view.message = await ctx.interaction.original_response()
             return
-        await ctx.send(view=view)
+        view.message = await ctx.send(view=view)
 
     @template.command(name="send", description="Send one of your templates", aliases=["s"])
     @app_commands.describe(name="Template name")
@@ -389,8 +390,9 @@ class Template(commands.Cog):
         view.render_preview(creating=creating)
         if ctx.interaction:
             await ctx.interaction.response.send_message(view=view, ephemeral=True)
+            view.message = await ctx.interaction.original_response()
             return
-        await ctx.send(view=view)
+        view.message = await ctx.send(view=view)
 
 
 def _embed_text(embed: discord.Embed) -> str:
@@ -471,6 +473,7 @@ class TemplateListView(discord.ui.LayoutView):
         super().__init__(timeout=120)
         self.author_id = author_id
         self.templates = templates
+        self.message: discord.Message | None = None
         self.select = TemplateSelect(templates)
         self.content_component = discord.ui.TextDisplay(self.build_index_text())
         self.container = discord.ui.Container(self.content_component)
@@ -479,7 +482,8 @@ class TemplateListView(discord.ui.LayoutView):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
-            await interaction.response.send_message("This template list is not for you.", ephemeral=True)
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message("This template list is not for you.", ephemeral=True)
             return False
         return True
 
@@ -489,6 +493,19 @@ class TemplateListView(discord.ui.LayoutView):
             f"## {Emoji.COMMAND.value} Your templates\n" + "\n".join(lines) + f"\n-# {len(self.templates)} template(s)"
         )
         return _escape_component_mentions(content)
+
+    async def on_timeout(self) -> None:
+        for child in self.walk_children():
+            if hasattr(child, "disabled"):
+                child.disabled = True
+        if self.message:
+            with suppress(discord.HTTPException):
+                await self.message.edit(view=self)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]) -> None:
+        if isinstance(error, discord.NotFound):
+            return
+        log_exception(error)
 
 
 class TemplateSelect(discord.ui.Select):
@@ -510,19 +527,22 @@ class TemplateSelect(discord.ui.Select):
         try:
             content, embed, view = build_template_payload(template)
         except TemplatePayloadTooLong as exc:
-            await interaction.response.send_message(str(exc), ephemeral=True)
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message(str(exc), ephemeral=True)
             return
         if view is not None:
-            await interaction.response.send_message(view=view, ephemeral=True)
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message(view=view, ephemeral=True)
             return
         if embed is None:
             embed = discord.Embed(title=f"Template: {template['name']}", description=content or "Empty template.")
             content = None
-        await interaction.response.send_message(
-            content=content,
-            embed=embed,
-            ephemeral=True,
-        )
+        with suppress(discord.HTTPException):
+            await interaction.response.send_message(
+                content=content,
+                embed=embed,
+                ephemeral=True,
+            )
 
 
 class TemplateBuilderView(discord.ui.LayoutView):
@@ -561,7 +581,8 @@ class TemplateBuilderView(discord.ui.LayoutView):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
-            await interaction.response.send_message("This template builder is not for you.", ephemeral=True)
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message("This template builder is not for you.", ephemeral=True)
             return False
         return True
 
@@ -583,7 +604,8 @@ class TemplateBuilderView(discord.ui.LayoutView):
 
     async def refresh(self, interaction: discord.Interaction) -> None:
         self.render_preview()
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
 
     async def text_button(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(TemplateTextModal(self))
@@ -604,50 +626,66 @@ class TemplateBuilderView(discord.ui.LayoutView):
         try:
             content, embed, view = build_template_payload(self.data)
         except TemplatePayloadTooLong as exc:
-            await interaction.response.send_message(str(exc), ephemeral=True)
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message(str(exc), ephemeral=True)
             return
         if content is None and embed is None and view is None:
-            await interaction.response.send_message("Add text or an embed before previewing.", ephemeral=True)
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message("Add text or an embed before previewing.", ephemeral=True)
             return
         message_kwargs: dict[str, Any] = {"ephemeral": True}
         if view is not None:
             message_kwargs["view"] = view
         else:
             message_kwargs.update(content=content, embed=embed)
-        await interaction.response.send_message(**message_kwargs)
+        with suppress(discord.HTTPException):
+            await interaction.response.send_message(**message_kwargs)
 
     async def save_button(self, interaction: discord.Interaction) -> None:
         if not self.data.get("content") and not self.data.get("embed"):
-            await interaction.response.send_message("Add text or an embed before saving.", ephemeral=True)
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message("Add text or an embed before saving.", ephemeral=True)
             return
         try:
             build_template_payload(self.data)
         except TemplatePayloadTooLong as exc:
-            await interaction.response.send_message(str(exc), ephemeral=True)
+            with suppress(discord.HTTPException):
+                await interaction.response.send_message(str(exc), ephemeral=True)
             return
-        await interaction.response.defer()
+        with suppress(discord.HTTPException):
+            await interaction.response.defer()
         await asyncio.to_thread(self.cog._save_template, self.author_id, self.name, self.data)
-        for item in self.buttons:
-            item.disabled = True
+        for item in self.walk_children():
+            if hasattr(item, "disabled"):
+                item.disabled = True
         self.content_component.content = f"Saved template `{self.name}`."
-        await interaction.edit_original_response(
-            view=self,
-        )
+        with suppress(discord.HTTPException):
+            await interaction.edit_original_response(
+                view=self,
+            )
         self.stop()
 
     async def cancel_button(self, interaction: discord.Interaction) -> None:
-        for item in self.buttons:
-            item.disabled = True
+        for item in self.walk_children():
+            if hasattr(item, "disabled"):
+                item.disabled = True
         self.content_component.content = "Canceled."
-        await interaction.response.edit_message(view=self)
+        with suppress(discord.HTTPException):
+            await interaction.response.edit_message(view=self)
         self.stop()
 
     async def on_timeout(self) -> None:
-        for item in self.buttons:
-            item.disabled = True
+        for item in self.walk_children():
+            if hasattr(item, "disabled"):
+                item.disabled = True
         if self.message:
             with suppress(discord.HTTPException):
                 await self.message.edit(view=self)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]) -> None:
+        if isinstance(error, discord.NotFound):
+            return
+        log_exception(error)
 
 
 class TemplateTextModal(discord.ui.Modal):

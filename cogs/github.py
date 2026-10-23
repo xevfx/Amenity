@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from contextlib import suppress
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote_plus
 
 import discord
@@ -82,6 +82,7 @@ class Github(commands.Cog):
         aliases=["profile", "pf"],
     )
     async def github_user(self, ctx: commands.Context, user: str) -> None:
+        await ctx.defer()
         query = user.strip()
         if not query:
             await ctx.send("Please provide a GitHub username.")
@@ -117,6 +118,7 @@ class Github(commands.Cog):
         aliases=["repository", "searchrepo", "reposearch", "search"],
     )
     async def reposearch(self, ctx: commands.Context, *, query: str) -> None:
+        await ctx.defer()
         try:
             api_url = (
                 f"https://api.github.com/search/repositories?q={quote_plus(query)}&sort=stars&order=desc&per_page=10"
@@ -222,7 +224,8 @@ class Github(commands.Cog):
                 async def _show_current(self, interaction: discord.Interaction) -> None:
                     self.update_buttons()
                     self._render_current()
-                    await interaction.response.edit_message(view=self)
+                    with suppress(discord.HTTPException):
+                        await interaction.response.edit_message(view=self)
 
                 def _render_current(self) -> None:
                     embed = make_embed(self.repos[self.index])
@@ -252,14 +255,19 @@ class Github(commands.Cog):
                     await self._show_current(interaction)
 
                 async def on_timeout(self) -> None:
-                    for row in self.children:
-                        if isinstance(row, discord.ui.ActionRow):
-                            for button in row.children:
-                                if isinstance(button, discord.ui.Button):
-                                    button.disabled = True
+                    for button in self.walk_children():
+                        if isinstance(button, discord.ui.Button):
+                            button.disabled = True
                     if self.message:
                         with suppress(discord.HTTPException):
                             await self.message.edit(view=self)
+
+                async def on_error(
+                    self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]
+                ) -> None:
+                    if isinstance(error, discord.NotFound):
+                        return
+                    log_exception(error)
 
             view = RepoPaginator(items)
             view._render_current()
@@ -276,6 +284,7 @@ class Github(commands.Cog):
     )
     @app_commands.describe(pr_url="The full URL of the GitHub Pull Request to fetch details for.")
     async def pr_info_cmd(self, ctx: commands.Context, pr_url: str) -> None:
+        await ctx.defer()
 
         # 1. Regex URL Parsing match check
         match = re.match(r"https?://github\.com/([^/]+)/([^/]+)/pull/(\d+)", pr_url.strip())
