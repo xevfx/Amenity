@@ -1973,7 +1973,7 @@ class Tools(commands.Cog):
             return
 
         clean_link = _remove_instagram_tracking(link)
-        newlink = clean_link.replace("instagram.com", "kkinstagram.com")
+        newlink = clean_link.replace("instagram.com", "kkclip.com")
         await ctx.reply(f"[Video]({newlink})", mention_author=False)
 
     @commands.hybrid_command(
