@@ -57,18 +57,11 @@ AI_MODELS: dict[str, AIModel] = {
         model_id="openai/gpt-oss-120b",
         env_var="GROQ",
     ),
-    "groq/compound": AIModel(
-        key="groq/compound",
-        provider="Groq",
-        label="Compound",
-        model_id="groq/compound",
-        env_var="GROQ",
-    ),
-    "openrouter/tencent/hy3:free": AIModel(
-        key="openrouter/tencent/hy3:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free": AIModel(
+        key="nvidia/nemotron-3-ultra-550b-a55b:free",
         provider="OpenRouter",
-        label="Tencent hy3",
-        model_id="tencent/hy3:free",
+        label="NVIDIA: Nemotron 3 Ultra",
+        model_id="nvidia/nemotron-3-ultra-550b-a55b:free",
         env_var="OPENROUTER",
     ),
 }
